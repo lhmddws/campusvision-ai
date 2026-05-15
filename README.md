@@ -1,101 +1,95 @@
-# CampusVision AI
+# CampusVision AI — 宿舍管理 AI 子服务
 
-> 校园视觉 AI 分析平台 — 基于深度学习的实时视频监控与智能分析系统
+> **学生管理系统的宿舍 AI 子服务** — 通过 4 路宿舍入口摄像头，自动识别人员进出，生成每晚查宿统计，替代辅导员人工查寝。
 
-CampusVision AI 是一套面向校园安防场景的 AI 视觉分析平台，覆盖视频流接入、AI 推理分析、数据存储、业务管理和前端可视化全链路。提供人员识别、轨迹追踪、智能告警等核心能力。
+CampusVision AI 是学生管理系统的子服务，覆盖从 RTSP 拉流、人脸识别到查宿统计的全链路。后端独立部署，后期接入主 SpringBoot 进程。前端页面在学管前端项目中统一管理，不存放于本仓库。
 
 ---
 
 ## 系统架构
 
 ```
-┌──────────────┐   RTSP
-│  摄像头设备    │──────────────┐
-│  (1080P H.264)│              │
-└──────────────┘              ▼
-                    ┌──────────────────┐
-                    │  Stream Gateway  │  ← Go / FFmpeg
-                    │  RTSP 拉流       │
-                    │  抽帧 · 重连     │
-                    └──────┬───────────┘
-                           │ Frames
-                    ┌──────▼───────────┐
-                    │   Kafka / Redis  │
-                    │   Stream         │
-                    └──────┬───────────┘
-                           │
-                    ┌──────▼───────────┐
-                    │   AI Engine      │  ← Python / TensorRT
-                    │   YOLO · Face    │
-                    │   ReID · Track   │
-                    └──────┬───────────┘
-                           │ Features / Vectors
-                    ┌──────▼───────────┐
-                    │   Data Layer     │
-                    │  PostgreSQL      │
-                    │  Redis · Milvus  │
-                    │  MinIO           │
-                    └──────┬───────────┘
-                           │
-                    ┌──────▼───────────┐
-                    │   Java Platform  │  ← Spring Boot
-                    │   业务 · 告警    │
-                    │   WebSocket      │
-                    └──────┬───────────┘
-                           │ REST / WS
-                    ┌──────▼───────────┐
-                    │   Vue3 Frontend  │  ← Web 管理端
-                    │   实时监控 · 轨迹 │
-                    │   告警 · 管理    │
-                    └──────────────────┘
+                    ┌──────────────────────────────┐
+                    │    学生管理系统 (学管)         │
+                    │  SpringBoot + Vue             │
+                    │  API: 人脸匹配 / 学生数据      │
+                    └──────────┬───────────────────┘
+                               │ REST API
+                               │
+                    ┌──────────▼───────────────────┐
+                    │  Dormitory Service (JAR)     │  ← Java Spring Boot
+                    │  • 人员状态管理               │     独立部署，后接入主进程
+                    │  • 每晚查宿统计               │
+                    │  • 报表/告警                  │
+                    │  • 全量配置可动态调整          │
+                    └──────────┬───────────────────┘
+                               │ Kafka t_dorm_event
+                               │
+                    ┌──────────▼───────────────────┐
+                    │  Face Recognition (Python)   │  ← 独立服务
+                    │  • 人脸检测 / 特征提取         │
+                    │  • 调学管 API 匹配身份         │
+                    │  • 进出方向判断               │
+                    │  • 本地缓存降级               │
+                    └──────────┬───────────────────┘
+                               │ Kafka t_dorm_frame
+                               │
+                    ┌──────────▼───────────────────┐
+                    │  Stream Gateway (Go)         │  ← 独立服务
+                    │  • RTSP 拉流 (4路)            │
+                    │  • 解码 + 动态抽帧            │
+                    │  • JPEG 编码 → Kafka         │
+                    └──────────┬───────────────────┘
+                               │ RTSP
+                               │
+                    ┌──────────▼───────────────────┐
+                    │  宿舍入口摄像头 × 4           │
+                    │  A/B/C/D 栋各 1 路            │
+                    └──────────────────────────────┘
 ```
 
 ## 核心能力
 
-### 👤 人员识别
-- 人脸识别 (InsightFace)
-- 人体检测 (YOLOv11)
-- ReID 跨摄像头追踪
-- 陌生人识别 & 黑名单告警
+### 🏠 自动查宿
+- 每晚定时（默认 23:00）自动统计归寝情况
+- 按楼栋/楼层/房间多级汇总
+- 已归 / 未归 / 晚归 / 陌生人明细
+- 替代辅导员上门查寝
 
-### 🎥 视频分析
-- 多路 RTSP 实时分析
-- GPU 硬件加速推理
-- 智能抽帧与结构化
+### 🚶 进出追踪
+- 4 路摄像头覆盖 4 栋宿舍楼入口
+- 实时判断人员进出（entry / exit）
+- 人脸识别 + 学管 API 身份匹配
+- 跨楼栋串门检测
 
-### 🚨 智能安防
-- 区域入侵检测
-- 越界检测
-- 人员聚集检测
-- 徘徊检测
-
-### 🗺️ 轨迹系统
-- 人员轨迹回放
-- 跨摄像头连续追踪
-- 时间轴分析
-- 区域热力图
+### ⚠️ 异常告警
+- 陌生人进入宿舍楼
+- 长时间未归（超时可配）
+- 跨楼栋非本楼人员进入
+- 摄像头离线检测
 
 ---
 
 ## 技术栈
 
-| 子系统 | 技术 |
-|--------|------|
-| **AI Engine** | Python, TensorRT, YOLOv11, ByteTrack, InsightFace, FastReID, FastAPI |
-| **Stream Gateway** | Go, FFmpeg, GStreamer, Kafka |
-| **Platform** | Spring Boot 3, Java 21, MyBatis Plus, Redis, PostgreSQL, Milvus, MinIO |
-| **Web** | Vue 3, TypeScript, Vite, Element Plus, Pinia, WebSocket, OpenLayers |
+| 子系统 | 技术 | 部署方式 |
+|--------|------|---------|
+| **Stream Gateway** | Go, FFmpeg | 独立容器 |
+| **Face Recognition** | Python, ONNX/TensorRT, FastAPI | 独立容器 |
+| **Dormitory Service** | Spring Boot 3, Java 17/21, MyBatis Plus | 独立 JAR → 接入主进程 |
+| **消息队列** | Kafka | 基础服务 |
+| **缓存** | Redis | 基础服务 |
+| **数据库** | PostgreSQL / MySQL | 基础服务 |
 
 ---
 
-## 子仓库
+## 服务模块
 
-| 仓库 | 职责 |
-|------|------|
-| `campusvision-ai-engine` | AI 推理服务：YOLO 检测、人脸识别、ReID、跟踪 |
-| `campusvision-stream-gateway` | RTSP 流处理：拉流、FFmpeg 解码、抽帧推送 |
-| `campusvision-platform` | Java 业务系统：用户、摄像头、告警、轨迹 |
-| `campusvision-web` | 前端系统：监控页面、管理后台、地图 |
+| 模块 | 职责 | 语言 |
+|------|------|------|
+| `stream-gateway` | 4 路 RTSP 拉流、解码、动态抽帧、Kafka 推送 | Go |
+| `face-recognition` | 人脸检测、特征提取、学管 API 身份匹配、进出判断 | Python |
+| `dormitory-service` | 状态管理、每晚查宿统计、报表、API 暴露、配置管理 | Java |
 
 ---
 
@@ -104,56 +98,34 @@ CampusVision AI 是一套面向校园安防场景的 AI 视觉分析平台，覆
 ### 前置要求
 
 - Docker & Docker Compose
-- NVIDIA GPU + CUDA (推理节点)
-- NVIDIA Container Toolkit (Docker GPU 支持)
+- 4 路 RTSP 摄像头（宿舍入口）
 
-### 基础依赖
+### 启动基础服务
 
 ```bash
-# 基础服务
-docker compose up -d kafka redis postgres milvus minio nginx
+docker compose up -d kafka redis postgres
 ```
 
 ### 启动 Stream Gateway
 
 ```bash
-# campusvision-stream-gateway
-go run cmd/gateway/main.go --config config.yaml
+cd stream-gateway
+go run cmd/main.go --config config.yaml
 ```
 
-### 启动 AI Engine
+### 启动 Face Recognition
 
 ```bash
-# campusvision-ai-engine
+cd face-recognition
 python app/main.py --config config.yaml
 ```
 
-### 启动 Platform
+### 启动 Dormitory Service
 
 ```bash
-# campusvision-platform
-java -jar target/campusvision-platform.jar
+cd dormitory-service
+java -jar target/dormitory-service.jar --spring.profiles.active=prod
 ```
-
-### 启动 Web
-
-```bash
-# campusvision-web
-npm install && npm run dev
-```
-
----
-
-## 硬件建议
-
-| GPU | 推荐摄像头数量 |
-|-----|---------------|
-| RTX 4070 | ~20 路 |
-| RTX 4090 | ~40 路 |
-| L40S | ~60+ 路 |
-| A100 | ~80+ 路 |
-
-> 摄像头：1080P / H.264 / RTSP / 红外夜视
 
 ---
 
@@ -161,9 +133,9 @@ npm install && npm run dev
 
 | 阶段 | 目标 | 完成内容 |
 |------|------|---------|
-| **Phase 1** | 基础 AI 识别 | RTSP 拉流 → YOLO 检测 → 人脸识别 → Java 接入 |
-| **Phase 2** | 轨迹分析 | ByteTrack → ReID → 轨迹查询 → 跨摄像头追踪 |
-| **Phase 3** | 智能安防 | 聚集检测 → 越界检测 → 陌生人告警 → 黑名单 |
+| **Phase 1 (MVP)** | 核心查宿闭环 | 4路拉流 → 人脸识别 → 进出判断 → 每晚查宿统计 |
+| **Phase 2** | 体验完善 | 动态抽帧、本地缓存降级、陌生人告警、历史趋势 |
+| **Phase 3** | 系统集成 | 接入主 SpringBoot 进程、统一认证 |
 
 ---
 
@@ -172,19 +144,21 @@ npm install && npm run dev
 | 文档 | 说明 |
 |------|------|
 | [架构设计](doc/main.md) | 系统架构、模块划分、技术选型 |
+| [产品需求（PRD）](doc/prd/README.md) | 完整 PRD 文档集（3 个模块） |
 | [开发指南](doc/development-guide.md) | 环境搭建、编码规范、Git 工作流 |
 | [部署指南](doc/deployment-guide.md) | 硬件要求、Docker Compose、配置说明 |
 
 ---
 
-## 安全
+## 与学管系统的关系
 
-- 全链路 HTTPS
-- 摄像头账号隔离
-- 内网部署
-- MinIO 权限控制
-- GPU 服务器网络隔离
-- Kafka ACL
+| 交互 | 方向 | 说明 |
+|------|------|------|
+| 人脸匹配 | Face Recognition → 学管 | 检测到人脸后调学管 API 获取身份 |
+| 学生数据同步 | Dormitory Service → 学管 | 定时拉取住宿学生信息 |
+| 查宿数据 | 学管 → Dormitory Service | 学管前端调本服务 API 展示查宿结果 |
+
+---
 
 ## License
 
