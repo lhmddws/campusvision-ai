@@ -1,93 +1,191 @@
-# Campusvision Ai
+# CampusVision AI
 
+> 校园视觉 AI 分析平台 — 基于深度学习的实时视频监控与智能分析系统
 
+CampusVision AI 是一套面向校园安防场景的 AI 视觉分析平台，覆盖视频流接入、AI 推理分析、数据存储、业务管理和前端可视化全链路。提供人员识别、轨迹追踪、智能告警等核心能力。
 
-## Getting started
+---
 
-To make it easy for you to get started with GitLab, here's a list of recommended next steps.
-
-Already a pro? Just edit this README.md and make it your own. Want to make it easy? [Use the template at the bottom](#editing-this-readme)!
-
-## Add your files
-
-- [ ] [Create](https://docs.gitlab.com/ee/user/project/repository/web_editor.html#create-a-file) or [upload](https://docs.gitlab.com/ee/user/project/repository/web_editor.html#upload-a-file) files
-- [ ] [Add files using the command line](https://docs.gitlab.com/ee/gitlab-basics/add-file.html#add-a-file-using-the-command-line) or push an existing Git repository with the following command:
+## 系统架构
 
 ```
-cd existing_repo
-git remote add origin http://192.168.113.82/lhmddws/campusvision-ai.git
-git branch -M main
-git push -uf origin main
+┌──────────────┐   RTSP
+│  摄像头设备    │──────────────┐
+│  (1080P H.264)│              │
+└──────────────┘              ▼
+                    ┌──────────────────┐
+                    │  Stream Gateway  │  ← Go / FFmpeg
+                    │  RTSP 拉流       │
+                    │  抽帧 · 重连     │
+                    └──────┬───────────┘
+                           │ Frames
+                    ┌──────▼───────────┐
+                    │   Kafka / Redis  │
+                    │   Stream         │
+                    └──────┬───────────┘
+                           │
+                    ┌──────▼───────────┐
+                    │   AI Engine      │  ← Python / TensorRT
+                    │   YOLO · Face    │
+                    │   ReID · Track   │
+                    └──────┬───────────┘
+                           │ Features / Vectors
+                    ┌──────▼───────────┐
+                    │   Data Layer     │
+                    │  PostgreSQL      │
+                    │  Redis · Milvus  │
+                    │  MinIO           │
+                    └──────┬───────────┘
+                           │
+                    ┌──────▼───────────┐
+                    │   Java Platform  │  ← Spring Boot
+                    │   业务 · 告警    │
+                    │   WebSocket      │
+                    └──────┬───────────┘
+                           │ REST / WS
+                    ┌──────▼───────────┐
+                    │   Vue3 Frontend  │  ← Web 管理端
+                    │   实时监控 · 轨迹 │
+                    │   告警 · 管理    │
+                    └──────────────────┘
 ```
 
-## Integrate with your tools
+## 核心能力
 
-- [ ] [Set up project integrations](http://192.168.113.82/lhmddws/campusvision-ai/-/settings/integrations)
+### 👤 人员识别
+- 人脸识别 (InsightFace)
+- 人体检测 (YOLOv11)
+- ReID 跨摄像头追踪
+- 陌生人识别 & 黑名单告警
 
-## Collaborate with your team
+### 🎥 视频分析
+- 多路 RTSP 实时分析
+- GPU 硬件加速推理
+- 智能抽帧与结构化
 
-- [ ] [Invite team members and collaborators](https://docs.gitlab.com/ee/user/project/members/)
-- [ ] [Create a new merge request](https://docs.gitlab.com/ee/user/project/merge_requests/creating_merge_requests.html)
-- [ ] [Automatically close issues from merge requests](https://docs.gitlab.com/ee/user/project/issues/managing_issues.html#closing-issues-automatically)
-- [ ] [Enable merge request approvals](https://docs.gitlab.com/ee/user/project/merge_requests/approvals/)
-- [ ] [Set auto-merge](https://docs.gitlab.com/ee/user/project/merge_requests/merge_when_pipeline_succeeds.html)
+### 🚨 智能安防
+- 区域入侵检测
+- 越界检测
+- 人员聚集检测
+- 徘徊检测
 
-## Test and Deploy
+### 🗺️ 轨迹系统
+- 人员轨迹回放
+- 跨摄像头连续追踪
+- 时间轴分析
+- 区域热力图
 
-Use the built-in continuous integration in GitLab.
+---
 
-- [ ] [Get started with GitLab CI/CD](https://docs.gitlab.com/ee/ci/quick_start/index.html)
-- [ ] [Analyze your code for known vulnerabilities with Static Application Security Testing (SAST)](https://docs.gitlab.com/ee/user/application_security/sast/)
-- [ ] [Deploy to Kubernetes, Amazon EC2, or Amazon ECS using Auto Deploy](https://docs.gitlab.com/ee/topics/autodevops/requirements.html)
-- [ ] [Use pull-based deployments for improved Kubernetes management](https://docs.gitlab.com/ee/user/clusters/agent/)
-- [ ] [Set up protected environments](https://docs.gitlab.com/ee/ci/environments/protected_environments.html)
+## 技术栈
 
-***
+| 子系统 | 技术 |
+|--------|------|
+| **AI Engine** | Python, TensorRT, YOLOv11, ByteTrack, InsightFace, FastReID, FastAPI |
+| **Stream Gateway** | Go, FFmpeg, GStreamer, Kafka |
+| **Platform** | Spring Boot 3, Java 21, MyBatis Plus, Redis, PostgreSQL, Milvus, MinIO |
+| **Web** | Vue 3, TypeScript, Vite, Element Plus, Pinia, WebSocket, OpenLayers |
 
-# Editing this README
+---
 
-When you're ready to make this README your own, just edit this file and use the handy template below (or feel free to structure it however you want - this is just a starting point!). Thanks to [makeareadme.com](https://www.makeareadme.com/) for this template.
+## 子仓库
 
-## Suggestions for a good README
+| 仓库 | 职责 |
+|------|------|
+| `campusvision-ai-engine` | AI 推理服务：YOLO 检测、人脸识别、ReID、跟踪 |
+| `campusvision-stream-gateway` | RTSP 流处理：拉流、FFmpeg 解码、抽帧推送 |
+| `campusvision-platform` | Java 业务系统：用户、摄像头、告警、轨迹 |
+| `campusvision-web` | 前端系统：监控页面、管理后台、地图 |
 
-Every project is different, so consider which of these sections apply to yours. The sections used in the template are suggestions for most open source projects. Also keep in mind that while a README can be too long and detailed, too long is better than too short. If you think your README is too long, consider utilizing another form of documentation rather than cutting out information.
+---
 
-## Name
-Choose a self-explaining name for your project.
+## 快速开始
 
-## Description
-Let people know what your project can do specifically. Provide context and add a link to any reference visitors might be unfamiliar with. A list of Features or a Background subsection can also be added here. If there are alternatives to your project, this is a good place to list differentiating factors.
+### 前置要求
 
-## Badges
-On some READMEs, you may see small images that convey metadata, such as whether or not all the tests are passing for the project. You can use Shields to add some to your README. Many services also have instructions for adding a badge.
+- Docker & Docker Compose
+- NVIDIA GPU + CUDA (推理节点)
+- NVIDIA Container Toolkit (Docker GPU 支持)
 
-## Visuals
-Depending on what you are making, it can be a good idea to include screenshots or even a video (you'll frequently see GIFs rather than actual videos). Tools like ttygif can help, but check out Asciinema for a more sophisticated method.
+### 基础依赖
 
-## Installation
-Within a particular ecosystem, there may be a common way of installing things, such as using Yarn, NuGet, or Homebrew. However, consider the possibility that whoever is reading your README is a novice and would like more guidance. Listing specific steps helps remove ambiguity and gets people to using your project as quickly as possible. If it only runs in a specific context like a particular programming language version or operating system or has dependencies that have to be installed manually, also add a Requirements subsection.
+```bash
+# 基础服务
+docker compose up -d kafka redis postgres milvus minio nginx
+```
 
-## Usage
-Use examples liberally, and show the expected output if you can. It's helpful to have inline the smallest example of usage that you can demonstrate, while providing links to more sophisticated examples if they are too long to reasonably include in the README.
+### 启动 Stream Gateway
 
-## Support
-Tell people where they can go to for help. It can be any combination of an issue tracker, a chat room, an email address, etc.
+```bash
+# campusvision-stream-gateway
+go run cmd/gateway/main.go --config config.yaml
+```
 
-## Roadmap
-If you have ideas for releases in the future, it is a good idea to list them in the README.
+### 启动 AI Engine
 
-## Contributing
-State if you are open to contributions and what your requirements are for accepting them.
+```bash
+# campusvision-ai-engine
+python app/main.py --config config.yaml
+```
 
-For people who want to make changes to your project, it's helpful to have some documentation on how to get started. Perhaps there is a script that they should run or some environment variables that they need to set. Make these steps explicit. These instructions could also be useful to your future self.
+### 启动 Platform
 
-You can also document commands to lint the code or run tests. These steps help to ensure high code quality and reduce the likelihood that the changes inadvertently break something. Having instructions for running tests is especially helpful if it requires external setup, such as starting a Selenium server for testing in a browser.
+```bash
+# campusvision-platform
+java -jar target/campusvision-platform.jar
+```
 
-## Authors and acknowledgment
-Show your appreciation to those who have contributed to the project.
+### 启动 Web
+
+```bash
+# campusvision-web
+npm install && npm run dev
+```
+
+---
+
+## 硬件建议
+
+| GPU | 推荐摄像头数量 |
+|-----|---------------|
+| RTX 4070 | ~20 路 |
+| RTX 4090 | ~40 路 |
+| L40S | ~60+ 路 |
+| A100 | ~80+ 路 |
+
+> 摄像头：1080P / H.264 / RTSP / 红外夜视
+
+---
+
+## 开发阶段
+
+| 阶段 | 目标 | 完成内容 |
+|------|------|---------|
+| **Phase 1** | 基础 AI 识别 | RTSP 拉流 → YOLO 检测 → 人脸识别 → Java 接入 |
+| **Phase 2** | 轨迹分析 | ByteTrack → ReID → 轨迹查询 → 跨摄像头追踪 |
+| **Phase 3** | 智能安防 | 聚集检测 → 越界检测 → 陌生人告警 → 黑名单 |
+
+---
+
+## 文档
+
+| 文档 | 说明 |
+|------|------|
+| [架构设计](doc/main.md) | 系统架构、模块划分、技术选型 |
+| [开发指南](doc/development-guide.md) | 环境搭建、编码规范、Git 工作流 |
+| [部署指南](doc/deployment-guide.md) | 硬件要求、Docker Compose、配置说明 |
+
+---
+
+## 安全
+
+- 全链路 HTTPS
+- 摄像头账号隔离
+- 内网部署
+- MinIO 权限控制
+- GPU 服务器网络隔离
+- Kafka ACL
 
 ## License
-For open source projects, say how it is licensed.
 
-## Project status
-If you have run out of energy or time for your project, put a note at the top of the README saying that development has slowed down or stopped completely. Someone may choose to fork your project or volunteer to step in as a maintainer or owner, allowing your project to keep going. You can also make an explicit request for maintainers.
+MIT
