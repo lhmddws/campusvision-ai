@@ -1,18 +1,22 @@
 # CampusVision AI — 产品需求文档 (PRD)
 
-> **总版本**: v2.0 · **最后更新**: 2026-05-15 · **状态**: 初稿  
+> **总版本**: v3.0 · **最后更新**: 2026-05-15 · **状态**: 初稿  
 > **范围说明**: 本 PRD 基于实际需求重新聚焦，定位为**学生管理系统的宿舍管理 AI 子服务**，非通用安防平台。
+>
+> **双人协作映射**: 感知层（PRD-001/002）←你→ 业务层（PRD-003/004/005）←搭档→
 
 ---
 
 ## 文档索引
 
-| 编号 | 模块 | 文件 | 行数 | 核心内容 |
-|------|------|------|------|---------|
-| PRD-001 | **Stream Gateway** | [01-stream-gateway.md](01-stream-gateway.md) | 840 | RTSP 拉流 → 解码 → 动态抽帧 → Kafka 推送 |
-| PRD-002 | **Face Recognition** | [02-face-recognition.md](02-face-recognition.md) | 1,255 | 人脸检测 → 特征提取 → 学管 API 匹配 → 进出判断 |
-| PRD-003 | **Dormitory Service** | [03-dormitory-service.md](03-dormitory-service.md) | 1,927 | 状态管理 → 每晚查宿统计 → 报表 → API 暴露 |
-| **合计** | | | **4,022** | |
+| 编号 | 模块 | 文件 | 行数 | 核心内容 | 负责人 |
+|------|------|------|------|---------|--------|
+| PRD-001 | **Stream Gateway** | [01-stream-gateway.md](01-stream-gateway.md) | 840 | RTSP 拉流 → 解码 → 动态抽帧 → Kafka 推送 | **你** |
+| PRD-002 | **Face Recognition** | [02-face-recognition.md](02-face-recognition.md) | 1,255 | 人脸检测 → 特征提取 → 学管 API 匹配 → 进出判断 | **你** |
+| PRD-003 | **Dormitory Service** | [03-dormitory-service.md](03-dormitory-service.md) | 1,927 | 状态管理 → 每晚查宿统计 → 报表 → API 暴露 | **搭档**（完整版） |
+| PRD-004 | **主进程对接** | [04-main-process-integration.md](04-main-process-integration.md) | — | 业务核心：事件消费→状态→查宿→API→接入主进程 | **搭档** |
+| PRD-005 | **摄像头功能实现** | [05-camera-management.md](05-camera-management.md) | — | 摄像头设备管理、状态监控、配置管理、抓拍查看 | **搭档** |
+| **合计** | | | **4,022+** | | |
 
 ---
 
@@ -24,15 +28,21 @@
       │
       ├── 学管核心服务 (同步开发中)
       │    ├── 学生管理、班级管理、成绩等
-      │    └── API: /api/sims/face/match, /api/sims/students/dormitory
+      │    └── API: /sims/face/match, /sims/students/dormitory
       │
-      └── Dormitory AI 子服务 ← 本仓库
-            ├── 01 Stream Gateway (Go)
-            ├── 02 Face Recognition (Python)
-            └── 03 Dormitory Service (Java JAR)
+      └── Dormitory AI 子服务 ← 本仓库（双人协作）
+            │
+            ├─── 你（感知层）─────────────── 搭档（业务层）───┐
+            │                                              │
+            ├ 01 Stream Gateway (Go)         ├ 03 Dormitory Service (Java JAR)
+            ├ 02 Face Recognition (Python)   ├ 04 主进程对接（聚焦版）
+            │                                ├ 05 摄像头功能实现
+            │           Kafka 桥接            │
+            │  t_dorm_frame → t_dorm_event ──►  事件消费→状态→查宿→API
 ```
 
-**核心业务目标**: 每晚自动查宿，统计学生归寝情况，替代辅导员人工查寝。
+**核心业务目标**: 每晚自动查宿，统计学生归寝情况，替代辅导员人工查寝。  
+**协作模式**: 感知层 Kafka 产出的 `t_dorm_event` 是双方唯一耦合点，两侧独立开发。
 
 ---
 
@@ -220,3 +230,4 @@ Dormitory Service ──GET /sims/students/dormitory (待新增)──→ 学管
 | 架构设计 | 系统架构、模块划分、技术选型 | [doc/main.md](../main.md) |
 | 开发指南 | 环境搭建、编码规范、Git 工作流 | [doc/development-guide.md](../development-guide.md) |
 | 部署指南 | 硬件要求、Docker Compose、配置说明 | [doc/deployment-guide.md](../deployment-guide.md) |
+| **双人分工指南** | 感知层 vs 业务层详细分工、接口契约、AI 实现指示 | [team-division.md](team-division.md) |
