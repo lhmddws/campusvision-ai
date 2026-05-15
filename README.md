@@ -1,93 +1,165 @@
-# Campusvision Ai
+# CampusVision AI — 宿舍管理 AI 子服务
 
+> **学生管理系统的宿舍 AI 子服务** — 通过 4 路宿舍入口摄像头，自动识别人员进出，生成每晚查宿统计，替代辅导员人工查寝。
 
+CampusVision AI 是学生管理系统的子服务，覆盖从 RTSP 拉流、人脸识别到查宿统计的全链路。后端独立部署，后期接入主 SpringBoot 进程。前端页面在学管前端项目中统一管理，不存放于本仓库。
 
-## Getting started
+---
 
-To make it easy for you to get started with GitLab, here's a list of recommended next steps.
-
-Already a pro? Just edit this README.md and make it your own. Want to make it easy? [Use the template at the bottom](#editing-this-readme)!
-
-## Add your files
-
-- [ ] [Create](https://docs.gitlab.com/ee/user/project/repository/web_editor.html#create-a-file) or [upload](https://docs.gitlab.com/ee/user/project/repository/web_editor.html#upload-a-file) files
-- [ ] [Add files using the command line](https://docs.gitlab.com/ee/gitlab-basics/add-file.html#add-a-file-using-the-command-line) or push an existing Git repository with the following command:
+## 系统架构
 
 ```
-cd existing_repo
-git remote add origin http://192.168.113.82/lhmddws/campusvision-ai.git
-git branch -M main
-git push -uf origin main
+                    ┌──────────────────────────────┐
+                    │    学生管理系统 (学管)         │
+                    │  SpringBoot + Vue             │
+                    │  API: 人脸匹配 / 学生数据      │
+                    └──────────┬───────────────────┘
+                               │ REST API
+                               │
+                    ┌──────────▼───────────────────┐
+                    │  Dormitory Service (JAR)     │  ← Java Spring Boot
+                    │  • 人员状态管理               │     独立部署，后接入主进程
+                    │  • 每晚查宿统计               │
+                    │  • 报表/告警                  │
+                    │  • 全量配置可动态调整          │
+                    └──────────┬───────────────────┘
+                               │ Kafka t_dorm_event
+                               │
+                    ┌──────────▼───────────────────┐
+                    │  Face Recognition (Python)   │  ← 独立服务
+                    │  • 人脸检测 / 特征提取         │
+                    │  • 调学管 API 匹配身份         │
+                    │  • 进出方向判断               │
+                    │  • 本地缓存降级               │
+                    └──────────┬───────────────────┘
+                               │ Kafka t_dorm_frame
+                               │
+                    ┌──────────▼───────────────────┐
+                    │  Stream Gateway (Go)         │  ← 独立服务
+                    │  • RTSP 拉流 (4路)            │
+                    │  • 解码 + 动态抽帧            │
+                    │  • JPEG 编码 → Kafka         │
+                    └──────────┬───────────────────┘
+                               │ RTSP
+                               │
+                    ┌──────────▼───────────────────┐
+                    │  宿舍入口摄像头 × 4           │
+                    │  A/B/C/D 栋各 1 路            │
+                    └──────────────────────────────┘
 ```
 
-## Integrate with your tools
+## 核心能力
 
-- [ ] [Set up project integrations](http://192.168.113.82/lhmddws/campusvision-ai/-/settings/integrations)
+### 🏠 自动查宿
+- 每晚定时（默认 23:00）自动统计归寝情况
+- 按楼栋/楼层/房间多级汇总
+- 已归 / 未归 / 晚归 / 陌生人明细
+- 替代辅导员上门查寝
 
-## Collaborate with your team
+### 🚶 进出追踪
+- 4 路摄像头覆盖 4 栋宿舍楼入口
+- 实时判断人员进出（entry / exit）
+- 人脸识别 + 学管 API 身份匹配
+- 跨楼栋串门检测
 
-- [ ] [Invite team members and collaborators](https://docs.gitlab.com/ee/user/project/members/)
-- [ ] [Create a new merge request](https://docs.gitlab.com/ee/user/project/merge_requests/creating_merge_requests.html)
-- [ ] [Automatically close issues from merge requests](https://docs.gitlab.com/ee/user/project/issues/managing_issues.html#closing-issues-automatically)
-- [ ] [Enable merge request approvals](https://docs.gitlab.com/ee/user/project/merge_requests/approvals/)
-- [ ] [Set auto-merge](https://docs.gitlab.com/ee/user/project/merge_requests/merge_when_pipeline_succeeds.html)
+### ⚠️ 异常告警
+- 陌生人进入宿舍楼
+- 长时间未归（超时可配）
+- 跨楼栋非本楼人员进入
+- 摄像头离线检测
 
-## Test and Deploy
+---
 
-Use the built-in continuous integration in GitLab.
+## 技术栈
 
-- [ ] [Get started with GitLab CI/CD](https://docs.gitlab.com/ee/ci/quick_start/index.html)
-- [ ] [Analyze your code for known vulnerabilities with Static Application Security Testing (SAST)](https://docs.gitlab.com/ee/user/application_security/sast/)
-- [ ] [Deploy to Kubernetes, Amazon EC2, or Amazon ECS using Auto Deploy](https://docs.gitlab.com/ee/topics/autodevops/requirements.html)
-- [ ] [Use pull-based deployments for improved Kubernetes management](https://docs.gitlab.com/ee/user/clusters/agent/)
-- [ ] [Set up protected environments](https://docs.gitlab.com/ee/ci/environments/protected_environments.html)
+| 子系统 | 技术 | 部署方式 |
+|--------|------|---------|
+| **Stream Gateway** | Go, FFmpeg | 独立容器 |
+| **Face Recognition** | Python, ONNX/TensorRT, FastAPI | 独立容器 |
+| **Dormitory Service** | Spring Boot 3, Java 17/21, MyBatis Plus | 独立 JAR → 接入主进程 |
+| **消息队列** | Kafka | 基础服务 |
+| **缓存** | Redis | 基础服务 |
+| **数据库** | PostgreSQL / MySQL | 基础服务 |
 
-***
+---
 
-# Editing this README
+## 服务模块
 
-When you're ready to make this README your own, just edit this file and use the handy template below (or feel free to structure it however you want - this is just a starting point!). Thanks to [makeareadme.com](https://www.makeareadme.com/) for this template.
+| 模块 | 职责 | 语言 |
+|------|------|------|
+| `stream-gateway` | 4 路 RTSP 拉流、解码、动态抽帧、Kafka 推送 | Go |
+| `face-recognition` | 人脸检测、特征提取、学管 API 身份匹配、进出判断 | Python |
+| `dormitory-service` | 状态管理、每晚查宿统计、报表、API 暴露、配置管理 | Java |
 
-## Suggestions for a good README
+---
 
-Every project is different, so consider which of these sections apply to yours. The sections used in the template are suggestions for most open source projects. Also keep in mind that while a README can be too long and detailed, too long is better than too short. If you think your README is too long, consider utilizing another form of documentation rather than cutting out information.
+## 快速开始
 
-## Name
-Choose a self-explaining name for your project.
+### 前置要求
 
-## Description
-Let people know what your project can do specifically. Provide context and add a link to any reference visitors might be unfamiliar with. A list of Features or a Background subsection can also be added here. If there are alternatives to your project, this is a good place to list differentiating factors.
+- Docker & Docker Compose
+- 4 路 RTSP 摄像头（宿舍入口）
 
-## Badges
-On some READMEs, you may see small images that convey metadata, such as whether or not all the tests are passing for the project. You can use Shields to add some to your README. Many services also have instructions for adding a badge.
+### 启动基础服务
 
-## Visuals
-Depending on what you are making, it can be a good idea to include screenshots or even a video (you'll frequently see GIFs rather than actual videos). Tools like ttygif can help, but check out Asciinema for a more sophisticated method.
+```bash
+docker compose up -d kafka redis postgres
+```
 
-## Installation
-Within a particular ecosystem, there may be a common way of installing things, such as using Yarn, NuGet, or Homebrew. However, consider the possibility that whoever is reading your README is a novice and would like more guidance. Listing specific steps helps remove ambiguity and gets people to using your project as quickly as possible. If it only runs in a specific context like a particular programming language version or operating system or has dependencies that have to be installed manually, also add a Requirements subsection.
+### 启动 Stream Gateway
 
-## Usage
-Use examples liberally, and show the expected output if you can. It's helpful to have inline the smallest example of usage that you can demonstrate, while providing links to more sophisticated examples if they are too long to reasonably include in the README.
+```bash
+cd stream-gateway
+go run cmd/main.go --config config.yaml
+```
 
-## Support
-Tell people where they can go to for help. It can be any combination of an issue tracker, a chat room, an email address, etc.
+### 启动 Face Recognition
 
-## Roadmap
-If you have ideas for releases in the future, it is a good idea to list them in the README.
+```bash
+cd face-recognition
+python app/main.py --config config.yaml
+```
 
-## Contributing
-State if you are open to contributions and what your requirements are for accepting them.
+### 启动 Dormitory Service
 
-For people who want to make changes to your project, it's helpful to have some documentation on how to get started. Perhaps there is a script that they should run or some environment variables that they need to set. Make these steps explicit. These instructions could also be useful to your future self.
+```bash
+cd dormitory-service
+java -jar target/dormitory-service.jar --spring.profiles.active=prod
+```
 
-You can also document commands to lint the code or run tests. These steps help to ensure high code quality and reduce the likelihood that the changes inadvertently break something. Having instructions for running tests is especially helpful if it requires external setup, such as starting a Selenium server for testing in a browser.
+---
 
-## Authors and acknowledgment
-Show your appreciation to those who have contributed to the project.
+## 开发阶段
+
+| 阶段 | 目标 | 完成内容 |
+|------|------|---------|
+| **Phase 1 (MVP)** | 核心查宿闭环 | 4路拉流 → 人脸识别 → 进出判断 → 每晚查宿统计 |
+| **Phase 2** | 体验完善 | 动态抽帧、本地缓存降级、陌生人告警、历史趋势 |
+| **Phase 3** | 系统集成 | 接入主 SpringBoot 进程、统一认证 |
+
+---
+
+## 文档
+
+| 文档 | 说明 |
+|------|------|
+| [架构设计](doc/main.md) | 系统架构、模块划分、技术选型 |
+| [产品需求（PRD）](doc/prd/README.md) | 完整 PRD 文档集（3 个模块） |
+| [开发指南](doc/development-guide.md) | 环境搭建、编码规范、Git 工作流 |
+| [部署指南](doc/deployment-guide.md) | 硬件要求、Docker Compose、配置说明 |
+
+---
+
+## 与学管系统的关系
+
+| 交互 | 方向 | 说明 |
+|------|------|------|
+| 人脸匹配 | Face Recognition → 学管 | 检测到人脸后调学管 API 获取身份 |
+| 学生数据同步 | Dormitory Service → 学管 | 定时拉取住宿学生信息 |
+| 查宿数据 | 学管 → Dormitory Service | 学管前端调本服务 API 展示查宿结果 |
+
+---
 
 ## License
-For open source projects, say how it is licensed.
 
-## Project status
-If you have run out of energy or time for your project, put a note at the top of the README saying that development has slowed down or stopped completely. Someone may choose to fork your project or volunteer to step in as a maintainer or owner, allowing your project to keep going. You can also make an explicit request for maintainers.
+MIT
