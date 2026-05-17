@@ -43,5 +43,10 @@ rtsp:
 health:
   port: 8080
 
+database:
+  dsn: "root:root@tcp(localhost:3306)/dormitory"
+  driver: "mysql"
+  poll_interval: 30s
+
 log:
   level: "info"

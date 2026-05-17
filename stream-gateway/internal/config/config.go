@@ -8,12 +8,13 @@ import (
 )
 
 type Config struct {
-	Cameras []CameraConfig `yaml:"cameras"`
-	Frame   FrameConfig    `yaml:"frame"`
-	Kafka   KafkaConfig    `yaml:"kafka"`
-	RTSP    RTSPConfig     `yaml:"rtsp"`
-	Health  HealthConfig   `yaml:"health"`
-	Log     LogConfig      `yaml:"log"`
+	Cameras  []CameraConfig  `yaml:"cameras"`
+	Frame    FrameConfig     `yaml:"frame"`
+	Kafka    KafkaConfig     `yaml:"kafka"`
+	RTSP     RTSPConfig      `yaml:"rtsp"`
+	Health   HealthConfig    `yaml:"health"`
+	Database DatabaseConfig  `yaml:"database"`
+	Log      LogConfig       `yaml:"log"`
 }
 
 type CameraConfig struct {
@@ -41,13 +42,19 @@ type KafkaConfig struct {
 }
 
 type RTSPConfig struct {
-	ReconnectInterval     time.Duration `yaml:"reconnect_interval"`
-	ReadTimeout           time.Duration `yaml:"read_timeout"`
-	MaxReconnectAttempts  int           `yaml:"max_reconnect_attempts"`
+	ReconnectInterval    time.Duration `yaml:"reconnect_interval"`
+	ReadTimeout          time.Duration `yaml:"read_timeout"`
+	MaxReconnectAttempts int           `yaml:"max_reconnect_attempts"`
 }
 
 type HealthConfig struct {
 	Port int `yaml:"port"`
+}
+
+type DatabaseConfig struct {
+	DSN          string        `yaml:"dsn"`
+	Driver       string        `yaml:"driver"`
+	PollInterval time.Duration `yaml:"poll_interval"`
 }
 
 type LogConfig struct {
@@ -63,6 +70,14 @@ func Load(path string) (*Config, error) {
 	cfg := &Config{}
 	if err := yaml.Unmarshal(data, cfg); err != nil {
 		return nil, err
+	}
+
+	// Apply defaults
+	if cfg.Database.Driver == "" {
+		cfg.Database.Driver = "mysql"
+	}
+	if cfg.Database.PollInterval == 0 {
+		cfg.Database.PollInterval = 30 * time.Second
 	}
 
 	return cfg, nil
