@@ -19,7 +19,7 @@ public interface CameraService {
 
     DormCamera getByCameraId(String cameraId);
 
-    List<DormCamera> getCameras(Long buildingId);
+    List<DormCamera> getCameras(String building);
 
     void healthCheck(String cameraId);
 
@@ -28,6 +28,8 @@ public interface CameraService {
     List<DormCamera> listOnlineCameras();
 
     void updateLastEventTime(String cameraId, Long timestampMs);
+
+    void deleteCamera(String cameraId);
 
     Page<DormEventLog> querySnapshots(String cameraId, java.time.LocalDateTime startTime,
                                       java.time.LocalDateTime endTime, int page, int size);

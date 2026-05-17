@@ -16,6 +16,11 @@ import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.net.URI;
+import java.net.http.HttpClient;
+import java.net.http.HttpRequest;
+import java.net.http.HttpResponse;
+import java.time.Duration;
 import java.time.LocalDateTime;
 import java.util.HashMap;
 import java.util.List;
@@ -45,15 +50,18 @@ public class CameraServiceImpl implements CameraService {
         }
         DormCamera camera = new DormCamera();
         camera.setCameraId(dto.getCameraId());
-        camera.setBuildingId(dto.getBuildingId());
+        camera.setBuilding(dto.getBuilding());
         camera.setName(dto.getName());
         camera.setRtspUrl(dto.getRtspUrl());
+        camera.setDirection(dto.getDirection());
+        camera.setResolution(dto.getResolution());
+        camera.setRemark(dto.getRemark());
         camera.setStatus("unknown");
         camera.setEnabled(true);
         camera.setCreatedAt(LocalDateTime.now());
         camera.setUpdatedAt(LocalDateTime.now());
         cameraMapper.insert(camera);
-        log.info("Camera registered: cameraId={}, buildingId={}", dto.getCameraId(), dto.getBuildingId());
+        log.info("Camera registered: cameraId={}, building={}", dto.getCameraId(), dto.getBuilding());
         return camera;
     }
 
@@ -75,16 +83,16 @@ public class CameraServiceImpl implements CameraService {
     public Map<String, Object> getCameraStatus(String building) {
         // TODO: implement camera status aggregation
         List<DormCamera> cameras;
-        if (building != null) {
+        if (building != null && !building.isEmpty()) {
             cameras = cameraMapper.selectList(
-                    new LambdaQueryWrapper<DormCamera>().eq(DormCamera::getBuildingId, building));
+                    new LambdaQueryWrapper<DormCamera>().eq(DormCamera::getBuilding, building));
         } else {
             cameras = cameraMapper.selectList(null);
         }
 
         List<Map<String, Object>> buildingList = cameras.stream().map(c -> {
             Map<String, Object> item = new HashMap<>();
-            item.put("buildingId", c.getBuildingId());
+            item.put("building", c.getBuilding());
             item.put("cameraId", c.getCameraId());
             item.put("status", c.getStatus());
             item.put("lastHealthCheck", c.getLastHealthCheck());
@@ -111,20 +119,50 @@ public class CameraServiceImpl implements CameraService {
     }
 
     @Override
-    public List<DormCamera> getCameras(Long buildingId) {
-        if (buildingId != null) {
-            return cameraMapper.findByBuildingId(buildingId);
+    public List<DormCamera> getCameras(String building) {
+        if (building != null && !building.isEmpty()) {
+            return cameraMapper.findByBuilding(building);
         }
         return cameraMapper.selectList(null);
     }
 
     @Override
     public void healthCheck(String cameraId) {
-        // TODO: implement health check against stream-gateway
-        // 1. HTTP GET stream-gateway health endpoint
-        // 2. Update camera status and lastHeartbeat
-        // 3. Log status changes
-        log.info("Health check for camera: {}", cameraId);
+        DormCamera camera = getByCameraId(cameraId);
+        String gatewayUrl = "http://localhost:8080/health";
+
+        try {
+            HttpClient client = HttpClient.newHttpClient();
+            HttpRequest request = HttpRequest.newBuilder()
+                    .uri(URI.create(gatewayUrl))
+                    .timeout(Duration.ofSeconds(5))
+                    .GET()
+                    .build();
+
+            HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
+            if (response.statusCode() == 200) {
+                camera.setStatus("ONLINE");
+                camera.setLastHeartbeat(LocalDateTime.now());
+                log.info("Health check OK for camera: {}", cameraId);
+            } else {
+                camera.setStatus("OFFLINE");
+                log.warn("Health check FAILED for camera: {} - HTTP {}", cameraId, response.statusCode());
+            }
+        } catch (Exception e) {
+            camera.setStatus("OFFLINE");
+            log.warn("Health check FAILED for camera: {} - {}", cameraId, e.getMessage());
+        }
+
+        camera.setUpdatedAt(LocalDateTime.now());
+        cameraMapper.updateById(camera);
+    }
+
+    @Override
+    @Transactional
+    public void deleteCamera(String cameraId) {
+        DormCamera camera = getByCameraId(cameraId);
+        cameraMapper.deleteById(camera.getId());
+        log.info("Camera deleted: cameraId={}", cameraId);
     }
 
     @Override

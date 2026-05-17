@@ -8,9 +8,12 @@ import lombok.ToString;
 @Setter
 @ToString
 public class CameraUpdateDTO {
-    private Long id;
     private String name;
+    private String building;
     private String rtspUrl;
+    private String direction;
+    private String resolution;
     private Boolean enabled;
     private String status;
+    private String remark;
 }

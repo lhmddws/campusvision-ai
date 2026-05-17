@@ -9,6 +9,7 @@ import com.sims.dormitory.model.entity.DormEventLog;
 import com.sims.dormitory.service.CameraService;
 import jakarta.validation.Valid;
 import org.springframework.format.annotation.DateTimeFormat;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -52,8 +53,8 @@ public class CameraController {
 
     @GetMapping
     public ApiResponse<List<DormCamera>> getCameras(
-            @RequestParam(required = false) Long buildingId) {
-        List<DormCamera> cameras = cameraService.getCameras(buildingId);
+            @RequestParam(required = false) String building) {
+        List<DormCamera> cameras = cameraService.getCameras(building);
         return ApiResponse.success(cameras);
     }
 
@@ -72,5 +73,14 @@ public class CameraController {
         status.put("lastHealthCheck", camera.getLastHealthCheck());
         status.put("enabled", camera.getEnabled());
         return ApiResponse.success(status);
+    }
+
+    @DeleteMapping("/{id}")
+    public ApiResponse<Map<String, Object>> deleteCamera(@PathVariable String id) {
+        cameraService.deleteCamera(id);
+        Map<String, Object> result = new HashMap<>();
+        result.put("cameraId", id);
+        result.put("deleted", true);
+        return ApiResponse.success(result);
     }
 }

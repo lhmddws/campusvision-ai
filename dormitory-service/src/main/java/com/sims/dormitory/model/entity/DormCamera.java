@@ -17,12 +17,20 @@ public class DormCamera {
     @TableId(type = IdType.AUTO)
     private Long id;
     private String cameraId;
-    private Long buildingId;
+    private String building;
     private String name;
     private String rtspUrl;
+    private String direction;
+    private String resolution;
     private String status;
-    private LocalDateTime lastHealthCheck;
+    private Double fpsCurrent;
+    private Long totalFrames;
+    private LocalDateTime lastHeartbeat;
+    private LocalDateTime lastEventTime;
     private Boolean enabled;
+    private String configJson;
+    private String remark;
+    private LocalDateTime lastHealthCheck;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
 }
