@@ -175,3 +175,4 @@ core.*
 *.rar
 *.tar
 *.zip
+stream-gateway/main
