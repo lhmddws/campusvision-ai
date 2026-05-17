@@ -1106,12 +1106,7 @@
   /* ── Config ── */
   const API_BASE = window.location.origin;
 
-  const CAMERAS = {
-    'cam-a': { building: 'A', label: 'A栋入口' },
-    'cam-b': { building: 'B', label: 'B栋入口' },
-    'cam-c': { building: 'C', label: 'C栋入口' },
-    'cam-d': { building: 'D', label: 'D栋入口' },
-  };
+  let CAMERAS = {};
 
   let PEOPLE = [
     '张三 (2024001)',
@@ -1944,19 +1939,31 @@
     }
   }
 
-  /* ── Initialize ── */
-  function init() {
-    buildGrid();
-    updateTimestamps();
+  /* ── Load cameras from API ── */
+  async function loadCameras() {
+    try {
+      const res = await fetch(API_BASE + '/api/cameras');
+      if (res.ok) {
+        const data = await res.json();
+        if (data && Object.keys(data).length > 0) {
+          CAMERAS = data;
+          return;
+        }
+      }
+    } catch (_) {
+      // fall through to defaults
+    }
+    // Fallback defaults
+    CAMERAS = {
+      'cam-a': { building: 'A', label: 'A栋入口', color: '#2980b9' },
+      'cam-b': { building: 'B', label: 'B栋入口', color: '#27ae60' },
+      'cam-c': { building: 'C', label: 'C栋入口', color: '#8e44ad' },
+      'cam-d': { building: 'D', label: 'D栋入口', color: '#e67e22' },
+    };
+  }
 
-    // Initial data fetch
-    fetchHealth();
-    fetchEvents();
-
-    // Periodic timers
-    setInterval(fetchHealth, 10000);
-    setInterval(() => fetchEvents(true), 3000);
-
+  /* ── Start feed refresh loop ── */
+  function startFeedLoop() {
     // Feed refresh every 2s
     Object.keys(CAMERAS).forEach(id => {
       feedTimers[id] = setInterval(() => {
@@ -1967,6 +1974,22 @@
         }
       }, 2000);
     });
+  }
+
+  /* ── Initialize ── */
+  async function init() {
+    await loadCameras();
+    buildGrid();
+    updateTimestamps();
+    startFeedLoop();
+
+    // Initial data fetch
+    fetchHealth();
+    fetchEvents();
+
+    // Periodic timers
+    setInterval(fetchHealth, 10000);
+    setInterval(() => fetchEvents(true), 3000);
 
     // Timestamp update every second
     setInterval(updateTimestamps, 1000);
@@ -1976,9 +1999,6 @@
 
     // Generate traffic button
     genTrafficBtn.addEventListener('click', generateTraffic);
-
-    // Fix feed refresh timestamps every 2s (reuse same interval)
-    setInterval(function() { /* feeds handled above */ }, 2000);
 
     // Settings drawer
     settingsToggle.addEventListener('click', openDrawer);

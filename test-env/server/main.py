@@ -361,7 +361,47 @@ class AddPersonBody(BaseModel):
     name: str
 
 
+class CameraDefBody(BaseModel):
+    building: str
+    label: str
+    color: Optional[str] = None
+
+
 # ── Health ──────────────────────────────────────────────────────────────────
+
+
+@app.get("/api/cameras")
+async def api_cameras():
+    """Return all camera definitions."""
+    return CAMERAS
+
+
+@app.put("/api/cameras/{camera_id}")
+async def upsert_camera(camera_id: str, body: CameraDefBody):
+    """Add or update a camera definition."""
+    CAMERAS[camera_id] = {
+        "building": body.building,
+        "label": body.label,
+        "color": body.color or "#555577",
+    }
+    if camera_id not in CAMERA_WEBCAM_INDEX:
+        CAMERA_WEBCAM_INDEX[camera_id] = None
+    logger.info("Camera upserted: %s -> %s", camera_id, CAMERAS[camera_id])
+    return dict(success=True, camera_id=camera_id, config=CAMERAS[camera_id])
+
+
+@app.delete("/api/cameras/{camera_id}")
+async def remove_camera(camera_id: str):
+    """Remove a camera definition."""
+    if camera_id not in CAMERAS:
+        raise HTTPException(404, f"Unknown camera: {camera_id}")
+    if camera_id in _webcam_captures:
+        _webcam_captures[camera_id]["running"] = False
+    CAMERAS.pop(camera_id, None)
+    CAMERA_WEBCAM_INDEX.pop(camera_id, None)
+    latest_frames.pop(camera_id, None)
+    logger.info("Camera deleted: %s", camera_id)
+    return dict(success=True, camera_id=camera_id)
 
 
 @app.get("/api/health")
@@ -371,7 +411,7 @@ async def api_health():
         kafka=producer is not None,
         pillow=PIL_OK,
         opencv=CV2_OK,
-        cameras=list(CAMERAS),
+        cameras=CAMERAS,
         uptime_sec=int(time.time() - start_time),
         config=SERVER_CONFIG,
         webcams={cid: cid in _webcam_captures for cid in CAMERAS},
