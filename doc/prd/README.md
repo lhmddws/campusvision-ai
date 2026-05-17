@@ -1,6 +1,6 @@
 # CampusVision AI — 产品需求文档 (PRD)
 
-> **总版本**: v3.0 · **最后更新**: 2026-05-15 · **状态**: 初稿  
+> **总版本**: v3.1 · **最后更新**: 2026-05-16 · **状态**: 实施完成  
 > **范围说明**: 本 PRD 基于实际需求重新聚焦，定位为**学生管理系统的宿舍管理 AI 子服务**，非通用安防平台。
 >
 > **双人协作映射**: 感知层（PRD-001/002）←你→ 业务层（PRD-003/004/005）←搭档→
@@ -14,9 +14,11 @@
 | PRD-001 | **Stream Gateway** | [01-stream-gateway.md](01-stream-gateway.md) | 840 | RTSP 拉流 → 解码 → 动态抽帧 → Kafka 推送 | **你** |
 | PRD-002 | **Face Recognition** | [02-face-recognition.md](02-face-recognition.md) | 1,255 | 人脸检测 → 特征提取 → 学管 API 匹配 → 进出判断 | **你** |
 | PRD-003 | **Dormitory Service** | [03-dormitory-service.md](03-dormitory-service.md) | 1,927 | 状态管理 → 每晚查宿统计 → 报表 → API 暴露 | **搭档**（完整版） |
-| PRD-004 | **主进程对接** | [04-main-process-integration.md](04-main-process-integration.md) | — | 业务核心：事件消费→状态→查宿→API→接入主进程 | **搭档** |
-| PRD-005 | **摄像头功能实现** | [05-camera-management.md](05-camera-management.md) | — | 摄像头设备管理、状态监控、配置管理、抓拍查看 | **搭档** |
-| **合计** | | | **4,022+** | | |
+| PRD-004 | **主进程对接** | [04-main-process-integration.md](04-main-process-integration.md) | 815 | 业务核心：事件消费→状态→查宿→API→接入主进程 | **搭档** |
+| PRD-005 | **摄像头功能实现** | [05-camera-management.md](05-camera-management.md) | 618 | 摄像头设备管理、状态监控、配置管理、抓拍查看 | **搭档** |
+| **合计** | | | **5,455** | | |
+
+> **附加**: 另有技术设计文档 3,754 行（架构/数据库/API/集成/摄像头），测试环境 352 行（模拟服务器 + 启动脚本 + 前端）。
 
 ---
 
@@ -132,9 +134,10 @@ Dormitory Service (Java JAR)
 | 身份匹配 | **学管 API 按需查询** | 学管维护人脸库，本服务不做存储 |
 | 模块间通信 | **Kafka** | 异步解耦，独立扩缩容，语言无关 |
 | 实时状态 | **Redis** | 进出事件频繁，Redis 适合实时状态 |
-| 查宿数据持久化 | **PostgreSQL/MySQL** | 与学管数据库一致，统一管理 |
+| 查宿数据持久化 | **MariaDB/PostgreSQL** | 与学管数据库一致，统一管理；`infra/` 提供双版本 init SQL |
 | Java JAR 部署 | **独立 jar → 接入主进程** | 先独立运行稳定再集成 |
 | 配置管理 | **全部可动态调整** | 查宿时间、阈值等无需重启即可修改 |
+| 面部抓拍存储 | **MinIO** | 人脸抓拍图存对象存储，不在 Kafka 中传输大图 |
 | 前端 | **不存本仓库** | 前端页面在学管前端项目中统一管理 |
 
 ---
@@ -177,15 +180,18 @@ Dormitory Service (Java JAR)
 |-------|----------|----------|--------|
 | `t_dorm_frame` | Stream Gateway | Face Recognition | `{ camera_id, building, timestamp, frame_data(jpeg) }` |
 | `t_dorm_event` | Face Recognition | Dormitory Service | `{ event_id, building, student_id, student_name, event_type, confidence, face_snapshot, timestamp }` |
+| `t_dorm_alert` | Dormitory Service | — | 告警消息（陌生人进楼、长时间未归等） |
 
 ### 学管 API 调用
 
-> ⚠️ **实际情况核查**：以下接口在学管 OpenAPI 中**不存在**，需在学管同步开发中新增。
+> ⚠️ **实际情况核查**：以下接口在学管 OpenAPI 中**不存在**，需在学管同步开发中新增。  
+> 开发/测试阶段可使用 `test-env` 模拟服务器。
 
 ```
 Face Recognition ──POST /sims/face/match (待新增)──→ 学管系统
-  Request:  { feature_vector: float[], confidence_threshold: float }
-  Response: { student_id, student_name, class, dorm_building, dorm_room, confidence }
+  Request:  { embedding: float[512] }
+  Response: { match: bool, student_id, name, confidence }
+  ↑ 测试替代: test-env 未实现此端点，需配合本地 Redis 缓存降级
 
 Dormitory Service ──GET /sims/students/dormitory (待新增)──→ 学管系统
   Response: [{ student_id, student_name, building, room, class }]
@@ -223,6 +229,29 @@ Dormitory Service ──GET /sims/students/dormitory (待新增)──→ 学管
 
 ---
 
+## 测试环境
+
+| 组件 | 说明 |
+|------|------|
+| **Simulation Server** (`test-env/server/main.py`) | FastAPI 服务，模拟 4 路摄像头画面注入 Kafka，提供 Web 测试面板 |
+| **启动脚本** (`test-env/start.sh`) | 自动检测基础设施 → 安装依赖 → 启动测试服务器 |
+| **Web Dashboard** | `http://localhost:8082/` 可视化控制台，可手动模拟进出事件 |
+| **模拟 API** | `POST /api/cameras/{id}/simulate` 注入事件，`GET /api/events` 查看日志 |
+
+详见 [测试环境技术设计](../design/test-env/01-test-environment.md)。
+
+## 基础架构部署
+
+| 服务 | 用途 | 端口 |
+|------|------|------|
+| **Kafka** (`confluentinc/cp-kafka:7.6.1`) | 模块间异步消息 | `9092` |
+| **ZooKeeper** | Kafka 依赖 | `2181` |
+| **Redis** (`redis:7-alpine`) | 实时状态缓存、人脸特征缓存 | `6379` |
+| **MariaDB** (`mariadb:10.11`) | 查宿数据持久化（MySQL 兼容） | `3306` |
+| **MinIO** | 人脸抓拍图存储 | `9000`(API) `9001`(Console) |
+
+详见 [部署指南](../deployment-guide.md)。
+
 ## 相关文档
 
 | 文档 | 说明 | 位置 |
@@ -230,4 +259,5 @@ Dormitory Service ──GET /sims/students/dormitory (待新增)──→ 学管
 | 架构设计 | 系统架构、模块划分、技术选型 | [doc/main.md](../main.md) |
 | 开发指南 | 环境搭建、编码规范、Git 工作流 | [doc/development-guide.md](../development-guide.md) |
 | 部署指南 | 硬件要求、Docker Compose、配置说明 | [doc/deployment-guide.md](../deployment-guide.md) |
+| 技术设计文档 | 后端架构/数据库/API/集成/摄像头/测试环境 | [doc/design/README.md](../design/README.md) |
 | **双人分工指南** | 感知层 vs 业务层详细分工、接口契约、AI 实现指示 | [team-division.md](team-division.md) |

@@ -655,4 +655,4 @@ public class DataCleanupTask {
 > **本文件属于**: `doc/design/backend/02-database.md`  
 > **面向读者**: Java 后端开发（搭档）  
 > **迁移工具**: Flyway  
-> **数据库**: PostgreSQL 15+ / MySQL 8+
+> **数据库**: MariaDB 10.11+

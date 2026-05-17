@@ -1,6 +1,7 @@
 # CampusVision AI — 双人协作分工与 AI 实现指南
 
-> **版本**: v1.0 · **更新**: 2026-05-15  
+> **版本**: v2.0 · **更新**: 2026-05-16  
+> **状态**: 感知层代码已完整实现  
 > **场景**: 你（感知层：拉帧 → 解析 → AI 识别 → 发送）  
 > **搭档**: 业务层（主服务对接扩展：消费 → 统计 → API → 集成）
 
@@ -72,6 +73,8 @@ stream-gateway/
 │   │   └── jpeg.go          # JPEG 编码 + 质量缩放
 │   ├── kafka/               # Kafka 推送
 │   │   └── producer.go      # 推送 t_dorm_frame
+│   ├── health/              # Health API
+│   │   └── handler.go       # HTTP /health + /config 端点
 │   └── config/              # 配置管理
 │       └── config.go        # 从 YAML 加载配置
 ├── config.yaml              # 默认配置文件
@@ -262,17 +265,17 @@ Stream Gateway 额外暴露一个简单的 HTTP 端口（如 `:8080`）供健康
 face-recognition/
 ├── app/
 │   ├── __init__.py
-│   ├── main.py                # 入口: Kafka 消费者循环
-│   ├── config.py              # 配置加载
-│   ├── detector.py            # 人脸检测
-│   ├── feature.py             # 特征提取
-│   ├── matcher.py             # 学管 API 调用 + 缓存
-│   ├── direction.py           # 进出方向判断 (ROI 线穿越)
-│   ├── dedup.py               # 10s 去重窗口
-│   ├── producer.py            # Kafka 推送 t_dorm_event
+│   ├── main.py                # 入口: Kafka 消费者循环（含事件推送）
+│   ├── config.py              # 配置加载 (dataclass)
+│   ├── detector.py            # 人脸检测 (FaceDetector)
+│   ├── feature.py             # 特征提取 (FeatureExtractor)
+│   ├── matcher.py             # 学管 API 调用 + Redis 缓存降级 (FaceMatcher)
+│   ├── direction.py           # 进出方向判断 ROI 线穿越 (DirectionDetector)
+│   ├── dedup.py               # 10s 去重窗口 (DedupFilter)
+│   ├── night_mode.py          # 夜间 CLAHE 增强 (NightModeEnhancer)
 │   └── models/                # 模型文件
-│       ├── detection.onnx     # 人脸检测模型
-│       └── feature.onnx       # 特征提取模型
+│       ├── detection.onnx     # 人脸检测模型 (RetinaFace)
+│       └── feature.onnx       # 特征提取模型 (ArcFace 512-dim)
 ├── config.yaml                # 所有可配置项
 ├── requirements.txt
 └── Dockerfile
@@ -408,49 +411,51 @@ class FeatureExtractor:
 
 **5. 身份匹配 (`app/matcher.py`)**
 
+实际实现 `FaceMatcher`，支持 SIMS API 主路径 + Redis 缓存降级：
+
 ```python
-class IdentityMatcher:
-    def __init__(self, config, cache_client: redis.Redis):
-        self.api_url = config.match.sims_api_url
-        self.timeout = config.match.sims_api_timeout
-        self.threshold = config.match.match_threshold
-        self.cache = cache_client  # Redis 或本地 dict
-        self.fallback = config.match.fallback_to_cache
-    
-    def match(self, feature: np.ndarray, building: str) -> MatchResult:
-        """返回 { student_id, student_name, confidence, ... } 或 None"""
-        # 路径 A: 调学管 API (推荐)
-        result = self._call_sims_api(feature)
-        if result and result.confidence >= self.threshold:
-            self._update_cache(building, result)
-            return result
-        
-        # 路径 B: 本地缓存降级
-        if self.fallback:
-            result = self._search_cache(feature, building)
-            if result and result.confidence >= self.threshold:
+class FaceMatcher:
+    def __init__(self, config):
+        self.api_url = config.sims_api_url
+        self.timeout = config.sims_api_timeout
+        self.threshold = config.match_threshold
+        self._redis = None
+        self._init_redis()
+
+    def match(self, embedding: np.ndarray) -> Optional[dict]:
+        """返回 { student_id, name, confidence, from_cache } 或 None"""
+        # 路径 A: SIMS API
+        try:
+            result = self._call_sims_api(embedding)
+            if result is not None:
+                self._cache_result(result["student_id"], embedding, result["name"])
+                result["from_cache"] = False
                 return result
-        
-        # 无法匹配 → 陌生人
-        return None
-    
-    def _call_sims_api(self, feature: np.ndarray) -> MatchResult:
+        except Exception:
+            pass  # fall through to cache
+
+        # 路径 B: Redis 缓存降级
+        if self.config.fallback_to_cache:
+            cached = self._search_cache(embedding)
+            if cached is not None:
+                cached["from_cache"] = True
+                return cached
+        return None  # → stranger
+
+    def _call_sims_api(self, embedding: np.ndarray) -> Optional[dict]:
         """POST /sims/face/match
-        Request:  { feature_vector: float[512], confidence_threshold: 0.65 }
-        Response: { code: 200, text: "success", 
-                    data: { student_id, student_name, class, 
-                            dorm_building, dorm_room, confidence } }
+        Request:  { embedding: float[512] }
+        Response: { match: bool, student_id, name, confidence }
         """
         resp = httpx.post(
             self.api_url,
-            json={"feature_vector": feature.tolist(), 
-                  "confidence_threshold": self.threshold},
-            headers={"Authorization": f"Bearer {self.auth_token}"},
-            timeout=self.timeout,
+            json={"embedding": embedding.tolist()},
+            headers={"Authorization": f"Bearer {self.config.auth_token}"},
+            timeout=self.config.sims_api_timeout,
         )
         data = resp.json()
-        if data["code"] == 200:
-            return MatchResult(**data["data"])
+        if data.get("match") and data.get("confidence", 0) >= self.config.match_threshold:
+            return {"student_id": data["student_id"], "name": data.get("name", ""), "confidence": data["confidence"]}
         return None
 ```
 
@@ -476,152 +481,163 @@ class IdentityMatcher:
 ```
 
 ```python
-class DirectionJudger:
+class DirectionDetector:
+    """ROI 线穿越法。实际实现使用线程安全 tracks + cleanup 机制。"""
     def __init__(self, config):
-        self.roi_x_ratio = config.direction.roi_line_x  # 0.5
-        self.min_track_points = config.direction.min_track_points
-        self.tracks = {}  # face_id → [(x,y), ...]
+        self.roi_x_ratio = config.roi_line_x
+        self.min_track_points = config.min_track_points
+        self._tracks: Dict[str, List[Tuple[float, float, float]]] = {}
+        self._lock = threading.Lock()
     
-    def judge(self, face: Face, frame: np.ndarray, camera_id: str) -> str:
-        """
-        判断方向: "entry" | "exit" | "unknown"
-        """
-        center_x = (face.x1 + face.x2) / 2
-        roi_x = frame.shape[1] * self.roi_x_ratio
-        
-        track = self.tracks.get(camera_id, [])
-        track.append(center_x)
-        if len(track) > 10:
-            track = track[-10:]
-        self.tracks[camera_id] = track
-        
-        if len(track) < self.min_track_points:
-            return "unknown"
-        
-        # 看最近 N 个点的趋势
-        prev_x = track[-self.min_track_points]
-        curr_x = track[-1]
-        
-        if prev_x < roi_x <= curr_x:
-            return "entry"
-        elif curr_x <= roi_x < prev_x:
-            return "exit"
-        return "unknown"
+    def determine(self, face_id: str, face_center_x: float, 
+                  face_center_y: float, frame_width: int) -> Optional[str]:
+        """判断方向: 'entry' | 'exit' | None"""
+        roi_x = frame_width * self.roi_x_ratio
+        with self._lock:
+            if face_id not in self._tracks:
+                self._tracks[face_id] = []
+            self._tracks[face_id].append((face_center_x, face_center_y, time.time()))
+            track = self._tracks[face_id]
+            if len(track) < self.min_track_points:
+                return None
+            first_x = track[0][0]
+            last_x = track[-1][0]
+            if first_x < roi_x <= last_x:
+                return "entry"
+            if first_x >= roi_x > last_x:
+                return "exit"
+        return None
+    
+    def cleanup(self):
+        """移除 5s 无更新的 track"""
+        # 线程安全清理逻辑
 ```
 
 **7. 去重 (`app/dedup.py`)**
 
 ```python
-class DedupWindow:
-    """10s 窗口: 同一 building 内同一人只推一次事件"""
-    def __init__(self, window_seconds=10):
-        self.window = window_seconds
-        self.seen = {}  # key: f"{building}:{student_id}" → timestamp
+class DedupFilter:
+    """10s 窗口: (student_id, direction) 去重。线程安全 + LRU 淘汰。"""
+    def __init__(self, config):
+        self.window = config.window_seconds
+        self.max_cache_size = config.max_cache_size
+        self._seen: OrderedDict[Tuple[str, str], float] = OrderedDict()
+        self._lock = threading.Lock()
     
-    def is_duplicate(self, building: str, student_id: str) -> bool:
-        key = f"{building}:{student_id}"
-        now = time.time()
-        if key in self.seen:
-            if now - self.seen[key] < self.window:
+    def is_duplicate(self, student_id: str, direction: str) -> bool:
+        key = (student_id, direction)
+        with self._lock:
+            ts = self._seen.get(key)
+            if ts is not None and time.time() - ts < self.window:
                 return True
-        self.seen[key] = now
         return False
+    
+    def mark_seen(self, student_id: str, direction: str):
+        """记录已发送事件（LRU 淘汰）"""
+        key = (student_id, direction)
+        with self._lock:
+            self._seen[key] = time.time()
+            self._seen.move_to_end(key)
+            while len(self._seen) > self.max_cache_size:
+                self._seen.popitem(last=False)
 ```
 
-**8. Kafka 事件推送 (`app/producer.py`)**
+**8. Kafka 事件推送 (内联在 `app/main.py`)**
 
-消息格式（匹配 PRD 协议）：
+无独立 `producer.py` — producer 逻辑在 `main.py` 中直接内联，通过 `KafkaProducer(value_serializer=json.dumps)` 推送。消息格式（匹配 PRD 协议）：
 
 ```python
-class EventProducer:
-    def push_event(self, result: MatchResult, direction: str, 
-                   building: str, camera_id: str, face_snapshot: str):
-        message = {
-            "event_id": f"evt_{int(time.time())}_{uuid4().hex[:8]}",
-            "camera_id": camera_id,
-            "building": building,
-            "student_id": result.student_id,
-            "student_name": result.student_name,
-            "event_type": direction,    # "entry" | "exit"
-            "confidence": result.confidence,
-            "face_snapshot": face_snapshot,  # JPEG base64
-            "timestamp_unix_ms": int(time.time() * 1000),
-            "is_stranger": False,
-            "extra": {
-                "class": result.class_name,
-                "dorm_room": result.dorm_room,
-            }
-        }
-        # 推送到 t_dorm_event
+event = {
+    "camera_id": msg["camera_id"],
+    "building": msg["building"],
+    "event_type": direction_result,      # "entry" | "exit"
+    "student_id": match_result["student_id"] if match_result else None,
+    "name": match_result["name"] if match_result else None,
+    "confidence": match_result["confidence"] if match_result else 0.0,
+    "timestamp": int(time.time() * 1000),
+    "frame_sequence": msg["frame_sequence"],
+    "is_stranger": match_result is None,
+    "snapshot_path": "",                  # MinIO 路径
+    "direction_method": "roi_line",
+}
+producer.send(cfg.kafka.event_topic, value=event)
 ```
 
-**9. 主循环 (`app/main.py`)**
+**9. 主循环 (`app/main.py`) — 实际实现**
 
 ```python
 def main():
-    config = load_config("config.yaml")
-    detector = FaceDetector(config)
-    extractor = FeatureExtractor(config)
-    matcher = IdentityMatcher(config, redis_client)
-    judger = DirectionJudger(config)
-    dedup = DedupWindow(config.dedup.window_seconds)
-    producer = EventProducer(config)
-    
-    consumer = KafkaConsumer(
-        config.kafka.frame_topic,
-        bootstrap_servers=config.kafka.brokers,
-        group_id=config.kafka.group_id,
-        max_poll_records=config.kafka.max_poll_records,
-        auto_offset_reset='latest',
-    )
-    
-    for msg in consumer:
-        frame_data = json.loads(msg.value)
-        image = decode_base64_jpeg(frame_data["frame_data"])
-        
-        faces = detector.detect(image)
-        for face in faces:
-            if not quality_check(face, image):
-                continue
-                
-            if dedup.is_duplicate(frame_data["building"], f"face_{hash(face)}"):
-                continue
-                
-            feature = extractor.extract(image, face)
-            result = matcher.match(feature, frame_data["building"])
-            direction = judger.judge(face, image, frame_data["camera_id"])
-            
-            producer.push_event(
-                result=result,
-                direction=direction,
-                building=frame_data["building"],
-                camera_id=frame_data["camera_id"],
-                face_snapshot=extract_face_region(image, face),
-            )
+    cfg = load_config("config.yaml")
+    detector = FaceDetector(...)
+    extractor = FeatureExtractor(...)
+    matcher = FaceMatcher(cfg.match)
+    direction = DirectionDetector(cfg.direction)
+    dedup = DedupFilter(cfg.dedup)
+    enhancer = NightModeEnhancer(cfg.night_mode)  # 夜间增强
+
+    consumer = KafkaConsumer(cfg.kafka.frame_topic, ...)
+    producer = KafkaProducer(...)
+
+    # 信号处理: SIGINT/SIGTERM 优雅关闭
+    running = True
+
+    while running:
+        msg_pack = consumer.poll(timeout_ms=1000)
+        for raw_msg in messages:
+            frame_data = raw_msg.value
+            # base64 → JPEG → numpy (BGR)
+            frame = cv2.imdecode(np.frombuffer(base64.b64decode(frame_data["frame_data"]), dtype=np.uint8), ...)
+            frame = enhancer.enhance(frame)       # 夜间 CLAHE 增强
+
+            faces = detector.detect(frame)
+            for face in faces:
+                embedding = extractor.extract(frame, face)
+                match_result = matcher.match(embedding)
+
+                face_center_x = (face.x1 + face.x2) / 2.0
+                direction_result = direction.determine(face_id, face_center_x, ...)
+                if direction_result is None:
+                    continue
+
+                if dedup.is_duplicate(student_id, direction_result):
+                    continue
+                dedup.mark_seen(student_id, direction_result)
+
+                # 构建事件 → Kafka t_dorm_event
+                event = { ... }
+                producer.send(cfg.kafka.event_topic, value=event)
+
+        # 定期清理 track / dedup 缓存
+        direction.cleanup()
+        dedup.cleanup()
+
+        # 每 60s 输出统计日志
 ```
 
 ---
 
 ## 三、另一位的工作（业务层）拆解 — 仅边界参考
 
-### 模块 C：Dormitory Service (Java Spring Boot JAR)
+### 模块 C：Dormitory Service (Java Spring Boot JAR) — 已实现
 
 **你的感知层知道这些就够了**：
 
 ```
 消费 t_dorm_event (Kafka)
-  → 更新 Redis: building:room → {student_id: status}
-  → 每晚23:00 统计:
+  → EventConsumer 更新 Redis 实时状态
+     Key: dorm:building:{building}:room:{room} → student status
+  → 每晚23:00 NightlyReportTask 统计:
      已归 / 未归 / 晚归 / 陌生人
-  → 告警:
+  → 告警 (DormitoryAlertService):
      陌生人进楼、长时间未归、跨楼栋串门
-  → REST API:
-     GET /api/dorm/status         # 实时状态
-     GET /api/dorm/report/today   # 今日查宿报告
-     GET /api/dorm/report/history # 历史趋势
-     GET /api/dorm/alerts         # 告警列表
-  → 定时间步学管:
-     GET /sims/students/dormitory # 拉取住宿数据
+  → REST API (3 个 Controller):
+     CameraController     # 摄像头 CRUD + 状态
+     DormitoryRecordController  # 查宿报表 + 明细
+     DormitoryAlertController   # 告警列表 + 处理
+  → 定时任务:
+     NightlyReportTask   # 23:00 查宿
+     DataCleanupTask     # 历史数据清理
+     HealthCheckTask     # 摄像头健康检查
 ```
 
 **你需要给他的约定（你的产出边界）**：
@@ -640,42 +656,61 @@ def main():
 
 ```
 你初始化:
-  1. 确定 Kafka / Redis 地址 (dev 环境)
-  2. 确认 RTSP 地址 (4路)
-  3. 确认学管 API 地址 + Token
-  → 先跑通单路 → 再 4 路并行
+   1. 确定 Kafka / Redis / DB 地址 (dev 环境)
+   2. 确认 RTSP 地址 (4路)
+   3. 确认学管 API 地址 + Token
+   4. 测试环境: test-env/server/main.py (模拟4路摄像头+事件注入)
+   → 先跑通单路 → 再 4 路并行
 
 你验证通过:
-  Stream Gateway 输出 t_dorm_frame ✓
-  Face Recognition 输出 t_dorm_event ✓
-  → 通知搭档可以开始消费
+   Stream Gateway 输出 t_dorm_frame ✓
+   Face Recognition 输出 t_dorm_event ✓
+   → 通知搭档可以开始消费
 
 搭档初始化:
-  1. 确认 Kafka / Redis / DB 地址
-  2. Consumer t_dorm_event
-  3. 确认学管 API (宿舍数据)
-  → 跑通事件消费 → 输出 REST API
+   1. 确认 Kafka / Redis / DB 地址
+   2. Consumer t_dorm_event
+   3. 确认学管 API (宿舍数据)
+   → 跑通事件消费 → 输出 REST API
 
 联调:
-  你推真实事件 → 搭档消费 → 前端展示
+   你推真实事件 → 搭档消费 → 前端展示
+   使用 test-env Web 面板 http://localhost:8082/ 手动模拟事件
 ```
 
 ---
 
-## 五、你的 AI 工作优先级
+## 五、感知层完成清单
 
-| 优先级 | 任务 | 预计工时 |
-|--------|------|---------|
-| **P0** | Stream Gateway: 单路 RTSP 拉流 + 解码 + JPEG 输出 | 3-4h |
-| **P0** | Stream Gateway: Kafka 推送 t_dorm_frame | 1h |
-| **P0** | Face Recognition: 人脸检测 + 特征提取 | 3-4h |
-| **P0** | Face Recognition: 学管 API 身份匹配 (含降级缓存) | 2h |
-| **P0** | Face Recognition: 进出方向判断 (ROI 线穿越) | 1h |
-| **P0** | Face Recognition: Kafka 推送 t_dorm_event | 1h |
-| **P1** | Stream Gateway: 4 路并行 + 动态抽帧 | 2h |
-| **P1** | Face Recognition: 陌生人检测 + 10s 去重 | 1h |
-| **P1** | Face Recognition: 夜间模式 (CLAHE 增强) | 1h |
-| **P1** | Stream Gateway: HTTP health API | 0.5h |
+| 状态 | 模块 | 任务 |
+|------|------|------|
+| ✅ | **基础架构** | Kafka + Redis + MariaDB + MinIO Docker Compose 编排 |
+| ✅ | **基础架构** | Kafka topic 初始化 (t_dorm_frame / t_dorm_event / t_dorm_alert) |
+| ✅ | **基础架构** | 数据库初始化 DDL (MariaDB + PostgreSQL 双版本) |
+| ✅ | **Stream Gateway** | Go 项目骨架 (cobra 入口 + YAML 配置) |
+| ✅ | **Stream Gateway** | CameraManager: 4 路摄像机配置管理与 goroutine 生命周期 |
+| ✅ | **Stream Gateway** | CameraStream: 单路 RTSP 拉流 + FFmpeg 解码 |
+| ✅ | **Stream Gateway** | 动态抽帧 (时间策略 + 画面变化检测) |
+| ✅ | **Stream Gateway** | YUV → JPEG 编码 |
+| ✅ | **Stream Gateway** | Kafka 推送 t_dorm_frame (4 路复用一个 producer) |
+| ✅ | **Stream Gateway** | HTTP Health API (/health, /config) |
+| ✅ | **Face Recognition** | Python 项目骨架 (dataclass 配置 + structlog) |
+| ✅ | **Face Recognition** | RetinaFace ONNX 人脸检测 (含 Haar Cascade 降级) |
+| ✅ | **Face Recognition** | ArcFace ONNX 特征提取 (512-dim, L2 归一化) |
+| ✅ | **Face Recognition** | SIMS API 身份匹配 (FaceMatcher + Redis 缓存降级) |
+| ✅ | **Face Recognition** | ROI 线穿越进出方向判断 (DirectionDetector) |
+| ✅ | **Face Recognition** | 10s 去重窗口 (DedupFilter, 线程安全 + LRU) |
+| ✅ | **Face Recognition** | 夜间 CLAHE 增强 (NightModeEnhancer) |
+| ✅ | **Face Recognition** | Kafka 消费 t_dorm_frame + 推送 t_dorm_event |
+| ✅ | **Face Recognition** | 优雅关闭 (SIGINT/SIGTERM) + 60s 统计日志 |
+| ✅ | **测试环境** | FastAPI 模拟服务器: 4 路摄像头仿真 + Kafka 注入 |
+| ✅ | **测试环境** | Web 测试面板 + 随机场景生成 |
+| ✅ | **Dormitory Service** | Spring Boot 完整项目: 11 entity → 9 repository → 5 service → 3 controller |
+| ✅ | **Dormitory Service** | Kafka 事件消费 → Redis 实时状态 |
+| ✅ | **Dormitory Service** | 每晚 23:00 查宿统计 + 数据清理定时任务 |
+| ✅ | **Dormitory Service** | 22 个 REST API 端点 |
+| ✅ | **Dormitory Service** | 告警机制 (陌生人/长时间未归) |
+| ➡️ | **文档** | PRD + 架构 + 设计 + 部署指南 完整编写 |
 
 ---
 
@@ -684,13 +719,16 @@ def main():
 | 决策点 | 你的选择 | 理由 |
 |--------|---------|------|
 | Go RTSP 方案 | FFmpeg CGO (ffmpeg-go) | 最稳定，无进程管理开销 |
-| 人脸检测模型 | RetinaFace (ONNX) | 精度高，含关键点，适合对齐 |
-| 特征模型 | ArcFace (ONNX, 512-dim) | 业界标准，L2 归一化 |
-| 方向判断 | ROI 垂直穿越线 | 最简单可靠，宿舍入口单向 |
-| 身份匹配 | 学管 API 优先 + 本地 Redis 缓存降级 | 数据不重复维护 |
-| 去重策略 | 10s 时间窗口 (per building) | 防止同一人多次进出重复推 |
+| 人脸检测模型 | RetinaFace (ONNX) + Haar 降级 | 精度高，无模型时自动降级 OpenCV Haar |
+| 特征模型 | ArcFace (ONNX, 512-dim) + flatten 降级 | 业界标准，无模型时降级像素特征 |
+| 方向判断 | ROI 垂直穿越线 + 线程安全 track | 最简单可靠，支持 cleanup 防内存泄漏 |
+| 身份匹配 | SIMS API 优先 + Redis 缓存降级 | 数据不重复维护，匹配分缓存扫描 |
+| 去重策略 | 10s 时间窗口 (per student+direction) | 线程安全 + LRU 淘汰，防止 OOM |
 | 消息格式 | JSON (frame → base64, event → JSON) | 调试友好，量级够用 |
-| 配置管理 | YAML 文件 + 可 HTTP 动态更新 | 无需重启 |
+| 配置管理 | YAML 文件 + dataclass 类型校验 | 静态类型安全，可扩展 |
+| 日志 | structlog | 结构化日志，适合生产排查 |
+| 数据库 | MariaDB (MySQL 兼容) + PostgreSQL 双版本 | `infra/` 提供两套 init SQL，按需选择 |
+| 抓拍图存储 | MinIO 对象存储 | 不通过 Kafka 传输大图 |
 
 ---
 
