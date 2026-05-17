@@ -243,9 +243,10 @@ INSERT IGNORE INTO dorm_config (config_key, config_value, config_type, descripti
     ('camera.health_check.interval_sec', '30', 'int', '摄像头健康检查间隔', 'camera'),
     ('camera.offline.alert_threshold', '3', 'int', '连续失败N次触发离线告警', 'camera');
 
--- ==================== 默认摄像头 ====================
-INSERT IGNORE INTO dorm_camera (camera_id, name, building, rtsp_url, resolution, status) VALUES
-    ('cam-a', 'A栋入口摄像头', 'A', 'rtsp://admin:password@192.168.1.101:554/stream1', '1280x720', 'unknown'),
-    ('cam-b', 'B栋入口摄像头', 'B', 'rtsp://admin:password@192.168.1.102:554/stream1', '1280x720', 'unknown'),
-    ('cam-c', 'C栋入口摄像头', 'C', 'rtsp://admin:password@192.168.1.103:554/stream1', '1280x720', 'unknown'),
-    ('cam-d', 'D栋入口摄像头', 'D', 'rtsp://admin:password@192.168.1.104:554/stream1', '1280x720', 'unknown');
+-- ==================== 示例摄像头 ====================
+-- 按需通过 REST API 注册，此处仅作为 schema 参考
+-- INSERT IGNORE INTO dorm_camera (camera_id, name, building, rtsp_url, direction, resolution, enabled) VALUES
+--     ('cam-a', 'A栋入口', 'A', 'rtsp://admin:password@192.168.1.101:554/stream1', 'entry', '1280x720', 1),
+--     ('cam-b', 'B栋入口', 'B', 'rtsp://admin:password@192.168.1.102:554/stream1', 'entry', '1280x720', 1),
+--     ('cam-c', 'C栋入口', 'C', 'rtsp://admin:password@192.168.1.103:554/stream1', 'entry', '1280x720', 1),
+--     ('cam-d', 'D栋入口', 'D', 'rtsp://admin:password@192.168.1.104:554/stream1', 'entry', '1280x720', 1);
