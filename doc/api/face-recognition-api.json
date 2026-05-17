@@ -1,0 +1,333 @@
+{
+  "api_spec_version": "1.0.0",
+  "module": "face-recognition",
+  "language": "python",
+  "classes": [
+    {
+      "name": "Face",
+      "file": "app/detector.py",
+      "status": "implemented",
+      "type": "dataclass",
+      "fields": [
+        {"name": "x1", "type": "float", "description": "Bounding box left"},
+        {"name": "y1", "type": "float", "description": "Bounding box top"},
+        {"name": "x2", "type": "float", "description": "Bounding box right"},
+        {"name": "y2", "type": "float", "description": "Bounding box bottom"},
+        {"name": "confidence", "type": "float", "description": "Detection score [0, 1]"},
+        {"name": "landmarks", "type": "list|null", "description": "5 facial keypoints [(x,y),...] or None"}
+      ]
+    },
+    {
+      "name": "FaceDetector",
+      "file": "app/detector.py",
+      "status": "implemented",
+      "methods": [
+        {
+          "name": "__init__",
+          "parameters": [
+            {"name": "model_path", "type": "str", "description": "ONNX model path. None → Haar Cascade fallback"},
+            {"name": "conf_threshold", "type": "float", "description": "Confidence threshold [0, 1]"},
+            {"name": "input_size", "type": "tuple", "description": "Model input size (W, H)"},
+            {"name": "min_face_size", "type": "int", "description": "Minimum face side length in pixels"}
+          ]
+        },
+        {
+          "name": "detect",
+          "parameters": [
+            {"name": "image", "type": "np.ndarray", "description": "BGR image array"}
+          ],
+          "returns": {"type": "list[Face]", "description": "Detected faces (empty if none)"}
+        }
+      ]
+    },
+    {
+      "name": "FeatureExtractor",
+      "file": "app/feature.py",
+      "status": "implemented",
+      "methods": [
+        {
+          "name": "__init__",
+          "parameters": [
+            {"name": "model_path", "type": "str", "description": "ONNX model path. None → pixel-flatten fallback"},
+            {"name": "embedding_size", "type": "int", "description": "Output embedding dimension"}
+          ]
+        },
+        {
+          "name": "extract",
+          "parameters": [
+            {"name": "image", "type": "np.ndarray", "description": "BGR image"},
+            {"name": "face", "type": "Face", "description": "Detected face with optional landmarks"}
+          ],
+          "returns": {"type": "np.ndarray", "description": "L2-normalized embedding, shape (512,)"}
+        }
+      ]
+    },
+    {
+      "name": "FaceMatcher",
+      "file": "app/matcher.py",
+      "status": "implemented",
+      "methods": [
+        {
+          "name": "__init__",
+          "parameters": [
+            {"name": "config", "type": "MatchConfig", "description": "Match configuration"}
+          ]
+        },
+        {
+          "name": "match",
+          "parameters": [
+            {"name": "embedding", "type": "np.ndarray", "description": "Face embedding vector"}
+          ],
+          "returns": {
+            "type": "dict|null",
+            "shape": {
+              "student_id": "str",
+              "name": "str",
+              "confidence": "float",
+              "from_cache": "bool"
+            },
+            "description": "Match result or None if below threshold"
+          }
+        }
+      ]
+    },
+    {
+      "name": "DirectionDetector",
+      "file": "app/direction.py",
+      "status": "implemented",
+      "methods": [
+        {
+          "name": "__init__",
+          "parameters": [
+            {"name": "config", "type": "DirectionConfig", "description": "Direction configuration"}
+          ]
+        },
+        {
+          "name": "determine",
+          "parameters": [
+            {"name": "face_id", "type": "str", "description": "Face track identifier"},
+            {"name": "face_center_x", "type": "float", "description": "Face center X in pixels"},
+            {"name": "face_center_y", "type": "float", "description": "Face center Y in pixels"},
+            {"name": "frame_width", "type": "int", "description": "Frame width in pixels"}
+          ],
+          "returns": {"type": "str|null", "description": "\"entry\", \"exit\", or None"}
+        },
+        {
+          "name": "cleanup",
+          "returns": {"type": "void", "description": "Remove stale tracks (>5s unseen)"}
+        }
+      ]
+    },
+    {
+      "name": "DedupFilter",
+      "file": "app/dedup.py",
+      "status": "implemented",
+      "methods": [
+        {
+          "name": "__init__",
+          "parameters": [
+            {"name": "config", "type": "DedupConfig", "description": "Dedup configuration"}
+          ]
+        },
+        {
+          "name": "is_duplicate",
+          "parameters": [
+            {"name": "student_id", "type": "str", "description": "Student identifier"},
+            {"name": "direction", "type": "str", "description": "\"entry\" or \"exit\""}
+          ],
+          "returns": {"type": "bool", "description": "True if duplicate within window"}
+        },
+        {
+          "name": "mark_seen",
+          "parameters": [
+            {"name": "student_id", "type": "str"},
+            {"name": "direction", "type": "str"}
+          ]
+        },
+        {
+          "name": "cleanup",
+          "returns": {"type": "void", "description": "Remove expired entries"}
+        }
+      ]
+    },
+    {
+      "name": "NightModeEnhancer",
+      "file": "app/night_mode.py",
+      "status": "implemented",
+      "methods": [
+        {
+          "name": "__init__",
+          "parameters": [
+            {"name": "config", "type": "NightModeConfig", "description": "Night mode configuration"}
+          ]
+        },
+        {
+          "name": "enhance",
+          "parameters": [
+            {"name": "frame", "type": "np.ndarray", "description": "BGR input frame"}
+          ],
+          "returns": {"type": "np.ndarray", "description": "Enhanced BGR frame (or original if not night)"}
+        },
+        {
+          "name": "is_night",
+          "returns": {"type": "bool", "description": "True if current hour is in night window"}
+        }
+      ]
+    },
+    {
+      "name": "Track",
+      "file": "app/tracker.py (planned)",
+      "status": "planned",
+      "type": "dataclass",
+      "fields": [
+        {"name": "track_id", "type": "str", "description": "Format: cam-{camera_id}-{seq}"},
+        {"name": "bbox", "type": "tuple", "description": "(x1, y1, x2, y2)"},
+        {"name": "center", "type": "tuple", "description": "(cx, cy)"},
+        {"name": "timestamps", "type": "list[float]", "description": "Historical timestamps"},
+        {"name": "positions", "type": "list[tuple]", "description": "Historical positions"},
+        {"name": "embedding", "type": "np.ndarray|null", "description": "Latest feature embedding"},
+        {"name": "face", "type": "Face|null", "description": "Latest detection"},
+        {"name": "last_seen", "type": "float", "description": "Last update timestamp"},
+        {"name": "frames_alive", "type": "int", "description": "Frame count since creation"}
+      ]
+    },
+    {
+      "name": "FaceTracker",
+      "file": "app/tracker.py (planned)",
+      "status": "planned",
+      "methods": [
+        {
+          "name": "__init__",
+          "parameters": [
+            {"name": "iou_threshold", "type": "float", "default": "0.3", "description": "IoU matching threshold"},
+            {"name": "max_tracks", "type": "int", "default": "100", "description": "Maximum active tracks"},
+            {"name": "track_ttl", "type": "float", "default": "5.0", "description": "Track expiry in seconds"}
+          ]
+        },
+        {
+          "name": "update",
+          "parameters": [
+            {"name": "faces", "type": "list[Face]", "description": "Current frame detections"},
+            {"name": "embeddings", "type": "list[np.ndarray]", "description": "Face embeddings"},
+            {"name": "camera_id", "type": "str", "description": "Source camera ID"},
+            {"name": "timestamp", "type": "float", "description": "Current timestamp"}
+          ],
+          "returns": {"type": "list[Track]", "description": "Active tracks after update"}
+        },
+        {
+          "name": "get_tracks",
+          "returns": {"type": "list[Track]", "description": "All active tracks"}
+        },
+        {
+          "name": "cleanup",
+          "returns": {"type": "void", "description": "Remove expired tracks"}
+        }
+      ]
+    },
+    {
+      "name": "BehaviorAnalyzer",
+      "file": "app/behavior.py (planned)",
+      "status": "planned",
+      "methods": [
+        {
+          "name": "__init__",
+          "parameters": [
+            {"name": "config", "type": "BehaviorConfig", "description": "Behavior configuration"}
+          ]
+        },
+        {
+          "name": "analyze",
+          "parameters": [
+            {"name": "tracks", "type": "list[Track]", "description": "Active face tracks"},
+            {"name": "frame_face_count", "type": "int", "description": "Total faces in frame"},
+            {"name": "timestamp", "type": "float", "description": "Current timestamp"}
+          ],
+          "returns": {
+            "type": "list[dict]",
+            "shape": {
+              "event_type": "str",
+              "camera_id": "str",
+              "track_id": "str",
+              "detail": "str",
+              "timestamp": "float",
+              "confidence": "float"
+            },
+            "description": "Behavior event list (empty if none detected or disabled)"
+          }
+        }
+      ]
+    },
+    {
+      "name": "BehaviorEventPublisher",
+      "file": "app/event_publisher.py (planned)",
+      "status": "planned",
+      "methods": [
+        {
+          "name": "__init__",
+          "parameters": [
+            {"name": "config", "type": "AppConfig", "description": "Full application config"}
+          ]
+        },
+        {
+          "name": "publish_behavior_event",
+          "parameters": [
+            {"name": "event", "type": "dict", "description": "Behavior event dict"}
+          ]
+        },
+        {
+          "name": "close",
+          "returns": {"type": "void", "description": "Flush and close Kafka producer"}
+        }
+      ]
+    }
+  ],
+  "kafka": {
+    "input_topic": {
+      "name": "t_dorm_frame",
+      "partitions": 4,
+      "fields": [
+        {"name": "camera_id", "type": "string", "required": true},
+        {"name": "building", "type": "string", "required": true},
+        {"name": "frame_sequence", "type": "int", "required": true},
+        {"name": "frame_data", "type": "string (base64)", "required": true, "description": "JPEG frame"},
+        {"name": "frame_width", "type": "int", "required": true},
+        {"name": "frame_height", "type": "int", "required": true},
+        {"name": "timestamp", "type": "int (ms)", "required": true}
+      ]
+    },
+    "output_topic": {
+      "name": "t_dorm_event",
+      "partitions": 2,
+      "event_types": {
+        "entry_exit": {
+          "description": "Entry/exit direction events",
+          "fields": [
+            {"name": "camera_id", "type": "string", "required": true},
+            {"name": "building", "type": "string", "required": true},
+            {"name": "event_type", "type": "string", "required": true, "enum": ["entry", "exit"]},
+            {"name": "student_id", "type": "string|null", "required": true},
+            {"name": "name", "type": "string|null", "required": false},
+            {"name": "confidence", "type": "float", "required": true},
+            {"name": "timestamp", "type": "int (ms)", "required": true},
+            {"name": "frame_sequence", "type": "int", "required": false},
+            {"name": "is_stranger", "type": "bool", "required": false},
+            {"name": "snapshot_path", "type": "string", "required": false},
+            {"name": "direction_method", "type": "string", "required": false}
+          ]
+        },
+        "behavior": {
+          "description": "Behavior detection events (planned)",
+          "fields": [
+            {"name": "camera_id", "type": "string", "required": true},
+            {"name": "event_type", "type": "string", "required": true, "enum": ["loiter", "running", "zone", "crowd"]},
+            {"name": "track_id", "type": "string", "required": true},
+            {"name": "detail", "type": "string", "required": false},
+            {"name": "confidence", "type": "float", "required": true},
+            {"name": "timestamp", "type": "float (s)", "required": true},
+            {"name": "source", "type": "string", "required": true, "const": "behavior"}
+          ]
+        }
+      }
+    }
+  }
+}
