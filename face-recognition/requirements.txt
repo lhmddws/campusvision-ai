@@ -1,0 +1,32 @@
+# Core
+numpy>=1.24,<2.0
+opencv-python-headless>=4.8
+
+# AI Inference
+onnxruntime>=1.16
+# onnxruntime-gpu  # uncomment for GPU
+
+# Kafka
+kafka-python>=2.0
+
+# HTTP (SIMS API)
+httpx>=0.26
+
+# Model downloads
+requests>=2.31
+
+# Image processing
+Pillow>=10.0
+
+# Config
+PyYAML>=6.0
+
+# Redis (cache fallback)
+redis>=5.0
+
+# Logging
+structlog>=24.0
+
+# Dev
+pytest>=8.0
+pytest-mock>=3.0

@@ -1,0 +1,13 @@
+models:
+  retinaface-R50:
+    url: "https://huggingface.co/TheEeeeLin/HivisionIDPhotos_matting/resolve/main/retinaface-resnet50.onnx"
+    sha256: "40f825cf7dd0a88b26fb61db9a3aaedc2cad35162091113f4017b3c26a4f792d"
+    description: "RetinaFace-ResNet50 face detection model (from HivisionIDPhotos)"
+    model_type: "detection"
+    input_size: [640, 640]
+  arcface-resnet100:
+    url: "https://huggingface.co/onnxmodelzoo/arcfaceresnet100-8/resolve/main/arcfaceresnet100-8.onnx"
+    sha256: "f3a6bc281e72f88862f5748b53be3d76b3b48f8f1ab1f4a537941bdc4e1b01da"
+    description: "ArcFace-ResNet100 face feature extraction model, opset 8 (from onnxmodelzoo)"
+    model_type: "feature"
+    input_size: [112, 112]
