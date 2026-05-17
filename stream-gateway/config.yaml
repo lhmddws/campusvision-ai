@@ -1,0 +1,47 @@
+cameras:
+  - id: cam-a
+    building: A
+    rtsp_url: "rtsp://admin:password@192.168.1.101:554/stream1"
+    enabled: true
+  - id: cam-b
+    building: B
+    rtsp_url: "rtsp://admin:password@192.168.1.102:554/stream1"
+    enabled: true
+  - id: cam-c
+    building: C
+    rtsp_url: "rtsp://admin:password@192.168.1.103:554/stream1"
+    enabled: true
+  - id: cam-d
+    building: D
+    rtsp_url: "rtsp://admin:password@192.168.1.104:554/stream1"
+    enabled: true
+
+frame:
+  fps_day: 5
+  fps_night: 1
+  jpeg_quality: 80
+  width: 1280
+  height: 720
+  dynamic_extraction: true
+  motion_threshold: 0.05
+
+kafka:
+  # Override via env KAFKA_BROKERS before starting the binary, or
+  # replace "localhost:9092" with the Docker service name in production.
+  #   export KAFKA_BROKERS="kafka:9092"
+  brokers:
+    - "localhost:9092"
+  topic: "t_dorm_frame"
+  compression: "snappy"
+  batch_size: 65536
+
+rtsp:
+  reconnect_interval: 5s
+  read_timeout: 10s
+  max_reconnect_attempts: 0
+
+health:
+  port: 8080
+
+log:
+  level: "info"
