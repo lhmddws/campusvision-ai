@@ -9,6 +9,10 @@ import (
 	"github.com/sims/campusvision/stream-gateway/internal/kafka"
 )
 
+// context.Background() for streams added dynamically (not tied to main ctx lifecycle;
+// individual streams manage their own cancellation via Stop/stopCh).
+var backgroundCtx = context.Background()
+
 type CameraStatus struct {
 	CameraID     string `json:"camera_id"`
 	Building     string `json:"building"`
@@ -82,4 +86,77 @@ func (m *Manager) UpdateStatus(cameraID string, status CameraStatus) {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 	m.statuses[cameraID] = status
+}
+
+// AddCamera starts a new camera stream. No-op if camera already exists or is disabled.
+func (m *Manager) AddCamera(cfg config.CameraConfig) {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+
+	if _, exists := m.streams[cfg.ID]; exists {
+		log.Printf("[manager] camera %s already exists, skipping", cfg.ID)
+		return
+	}
+	if !cfg.Enabled {
+		return
+	}
+
+	stream := NewStream(cfg, m.cfg, m.rtspCfg, m.producer,
+		func(id string, s CameraStatus) { m.UpdateStatus(id, s) },
+	)
+	m.streams[cfg.ID] = stream
+	m.statuses[cfg.ID] = CameraStatus{
+		CameraID:  cfg.ID,
+		Building:  cfg.Building,
+		Connected: false,
+	}
+	go stream.Run(backgroundCtx)
+	log.Printf("[manager] camera stream added: %s (%s栋)", cfg.ID, cfg.Building)
+}
+
+// RemoveCamera stops and removes a camera stream by ID.
+func (m *Manager) RemoveCamera(id string) {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+
+	if stream, ok := m.streams[id]; ok {
+		stream.Stop()
+		delete(m.streams, id)
+		delete(m.statuses, id)
+		log.Printf("[manager] camera stream removed: %s", id)
+	}
+}
+
+// DiffAndSync diffs current streams against desired camera configs and reconciles them.
+// Adds new cameras, removes stale ones, skips unchanged.
+func (m *Manager) DiffAndSync(desired []config.CameraConfig) {
+	m.mu.RLock()
+	currentIDs := make(map[string]bool, len(m.streams))
+	for id := range m.streams {
+		currentIDs[id] = true
+	}
+	m.mu.RUnlock()
+
+	desiredIDs := make(map[string]config.CameraConfig, len(desired))
+	for _, cam := range desired {
+		desiredIDs[cam.ID] = cam
+	}
+
+	for id := range currentIDs {
+		if _, ok := desiredIDs[id]; !ok {
+			go m.RemoveCamera(id)
+		}
+	}
+
+	for id, cfg := range desiredIDs {
+		m.mu.RLock()
+		_, exists := m.streams[id]
+		m.mu.RUnlock()
+
+		if !exists && cfg.Enabled {
+			m.AddCamera(cfg)
+		} else if exists && !cfg.Enabled {
+			go m.RemoveCamera(id)
+		}
+	}
 }
