@@ -1,0 +1,84 @@
+server:
+  port: 8081
+
+spring:
+  application:
+    name: dormitory-service
+
+  datasource:
+    # ── Production: 主后端 MariaDB (override via env) ──────────────────
+    url: ${SPRING_DATASOURCE_URL:jdbc:mariadb://192.168.113.114:3306/SIMS_CD250626}
+    username: ${SPRING_DATASOURCE_USERNAME:SIMS_Sji0dFA}
+    password: ${SPRING_DATASOURCE_PASSWORD:ZeMkA5QzamCHTsPH}
+    driver-class-name: org.mariadb.jdbc.Driver
+    # ── Local dev (MariaDB via Docker Compose) ───────────────────────
+    # url: jdbc:mariadb://mariadb:3306/dormitory
+    # username: root
+    # password: MyStrongPassword123!
+    # driver-class-name: org.mariadb.jdbc.Driver
+    hikari:
+      maximum-pool-size: 10
+      minimum-idle: 2
+      idle-timeout: 300000
+      max-lifetime: 600000
+
+  data:
+    redis:
+      # 与主后端共享 Redis 实例，建议生产环境使用不同 DB index
+      host: ${SPRING_DATA_REDIS_HOST:127.0.0.1}
+      port: 6379
+      timeout: 3000ms
+      lettuce:
+        pool:
+          max-active: 8
+          max-idle: 4
+          min-idle: 1
+
+  kafka:
+    bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS:localhost:9092}
+    consumer:
+      group-id: dormitory-service-group
+      auto-offset-reset: earliest
+      enable-auto-commit: false
+      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      # StringDeserializer — Python face-recognition service publishes
+      # raw JSON without Spring Kafka type headers; we parse manually
+      # with Jackson in EventConsumer.
+      value-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      properties:
+        spring.json.trusted.packages: "*"
+        max.poll.records: 500
+        fetch.min.bytes: 1024
+        fetch.max.wait.ms: 500
+    producer:
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: org.springframework.kafka.support.serializer.JsonSerializer
+    listener:
+      ack-mode: manual
+      concurrency: 3
+
+  jackson:
+    date-format: yyyy-MM-dd'T'HH:mm:ssXXX
+    time-zone: Asia/Shanghai
+    property-naming-strategy: LOWER_CAMEL_CASE
+    serialization:
+      write-dates-as-timestamps: false
+
+mybatis-plus:
+  mapper-locations: classpath:mapper/*.xml
+  type-aliases-package: com.sims.dormitory.model.entity
+  configuration:
+    map-underscore-to-camel-case: true
+    log-impl: org.apache.ibatis.logging.stdout.StdOutImpl
+  global-config:
+    db-config:
+      id-type: AUTO
+      logic-delete-field: deleted
+      logic-delete-value: 1
+      logic-not-delete-value: 0
+
+logging:
+  level:
+    com.sims.dormitory: DEBUG
+    org.springframework.kafka: INFO
+    com.baomidou.mybatisplus: INFO
