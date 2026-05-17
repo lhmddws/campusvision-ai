@@ -1,0 +1,177 @@
+###############################################################################
+#  CampusVision AI — .gitignore
+#  Multi-language monorepo: Go + Python + Java (Maven) + Shell
+#  Infra: Docker Compose (Kafka, Redis, MariaDB, MinIO)
+###############################################################################
+
+# ===========================================================================
+#  OS / Filesystem
+# ===========================================================================
+.DS_Store
+.AppleDouble
+.LSOverride
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+$RECYCLE.BIN/
+*.swp
+*.swo
+*~
+
+# ===========================================================================
+#  IDE & Editor
+# ===========================================================================
+.idea/
+*.iml
+*.ipr
+*.iws
+.vscode/
+.history/
+*.sublime-workspace
+*.sublime-project
+.settings/
+.project
+.classpath
+.factorypath
+*.komodoproject
+
+# ===========================================================================
+#  Go (stream-gateway)
+# ===========================================================================
+# Binaries
+stream-gateway/cmd/cmd
+stream-gateway/*.exe
+stream-gateway/*.test
+stream-gateway/*.out
+
+# go.work (local workspace config)
+go.work
+go.work.sum
+
+# ===========================================================================
+# Python (face-recognition, test-env)
+# ===========================================================================
+# Bytecode
+__pycache__/
+*.py[cod]
+*$py.class
+
+# ONNX model files (large binary files, ~100-250MB each — never commit)
+*.onnx
+
+# Virtual environments
+.venv/
+venv/
+env/
+.env/
+*.egg-info/
+.eggs/
+
+# Package builds
+dist/
+build/
+*.egg
+
+# pytest
+.pytest_cache/
+.tox/
+.coverage
+.coverage.*
+htmlcov/
+.coverage
+*.cover
+
+# MyPy
+.mypy_cache/
+.dmypy.json
+dmypy.json
+
+# Ruff
+.ruff_cache/
+
+# UV lock (optionally commit; uncomment if you use uv and prefer pinning)
+# uv.lock
+
+# ===========================================================================
+#  Java / Maven (dormitory-service)
+# ===========================================================================
+target/
+!.mvn/wrapper/maven-wrapper.jar
+!**/src/main/**/target/
+!**/src/test/**/target/
+
+*.class
+*.jar
+*.war
+*.nar
+*.ear
+*.zip
+*.tar.gz
+*.rar
+
+# Maven wrapper (optional — if you use it, uncomment the next line)
+# .mvn/wrapper/maven-wrapper.properties
+
+# ===========================================================================
+#  Docker / Infra
+# ===========================================================================
+# Docker Compose local overrides
+docker-compose.override.yml
+
+# Container data volumes (avoid committing persistence)
+infra/data/
+infra/kafka/data/
+infra/redis/data/
+infra/mariadb/data/
+infra/minio/data/
+data/
+
+# Environment files (may contain secrets)
+.env
+.env.local
+.env.production
+*.env.local
+
+# ===========================================================================
+#  Logs & Temporary
+# ===========================================================================
+logs/
+*.log
+*.log.*
+
+# Temporary files
+tmp/
+temp/
+*.tmp
+*.temp
+
+# Core dumps
+core
+core.*
+
+# ===========================================================================
+#  Config files containing secrets (COMMIT TEMPLATES ONLY)
+# ===========================================================================
+# Local configs with real credentials — adjust filenames to match your project:
+# stream-gateway/config.yaml   ← REVIEW BEFORE COMMITTING (contains RTSP URLs)
+# face-recognition/config.yaml ← REVIEW BEFORE COMMITTING
+
+# ===========================================================================
+#  .sisyphus (internal tooling cache)
+# ===========================================================================
+.sisyphus/
+
+# ===========================================================================
+#  Misc
+# ===========================================================================
+# macOS metadata
+._*
+
+# Archives
+*.7z
+*.dmg
+*.gz
+*.iso
+*.rar
+*.tar
+*.zip

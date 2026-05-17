@@ -1,0 +1,128 @@
+# CampusVision AI — OpenHands Project Configuration
+# Multi-language monorepo (Go + Python + Java) for dormitory AI surveillance
+#
+# Usage: Run `openhands` from this directory to auto-load this config.
+# Environment variables override TOML values (LLM_API_KEY, LLM_MODEL, etc.)
+
+#################################### Core ####################################
+[core]
+# Workspace root (project root by default)
+workspace_base = "."
+
+# Maximum iterations per task (multi-step features need headroom)
+max_iterations = 100
+
+# Maximum budget per task (in dollars). nil = unlimited.
+# max_budget_per_task = 5.0
+
+# Cache directory for ONNX models, etc.
+# cache_dir = "/tmp/cache"
+
+# Enable condensing for long conversations
+enable_default_condenser = true
+
+# Git identity for agent commits
+# git_user_name = "openhands"
+# git_user_email = "openhands@all-hands.dev"
+
+#################################### LLM #####################################
+[llm]
+# Model selection — override via LLM_MODEL env var
+# Current: deepseek-coder (from agent_settings.json)
+# Recommended alternatives for multi-language tasks:
+#   - anthropic/claude-sonnet-4-20250514  (best for complex multi-step)
+#   - openai/o3 / openai/gpt-4o           (strong general purpose)
+#   - deepseek/deepseek-coder             (good for code generation)
+model = "deepseek/deepseek-coder"
+
+# Temperature range: 0.0 (precise) - 1.0 (creative)
+# For multi-language code generation, 0.2-0.4 is recommended
+temperature = 0.3
+
+# Reasoning effort for complex multi-step tasks
+reasoning_effort = "high"
+
+# Token limits (adjust based on model capabilities)
+max_input_tokens = 128000
+max_output_tokens = 8192
+
+# Retry configuration for API resilience
+num_retries = 5
+retry_min_wait = 8
+retry_max_wait = 64
+retry_multiplier = 8.0
+
+# Prompt caching for token efficiency (24h retention)
+caching_prompt = true
+
+# Disable vision to save tokens (no image processing needed for this project)
+disable_vision = true
+
+# Drop unsupported parameters for non-OpenAI providers
+drop_params = true
+
+#################################### Agent ###################################
+[agent]
+# Code editing — essential for multi-language development
+enable_editor = true
+enable_llm_editor = false
+
+# Terminal access — required for Go/Java/Python builds, docker, git
+enable_cmd = true
+
+# IPython/Jupyter — useful for Python prototyping and data analysis
+enable_jupyter = true
+
+# Browsing — useful for looking up library docs (Kafka, Spring, etc.)
+enable_browsing = true
+
+# Think tool — enables structured reasoning before actions
+enable_think = true
+
+# History truncation — prevents context overflow on long tasks
+enable_history_truncation = true
+
+# Condensation request — lets agent proactively compress history
+enable_condensation = true
+
+# Finish tool — signals task completion
+enable_finish = true
+
+# Prompt extensions — loads repo.md from .agents/skills/ automatically
+enable_prompt_extensions = true
+
+#################################### Sandbox ###################################
+[sandbox]
+# Use local process sandbox for development speed
+# Switch to "docker" for isolation or dependency testing
+runtime = "process"
+
+# Timeout for sandbox operations (seconds)
+timeout = 120
+
+# Close sandbox after task completion to free resources
+close_delay = 15
+
+#################################### Security ###################################
+[security]
+# Confirmation mode — prompt before risky operations
+# Set to false for headless/automated use
+confirmation_mode = true
+
+# Security analyzer — LLM-based risk assessment for actions
+# Uses the same LLM as the agent
+llm_security_analyzer = true
+
+#################################### Condenser ###################################
+[condenser]
+# Type of condenser — "llm" for intelligent summarization
+type = "llm"
+
+# Force keep the latest N events uncompressed
+keep_first = 1
+keep_last = 50
+
+# Compression settings
+# recent_warmup = 0
+# recent_window = 0
+# recent_temp = 0.5
