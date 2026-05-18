@@ -129,6 +129,11 @@
     box-shadow: 0 0 10px rgba(0,255,136,0.1);
   }
   .settings-btn:active { transform: scale(0.94); }
+  .settings-btn.active {
+    color: var(--green);
+    border-color: rgba(0,255,136,0.3);
+    box-shadow: 0 0 10px rgba(0,255,136,0.1);
+  }
 
   /* ── Main Layout ── */
   .app {
@@ -394,6 +399,7 @@
     padding: 12px 14px;
     border-bottom: 1px solid var(--border);
     flex-shrink: 0;
+    gap: 8px;
   }
   .event-panel-header h3 {
     font-size: 12px;
@@ -402,6 +408,129 @@
     color: var(--text-bright);
   }
   .event-panel-header h3 span { color: var(--green-dim); }
+
+  /* ── Mini Stats Dashboard (in event panel header) ── */
+  .ms-dashboard {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .ms-bar-group {
+    display: flex;
+    align-items: flex-end;
+    gap: 4px;
+    height: 24px;
+  }
+  .ms-bar-col {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 2px;
+  }
+  .ms-bar {
+    width: 10px;
+    border-radius: 2px 2px 0 0;
+    min-height: 2px;
+    transition: height 0.4s ease;
+  }
+  .ms-label {
+    font-size: 9px;
+    color: var(--text-dim);
+    line-height: 1;
+  }
+  .ms-evtmin {
+    font-size: 10px;
+    color: var(--green-dim);
+    padding: 2px 6px;
+    background: var(--green-bg);
+    border-radius: 4px;
+    white-space: nowrap;
+  }
+
+  /* ── Dashboard Panel (full stats view) ── */
+  .dash-panel {
+    display: none;
+    flex: 1;
+    padding: 14px;
+    overflow-y: auto;
+    background: var(--bg-panel);
+    border-left: 1px solid var(--border);
+  }
+  .dash-panel.open { display: block; }
+  .dash-inner {
+    max-width: 600px;
+  }
+  .dash-section {
+    margin-bottom: 16px;
+  }
+  .dash-section-title {
+    font-size: 12px;
+    color: var(--text-bright);
+    margin-bottom: 8px;
+    letter-spacing: 0.5px;
+  }
+  .dash-overview-grid,
+  .dash-evt-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
+    gap: 6px;
+  }
+  .dash-kv {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    padding: 8px 10px;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+  }
+  .dash-label {
+    font-size: 10px;
+    color: var(--text-dim);
+    letter-spacing: 0.3px;
+  }
+  .dash-value {
+    font-size: 18px;
+    color: var(--text-bright);
+    font-weight: 600;
+  }
+  .dash-value.green { color: var(--green); }
+  .dash-value.red { color: var(--red); }
+  .dash-value.amber { color: var(--amber); }
+  .dash-cam-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+    gap: 6px;
+  }
+  .dash-cam-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    padding: 8px 10px;
+  }
+  .dci-id {
+    font-size: 12px;
+    color: var(--text-bright);
+  }
+  .dci-label {
+    font-size: 10px;
+    color: var(--text-dim);
+  }
+  .dci-count {
+    font-size: 13px;
+    color: var(--green-dim);
+  }
+
+  /* ── Building Stats in Header ── */
+  .hdr-building-stats {
+    font-size: 10px;
+    color: var(--text-dim);
+    white-space: nowrap;
+  }
+
   .event-count-badge {
     font-size: 10px;
     color: var(--text-dim);
@@ -1198,6 +1327,7 @@
   @media (max-width: 1200px) {
     .status-bar .status-left .sb-item:not(:first-child) { display: none; }
     .status-right .batch-btn:not(:first-child) { display: none; }
+    .hdr-building-stats { display: none; }
   }
   @media (max-width: 1100px) {
     .event-panel { width: 240px; min-width: 200px; }
@@ -1207,6 +1337,8 @@
     .header .uptime { display: none; }
     .status-right .batch-btn { display: none !important; }
     .scenario-select { max-width: 100px; }
+    .dash-panel.open { position: fixed; top: 48px; left: 0; right: 0; bottom: 36px; z-index: 100; }
+    .dash-inner { max-width: 100%; }
   }
   @media (max-width: 800px) {
     .main { flex-direction: column; }
@@ -1216,6 +1348,7 @@
     .status-bar { flex-wrap: wrap; height: auto; padding: 6px 10px; gap: 4px; }
     .status-bar .status-left { flex-wrap: wrap; gap: 6px; }
     .status-bar .status-right { flex-wrap: wrap; gap: 4px; }
+    .dash-panel.open { top: 48px; bottom: auto; max-height: calc(100vh - 84px); }
   }
   @media (max-width: 600px) {
     :root { --header-h: 44px; }
@@ -1227,6 +1360,7 @@
     .gen-btn, .gen-btn.batch-btn { padding: 3px 8px; font-size: 8px; }
     .scenario-select { font-size: 8px; padding: 2px 6px; max-width: 80px; }
     .status-bar .status-left .sb-item { font-size: 9px; }
+    .ms-dashboard { display: none; }
   }
 </style>
 </head>
@@ -1243,6 +1377,8 @@
     <div class="header-right">
       <span><span class="dot green" id="hdr-kafka-dot"></span><span class="status-label" id="hdr-kafka-text">连接中...</span></span>
       <span class="uptime" id="hdr-uptime">运行时间: --</span>
+      <span class="hdr-building-stats" id="hdr-building-stats"></span>
+      <button type="button" class="settings-btn" id="dash-toggle-btn" title="统计面板">📊</button>
       <button type="button" class="settings-btn" id="settings-toggle" title="设置">&#9881;</button>
     </div>
   </header>
@@ -1254,10 +1390,64 @@
       <!-- Populated by JS -->
     </div>
 
+    <!-- Dashboard Panel (toggled) -->
+    <div class="dash-panel" id="dash-panel">
+      <div class="dash-inner">
+        <div class="dash-section">
+          <div class="dash-section-title">📊 系统概况</div>
+          <div class="dash-overview-grid">
+            <div class="dash-kv"><span class="dash-label">运行时间</span><span class="dash-value" id="dash-uptime">--</span></div>
+            <div class="dash-kv"><span class="dash-label">总帧数</span><span class="dash-value" id="dash-frames">0</span></div>
+            <div class="dash-kv"><span class="dash-label">总事件</span><span class="dash-value" id="dash-events">0</span></div>
+            <div class="dash-kv"><span class="dash-label">摄像头数</span><span class="dash-value" id="dash-cameras">0</span></div>
+            <div class="dash-kv"><span class="dash-label">Kafka</span><span class="dash-value" id="dash-kafka">未连接</span></div>
+          </div>
+        </div>
+        <div class="dash-section">
+          <div class="dash-section-title">🔖 事件类型</div>
+          <div class="dash-evt-grid">
+            <div class="dash-kv"><span class="dash-label">进入</span><span class="dash-value green" id="dash-entry">0</span></div>
+            <div class="dash-kv"><span class="dash-label">离开</span><span class="dash-value red" id="dash-exit">0</span></div>
+            <div class="dash-kv"><span class="dash-label">无人</span><span class="dash-value amber" id="dash-idle">0</span></div>
+            <div class="dash-kv"><span class="dash-label">事件/分</span><span class="dash-value" id="dash-evmin">0.0</span></div>
+            <div class="dash-kv"><span class="dash-label">峰值/分</span><span class="dash-value" id="dash-peak">0.0</span></div>
+          </div>
+        </div>
+        <div class="dash-section">
+          <div class="dash-section-title">📡 Kafka 吞吐</div>
+          <div class="dash-evt-grid">
+            <div class="dash-kv"><span class="dash-label">已发帧</span><span class="dash-value" id="dash-kframes">0</span></div>
+            <div class="dash-kv"><span class="dash-label">已发事件</span><span class="dash-value" id="dash-kevents">0</span></div>
+          </div>
+        </div>
+        <div class="dash-section">
+          <div class="dash-section-title">📹 各摄像头统计</div>
+          <div class="dash-cam-grid" id="dash-cam-grid"></div>
+        </div>
+      </div>
+    </div>
+
     <!-- Event Log -->
     <div class="event-panel">
       <div class="event-panel-header">
         <h3>■ 实时<span>事件</span>日志</h3>
+        <div class="ms-dashboard">
+          <div class="ms-bar-group">
+            <div class="ms-bar-col">
+              <div class="ms-bar" id="bar-entry" style="height:4px;background:var(--green)"></div>
+              <span class="ms-label" id="ms-entry">0</span>
+            </div>
+            <div class="ms-bar-col">
+              <div class="ms-bar" id="bar-exit" style="height:4px;background:var(--red)"></div>
+              <span class="ms-label" id="ms-exit">0</span>
+            </div>
+            <div class="ms-bar-col">
+              <div class="ms-bar" id="bar-idle" style="height:4px;background:var(--amber)"></div>
+              <span class="ms-label" id="ms-idle">0</span>
+            </div>
+          </div>
+          <span class="ms-evtmin" id="ms-evtmin">0.0</span>
+        </div>
         <span class="event-count-badge" id="event-count">0</span>
       </div>
       <div class="event-list" id="event-list">
@@ -1452,9 +1642,11 @@
   const sbKafkaDot = document.getElementById('sb-kafka-dot');
   const sbKafkaText = document.getElementById('sb-kafka-text');
   const sbUptime = document.getElementById('sb-uptime');
+  const sbStats = document.getElementById('sb-gen-count');
   const hdrKafkaDot = document.getElementById('hdr-kafka-dot');
   const hdrKafkaText = document.getElementById('hdr-kafka-text');
   const hdrUptime = document.getElementById('hdr-uptime');
+  const hdrBuildingStats = document.getElementById('hdr-building-stats');
   const toastContainer = document.getElementById('toast-container');
   const settingsToggle = document.getElementById('settings-toggle');
   const drawerOverlay = document.getElementById('drawer-overlay');
@@ -1464,6 +1656,9 @@
   const cfgContent = document.getElementById('cfg-content');
   const saveConfigBtn = document.getElementById('save-config');
   const resetConfigBtn = document.getElementById('reset-config');
+  const dashToggleBtn = document.getElementById('dash-toggle-btn');
+  const cameraGrid = document.getElementById('camera-grid');
+  const dashPanel = document.getElementById('dash-panel');
 
   /* ── Helper: compute 16:9 height ── */
   function computeHeight(width) {
@@ -1750,6 +1945,129 @@
     return h + '时 ' + m + '分';
   }
 
+  /* ── Stats fetch ── */
+  async function fetchStats() {
+    try {
+      const res = await fetch(API_BASE + '/api/stats');
+      if (!res.ok) return;
+      const data = await res.json();
+      if (sbStats) {
+        const frames = data.frames_generated || 0;
+        const events = data.events_total || 0;
+        const genVal = document.getElementById('gen-count-value');
+        if (genVal) genVal.textContent = events;
+        sbStats.textContent = '已生成: ' + events + ' 个事件 | 帧: ' + frames;
+      }
+      // Update frame indicators per camera
+      if (data.camera_event_counts) {
+        Object.entries(data.camera_event_counts).forEach(function([camId, count]) {
+          const fiText = document.getElementById('fi-text-' + camId);
+          if (fiText) {
+            fiText.textContent = count + ' ev';
+          }
+        });
+      }
+      // Update mini stats dashboard
+      updateMiniStats(data);
+      // Update full dashboard panel if open
+      updateFullDashboard(data);
+    } catch (_) { /* ignore */ }
+  }
+
+  /* ── Update mini stats dashboard ── */
+  function updateMiniStats(data) {
+    const etypes = data.event_type_counts || {};
+    const entryEl = document.getElementById('ms-entry');
+    const exitEl = document.getElementById('ms-exit');
+    const idleEl = document.getElementById('ms-idle');
+    const evtminEl = document.getElementById('ms-evtmin');
+    if (entryEl) entryEl.textContent = etypes.entry || 0;
+    if (exitEl) exitEl.textContent = etypes.exit || 0;
+    if (idleEl) idleEl.textContent = etypes.idle || 0;
+    if (evtminEl) evtminEl.textContent = (data.events_per_min || 0).toFixed(1);
+
+    // Update mini bars
+    const total = (etypes.entry || 0) + (etypes.exit || 0) + (etypes.idle || 0);
+    const maxVal = Math.max(etypes.entry || 0, etypes.exit || 0, etypes.idle || 0, 1);
+    const barH = 20; // max height in px
+    const barEntry = document.getElementById('bar-entry');
+    const barExit = document.getElementById('bar-exit');
+    const barIdle = document.getElementById('bar-idle');
+    if (barEntry) barEntry.style.height = Math.max(2, ((etypes.entry || 0) / maxVal) * barH) + 'px';
+    if (barExit) barExit.style.height = Math.max(2, ((etypes.exit || 0) / maxVal) * barH) + 'px';
+    if (barIdle) barIdle.style.height = Math.max(2, ((etypes.idle || 0) / maxVal) * barH) + 'px';
+  }
+
+  /* ── Dashboard toggle ── */
+  function toggleDashboard() {
+    const isOpen = dashPanel.classList.toggle('open');
+    dashToggleBtn.classList.toggle('active', isOpen);
+    // When closing, restore camera grid full width
+    if (!isOpen) {
+      cameraGrid.style.display = '';
+    } else {
+      cameraGrid.style.display = '';
+    }
+  }
+
+  /* ── Update full dashboard panel ── */
+  function updateFullDashboard(data) {
+    // Overview
+    const uptimeEl = document.getElementById('dash-uptime');
+    const framesEl = document.getElementById('dash-frames');
+    const eventsEl = document.getElementById('dash-events');
+    const camerasEl = document.getElementById('dash-cameras');
+    const kafkaEl = document.getElementById('dash-kafka');
+    if (uptimeEl) uptimeEl.textContent = data.uptime_sec != null ? formatUptime(data.uptime_sec) : '--';
+    if (framesEl) framesEl.textContent = data.frames_generated || 0;
+    if (eventsEl) eventsEl.textContent = data.events_total || 0;
+    if (camerasEl) camerasEl.textContent = data.active_cameras || Object.keys(CAMERAS).length || 0;
+    if (kafkaEl) kafkaEl.textContent = data.kafka_connected ? (data.kafka_connected === true || data.kafka_connected === 'true' ? '已连接' : '未连接') : '未连接';
+
+    // Event types
+    const etypes = data.event_type_counts || {};
+    const entryEl = document.getElementById('dash-entry');
+    const exitEl = document.getElementById('dash-exit');
+    const idleEl = document.getElementById('dash-idle');
+    if (entryEl) entryEl.textContent = etypes.entry || 0;
+    if (exitEl) exitEl.textContent = etypes.exit || 0;
+    if (idleEl) idleEl.textContent = etypes.idle || 0;
+
+    // Events per min / peak
+    const evminEl = document.getElementById('dash-evmin');
+    const peakEl = document.getElementById('dash-peak');
+    if (evminEl) evminEl.textContent = (data.events_per_min || 0).toFixed(1);
+    if (peakEl) peakEl.textContent = (data.peak_events_per_min || data.events_per_min || 0).toFixed(1);
+
+    // Kafka throughput
+    const kframesEl = document.getElementById('dash-kframes');
+    const keventsEl = document.getElementById('dash-kevents');
+    if (kframesEl) kframesEl.textContent = data.kafka_frames_sent || data.frames_generated || 0;
+    if (keventsEl) keventsEl.textContent = data.kafka_events_sent || data.events_total || 0;
+
+    // Per-camera stats
+    const camGrid = document.getElementById('dash-cam-grid');
+    if (camGrid && data.camera_event_counts) {
+      camGrid.innerHTML = '';
+      Object.entries(data.camera_event_counts).forEach(function([camId, count]) {
+        const camInfo = CAMERAS[camId] || { name: '摄像头 ' + camId, building: '--' };
+        const div = document.createElement('div');
+        div.className = 'dash-cam-item';
+        div.innerHTML = '<div><div class="dci-id">' + camId + '</div><div class="dci-label">' + camInfo.building + ' &middot; ' + (camInfo.name || '摄像头') + '</div></div><div class="dci-count">' + count + '</div>';
+        camGrid.appendChild(div);
+      });
+    }
+
+    // Building stats in header
+    if (hdrBuildingStats && data.building_stats) {
+      const parts = [];
+      Object.entries(data.building_stats).forEach(function([bld, cnt]) {
+        parts.push(bld + ': ' + cnt);
+      });
+      hdrBuildingStats.textContent = parts.join(' | ');
+    }
+  }
+
   /* ── Random mode ── */
   function startRandomMode() {
     if (randomTimer) return;
@@ -1906,6 +2224,11 @@
     html += '<input type="text" id="people-input" placeholder="输入姓名 (学号)">';
     html += '<button id="people-add-btn">+ 添加</button>';
     html += '</div>';
+    html += '<div style="display:flex;gap:6px;padding:0 18px 10px;align-items:center;">';
+    html += '<input type="file" id="people-csv-input" accept=".csv" style="flex:1;padding:4px 8px;background:var(--bg-card);border:1px solid var(--border);border-radius:4px;color:var(--text);font-family:var(--font);font-size:10px;">';
+    html += '<button id="people-import-csv-btn" style="padding:6px 14px;border:1px solid var(--border);border-radius:4px;background:transparent;color:var(--amber);font-family:var(--font);font-size:11px;cursor:pointer;transition:all 0.2s;white-space:nowrap;">&#128196; CSV导入</button>';
+    html += '<a href="/static/sample-people.csv" download style="font-size:18px;color:var(--text-dim);text-decoration:none;cursor:pointer;transition:color 0.2s;" title="下载示例CSV">&#128230;</a>';
+    html += '</div>';
     html += '<div class="people-list" id="people-list"></div>';
     html += '</div></div>';
 
@@ -1978,6 +2301,12 @@
           }
         }
       });
+    }
+
+    // Bind CSV import
+    const importCsvBtn = document.getElementById('people-import-csv-btn');
+    if (importCsvBtn) {
+      importCsvBtn.addEventListener('click', importPeopleCsv);
     }
 
     // Render people list
@@ -2189,6 +2518,43 @@
       showToast('success', '已移除: ' + name);
     } catch (err) {
       showToast('error', '移除失败: ' + err.message);
+    }
+  }
+
+  /* ── CSV Import ── */
+  async function importPeopleCsv() {
+    const fileInput = document.getElementById('people-csv-input');
+    if (!fileInput || !fileInput.files || fileInput.files.length === 0) {
+      showToast('error', '请选择 CSV 文件');
+      return;
+    }
+    const file = fileInput.files[0];
+    const formData = new FormData();
+    formData.append('file', file);
+
+    const btn = document.getElementById('people-import-csv-btn');
+    if (btn) { btn.disabled = true; btn.textContent = '\u23F3 导入中...'; }
+
+    try {
+      const res = await fetch(API_BASE + '/api/people/import-csv', {
+        method: 'POST',
+        body: formData,
+      });
+      if (!res.ok) {
+        const errData = await res.json().catch(() => ({}));
+        throw new Error(errData.detail || 'HTTP ' + res.status);
+      }
+      const data = await res.json();
+      if (data.people && Array.isArray(data.people)) {
+        PEOPLE = data.people;
+        renderPeopleList();
+      }
+      fileInput.value = '';
+      showToast('success', 'CSV 导入成功: ' + (data.imported || 0) + ' 人');
+    } catch (err) {
+      showToast('error', 'CSV 导入失败: ' + err.message);
+    } finally {
+      if (btn) { btn.disabled = false; btn.textContent = '\uD83D\uDCC4 CSV导入'; }
     }
   }
 
@@ -2506,6 +2872,9 @@
     setInterval(fetchHealth, 10000);
     setInterval(() => fetchEvents(true), 3000);
 
+    // Stats update every 3 seconds
+    setInterval(fetchStats, 3000);
+
     // Timestamp update every second
     setInterval(updateTimestamps, 1000);
 
@@ -2516,6 +2885,7 @@
     genTrafficBtn.addEventListener('click', generateTraffic);
 
     // Settings drawer
+    dashToggleBtn.addEventListener('click', toggleDashboard);
     settingsToggle.addEventListener('click', openDrawer);
     drawerClose.addEventListener('click', closeDrawer);
     drawerOverlay.addEventListener('click', closeDrawer);

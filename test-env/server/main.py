@@ -9,6 +9,7 @@ CampusVision AI — 测试环境服务器
 启动: uvicorn server.main:app --host 0.0.0.0 --port 8082
 """
 
+import csv
 import io
 import json
 import os
@@ -25,7 +26,7 @@ from pathlib import Path
 from typing import Optional
 
 import uvicorn
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, File, HTTPException, UploadFile
 from fastapi.responses import Response
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
@@ -305,10 +306,11 @@ start_time = time.time()
 
 
 def _log(cam_id: str, ev_type: str, detail: str) -> dict:
+    building = CAMERAS[cam_id]["building"] if cam_id in CAMERAS else cam_id
     entry = dict(
         time=datetime.now().strftime("%H:%M:%S"),
         camera_id=cam_id,
-        building=CAMERAS[cam_id]["building"],
+        building=building,
         event_type=ev_type,
         detail=detail,
     )
@@ -497,6 +499,54 @@ async def remove_person(name: str):
     if name in SERVER_CONFIG["test_people"]:
         SERVER_CONFIG["test_people"].remove(name)
     return dict(success=True, people=SERVER_CONFIG["test_people"])
+
+
+@app.post("/api/people/import-csv")
+async def import_people_csv(file: UploadFile = File(...)):
+    """导入 CSV 格式的人员名单 (name, student_id)"""
+    if not file.filename or not file.filename.endswith(".csv"):
+        raise HTTPException(400, "请上传 .csv 文件")
+
+    content = await file.read()
+    try:
+        text = content.decode("utf-8-sig")  # handle BOM
+    except UnicodeDecodeError:
+        text = content.decode("gbk", errors="replace")
+
+    reader = csv.DictReader(io.StringIO(text))
+    if not reader.fieldnames:
+        raise HTTPException(400, "CSV 文件为空或格式错误")
+
+    # Normalize column names
+    name_key = None
+    for k in reader.fieldnames:
+        k_lower = k.strip().lower()
+        if k_lower in ("name", "姓名", "名字", "学生姓名"):
+            name_key = k
+            break
+    if not name_key:
+        raise HTTPException(400, "CSV 缺少姓名列 (name/姓名)")
+
+    imported = 0
+    for row in reader:
+        raw = row.get(name_key, "").strip()
+        if not raw:
+            continue
+        # Try to build a nice display name: "姓名 (学号)"
+        student_id = None
+        for k in reader.fieldnames:
+            k_lower = k.strip().lower()
+            if k_lower in ("student_id", "学号", "id", "编号", "studentid"):
+                student_id = row.get(k, "").strip()
+                break
+        display = f"{raw} ({student_id})" if student_id else raw
+        if display not in SERVER_CONFIG["test_people"]:
+            SERVER_CONFIG["test_people"].append(display)
+            imported += 1
+
+    _log("system", "csv_import", f"CSV导入 {imported} 人 ({file.filename})")
+    return dict(success=True, imported=imported, people=SERVER_CONFIG["test_people"])
+
 
 # ── Webcam control ──────────────────────────────────────────────────────────
 
@@ -735,6 +785,52 @@ async def cam_status(camera_id: str):
 @app.get("/api/events")
 async def events(limit: int = 50):
     return list(event_log)[:limit]
+
+
+@app.get("/api/stats")
+async def stats():
+    """Return aggregated statistics for the dashboard."""
+    total_events = len(event_log)
+    event_type_counts = {"entry": 0, "exit": 0, "idle": 0}
+    building_stats = {}
+    camera_event_counts = {}
+    now = time.time()
+
+    for ev in event_log:
+        etype = ev.get("event_type", ev.get("action", "idle"))
+        if etype in event_type_counts:
+            event_type_counts[etype] += 1
+        cam = ev.get("camera_id", "unknown")
+        camera_event_counts[cam] = camera_event_counts.get(cam, 0) + 1
+        bld = ev.get("building", "")
+        if bld:
+            building_stats[bld] = building_stats.get(bld, 0) + 1
+
+    # Events per minute (based on last 60s)
+    recent_count = sum(
+        1 for ev in event_log
+        if ev.get("timestamp") and (now - ev["timestamp"] / 1000) < 60
+    )
+    events_per_min = recent_count
+
+    # Frames generated: count of unique frame entries in latest_frames
+    frames_generated = len(latest_frames)
+    kafka_connected = producer is not None
+
+    return dict(
+        frames_generated=frames_generated,
+        events_total=total_events,
+        event_type_counts=event_type_counts,
+        building_stats=building_stats,
+        camera_event_counts=camera_event_counts,
+        events_per_min=events_per_min,
+        peak_events_per_min=events_per_min,
+        active_cameras=len(CAMERAS),
+        kafka_connected=kafka_connected,
+        kafka_frames_sent=frames_generated,
+        kafka_events_sent=total_events,
+        uptime_sec=int(time.time() - start_time),
+    )
 
 
 @app.get("/api/scenarios/random")
