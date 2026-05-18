@@ -1,6 +1,6 @@
 # CampusVision AI — 技术设计文档
 
-> **版本**: v1.1 · **更新**: 2026-05-16  
+> **版本**: v1.2 · **更新**: 2026-05-18  
 > **说明**: 本目录存放后端技术设计文档，按角色/领域分文件夹组织。
 
 ---
@@ -61,7 +61,7 @@ camera/01-camera-feature.md →  健康检查 Task、离线检测、CRUD 实现
 
 测试环境
     ↓
-test-env/01-test-environment.md  →  模拟4路摄像头、Kafka注入、Web面板
+test-env/01-test-environment.md  →  模拟多路摄像头（默认4路）、Kafka注入、Web面板
 
 基础架构
     ├── docker-compose.yml     →  容器编排（Kafka/Redis/MariaDB/MinIO）
@@ -80,5 +80,5 @@ test-env/01-test-environment.md  →  模拟4路摄像头、Kafka注入、Web面
 | 对接前端 API | `backend/03-api.md` → 响应格式 + 端点 |
 | 把模块接进主进程 | `integration/01-main-process.md` → 8步迁移清单 |
 | 实现摄像头状态监控 | `camera/01-camera-feature.md` → 健康检查 + 离线检测 |
-| 本地模拟测试（无摄像头） | `test-env/01-test-environment.md` → 启动模拟服务器 |
+| 本地模拟测试（无摄像头） | `test-env/01-test-environment.md` → 启动模拟服务器（默认4路） |
 | 搭建基础服务 | `docker-compose.yml` + `infra/` 下的 init SQL |

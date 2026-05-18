@@ -898,7 +898,7 @@ Response 200:
 |-------------|-----------|------|---------|
 | 400 | INVALID_PARAMETER | 请求参数校验失败 | building 不是 A/B/C/D |
 | 400 | BUILDING_INVALID | 楼栋参数不合法 | 传入了 E 栋 |
-| 400 | CAMERA_LIMIT_EXCEEDED | 摄像头数量已达上限 | 已满 4 路 |
+| 400 | CAMERA_LIMIT_EXCEEDED | 摄像头数量已达上限 | 超过可配置的最大摄像头数 |
 | 401 | UNAUTHORIZED | 认证失败 | Token 无效/过期 |
 | 404 | NOT_FOUND | 资源不存在 | studentId 查无此人 |
 | 404 | STUDENT_NOT_FOUND | 学生未找到 | 同步数据中无此学号 |

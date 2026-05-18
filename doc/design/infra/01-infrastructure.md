@@ -70,7 +70,7 @@ KAFKA_LOG_RETENTION_HOURS: 48           # 帧数据保留 48h
 
 ### 分区策略
 
-- `t_dorm_frame` 4 分区：每路摄像头 1 分区，保证同 camera 顺序消费
+- `t_dorm_frame` 分区数建议 = 楼栋数：每路摄像头 1 分区，保证同 camera 顺序消费（可配置）
 - `t_dorm_event` 2 分区：按 building hash 分区
 - `t_dorm_alert` 1 分区：告警量小，单分区足够
 
