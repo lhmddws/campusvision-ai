@@ -77,6 +77,11 @@ mybatis-plus:
       logic-delete-value: 1
       logic-not-delete-value: 0
 
+camera:
+  management:
+    base-url: http://127.0.0.1:8081
+    key: ""
+
 logging:
   level:
     com.sims.dormitory: DEBUG

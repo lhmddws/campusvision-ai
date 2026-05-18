@@ -25,4 +25,11 @@ public class CameraCreateDTO {
     private String direction;
     private String resolution;
     private String remark;
+
+    private String type;
+    private String protocol;
+    private String host;
+    private Integer port;
+    private String path;
+    private String username;
 }

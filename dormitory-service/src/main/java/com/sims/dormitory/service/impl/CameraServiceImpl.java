@@ -2,17 +2,23 @@ package com.sims.dormitory.service.impl;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
+import com.sims.dormitory.client.CameraPushClient;
 import com.sims.dormitory.common.response.ErrorCode;
 import com.sims.dormitory.common.exception.BusinessException;
+import com.sims.dormitory.event.DormCameraEvent;
 import com.sims.dormitory.model.dto.CameraCreateDTO;
 import com.sims.dormitory.model.dto.CameraUpdateDTO;
 import com.sims.dormitory.model.entity.DormCamera;
+import com.sims.dormitory.model.entity.DormCameraLog;
 import com.sims.dormitory.model.entity.DormEventLog;
+import com.sims.dormitory.repository.DormCameraLogMapper;
 import com.sims.dormitory.repository.DormCameraMapper;
 import com.sims.dormitory.repository.DormEventLogMapper;
 import com.sims.dormitory.service.CameraService;
+import com.sims.dormitory.util.CryptoService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -34,10 +40,21 @@ public class CameraServiceImpl implements CameraService {
 
     private final DormCameraMapper cameraMapper;
     private final DormEventLogMapper eventLogMapper;
+    private final DormCameraLogMapper cameraLogMapper;
+    private final CameraPushClient pushClient;
+    private final CryptoService cryptoService;
+    private final ApplicationEventPublisher eventPublisher;
 
-    public CameraServiceImpl(DormCameraMapper cameraMapper, DormEventLogMapper eventLogMapper) {
+    public CameraServiceImpl(DormCameraMapper cameraMapper, DormEventLogMapper eventLogMapper,
+                              DormCameraLogMapper cameraLogMapper,
+                              CameraPushClient pushClient, CryptoService cryptoService,
+                              ApplicationEventPublisher eventPublisher) {
         this.cameraMapper = cameraMapper;
         this.eventLogMapper = eventLogMapper;
+        this.cameraLogMapper = cameraLogMapper;
+        this.pushClient = pushClient;
+        this.cryptoService = cryptoService;
+        this.eventPublisher = eventPublisher;
     }
 
     @Override
@@ -62,6 +79,37 @@ public class CameraServiceImpl implements CameraService {
         camera.setUpdatedAt(LocalDateTime.now());
         cameraMapper.insert(camera);
         log.info("Camera registered: cameraId={}, building={}", dto.getCameraId(), dto.getBuilding());
+        insertLog(camera, null, "unknown", "Camera registered");
+
+        if (dto.getRtspUrl() != null && !dto.getRtspUrl().isEmpty()) {
+            try {
+                URI uri = new URI(dto.getRtspUrl());
+                camera.setProtocol(uri.getScheme());
+                camera.setHost(uri.getHost());
+                if (uri.getPort() > 0) camera.setPort(uri.getPort());
+                camera.setPath(uri.getRawPath());
+                if (uri.getUserInfo() != null) {
+                    String[] parts = uri.getUserInfo().split(":", 2);
+                    camera.setUsername(parts[0]);
+                    if (parts.length > 1) {
+                        CryptoService.EncryptedPassword ep = cryptoService.encryptPassword(parts[1]);
+                        camera.setPasswordEnc(ep.ciphertext());
+                        camera.setNonce(ep.nonce());
+                    }
+                }
+            } catch (Exception e) {
+                log.warn("Failed to parse RTSP URL for encryption: {}", e.getMessage());
+            }
+        }
+
+        eventPublisher.publishEvent(new DormCameraEvent(this, camera.getCameraId(), DormCameraEvent.EventType.REGISTERED, camera.getBuilding(), camera.getStatus()));
+
+        try {
+            pushClient.notifyRegister(camera);
+        } catch (Exception e) {
+            log.warn("Push notification failed for register: {}", e.getMessage());
+        }
+
         return camera;
     }
 
@@ -77,6 +125,14 @@ public class CameraServiceImpl implements CameraService {
         existing.setUpdatedAt(LocalDateTime.now());
         cameraMapper.updateById(existing);
         log.info("Camera updated: cameraId={}", cameraId);
+
+        eventPublisher.publishEvent(new DormCameraEvent(this, cameraId, DormCameraEvent.EventType.UPDATED, existing.getBuilding(), existing.getStatus()));
+
+        try {
+            pushClient.notifyUpdate(cameraId, existing);
+        } catch (Exception e) {
+            log.warn("Push notification failed for update: {}", e.getMessage());
+        }
     }
 
     @Override
@@ -129,6 +185,7 @@ public class CameraServiceImpl implements CameraService {
     @Override
     public void healthCheck(String cameraId) {
         DormCamera camera = getByCameraId(cameraId);
+        String oldStatus = camera.getStatus();
         String gatewayUrl = "http://localhost:8080/health";
 
         try {
@@ -153,6 +210,12 @@ public class CameraServiceImpl implements CameraService {
             log.warn("Health check FAILED for camera: {} - {}", cameraId, e.getMessage());
         }
 
+        String newStatus = camera.getStatus();
+        if (!java.util.Objects.equals(oldStatus, newStatus)) {
+            String reason = "ONLINE".equals(newStatus) ? "Health check" : "Health check failed";
+            insertLog(camera, oldStatus, newStatus, reason);
+        }
+
         camera.setUpdatedAt(LocalDateTime.now());
         cameraMapper.updateById(camera);
     }
@@ -161,8 +224,17 @@ public class CameraServiceImpl implements CameraService {
     @Transactional
     public void deleteCamera(String cameraId) {
         DormCamera camera = getByCameraId(cameraId);
+        insertLog(camera, camera.getStatus(), "DELETED", "Camera deleted");
         cameraMapper.deleteById(camera.getId());
         log.info("Camera deleted: cameraId={}", cameraId);
+
+        eventPublisher.publishEvent(new DormCameraEvent(this, cameraId, DormCameraEvent.EventType.DELETED, camera.getBuilding(), camera.getStatus()));
+
+        try {
+            pushClient.notifyDelete(cameraId);
+        } catch (Exception e) {
+            log.warn("Push notification failed for delete: {}", e.getMessage());
+        }
     }
 
     @Override
@@ -183,13 +255,13 @@ public class CameraServiceImpl implements CameraService {
     public void updateLastEventTime(String cameraId, Long timestampMs) {
         DormCamera camera = getByCameraId(cameraId);
         if (timestampMs != null) {
-            camera.setUpdatedAt(
+            camera.setLastEventTime(
                     LocalDateTime.ofEpochSecond(timestampMs / 1000, 0, java.time.ZoneOffset.ofHours(8)));
         } else {
-            camera.setUpdatedAt(LocalDateTime.now());
+            camera.setLastEventTime(LocalDateTime.now());
         }
         cameraMapper.updateById(camera);
-        log.debug("Updated last event time for camera: {} -> {}", cameraId, camera.getUpdatedAt());
+        log.debug("Updated last event time for camera: {} -> {}", cameraId, camera.getLastEventTime());
     }
 
     @Override
@@ -206,5 +278,21 @@ public class CameraServiceImpl implements CameraService {
         }
         wrapper.orderByDesc(DormEventLog::getTimestamp);
         return eventLogMapper.selectPage(eventPage, wrapper);
+    }
+
+    private void insertLog(DormCamera camera, String statusFrom, String statusTo, String reason) {
+        try {
+            DormCameraLog logEntry = new DormCameraLog();
+            logEntry.setCameraId(camera.getCameraId());
+            logEntry.setBuilding(camera.getBuilding());
+            logEntry.setStatusFrom(statusFrom);
+            logEntry.setStatusTo(statusTo);
+            logEntry.setReason(reason);
+            logEntry.setFpsAtTime(null);
+            logEntry.setCreatedAt(LocalDateTime.now());
+            cameraLogMapper.insert(logEntry);
+        } catch (Exception e) {
+            log.warn("Failed to insert camera log for cameraId={}: {}", camera.getCameraId(), e.getMessage());
+        }
     }
 }
