@@ -551,6 +551,41 @@ async def webcam_stop(body: WebcamControlBody):
     return dict(success=True, camera_id=cid, running=cid in _webcam_captures)
 
 
+@app.post("/api/webcam/start-all")
+async def webcam_start_all():
+    """Start webcam capture for all cameras (sequential device indices)."""
+    if not shutil.which("ffmpeg"):
+        raise HTTPException(400, "ffmpeg not found — webcam capture requires ffmpeg installed")
+
+    results = {}
+    for i, cid in enumerate(CAMERAS):
+        if cid in _webcam_captures:
+            _webcam_captures[cid]["running"] = False
+            time.sleep(0.2)
+        SERVER_CONFIG["camera_source"] = "webcam"
+        device_idx = i
+        CAMERA_WEBCAM_INDEX[cid] = device_idx
+        t = threading.Thread(target=_webcam_capture_worker, args=(cid, device_idx), daemon=True)
+        t.start()
+        results[cid] = dict(device_index=device_idx, running=True)
+        time.sleep(0.2)
+
+    return dict(success=True, results=results)
+
+
+@app.post("/api/webcam/status")
+async def webcam_bulk_status():
+    """Return webcam status for all cameras."""
+    return dict(
+        active_captures={cid: {
+            "running": cid in _webcam_captures,
+            "device_index": CAMERA_WEBCAM_INDEX.get(cid),
+            "has_frame": cid in latest_frames,
+        } for cid in CAMERAS},
+        camera_source=SERVER_CONFIG["camera_source"],
+    )
+
+
 @app.post("/api/webcam/stop-all")
 async def webcam_stop_all():
     """Stop all webcam captures."""
@@ -717,6 +752,73 @@ async def scenario_random(count: int = 5):
         results.append(res)
         time.sleep(0.05)
     return dict(generated=count, results=results)
+
+
+@app.post("/api/scenarios/preset")
+async def scenario_preset(body: dict):
+    """Execute a preset demo scenario.
+
+    Available presets:
+      - rush_hour:   密集 entry/exit 流量 across all cameras
+      - night_mode:   启用夜间模式 + idle 事件
+      - stranger:     模拟低置信度 (stranger) 事件
+      - all_entry:    所有摄像头依次 entry
+      - all_exit:     所有摄像头依次 exit
+    """
+    import random as rnd
+
+    preset = body.get("preset", "rush_hour")
+    results = []
+
+    if preset == "rush_hour":
+        for _ in range(20):
+            cid = rnd.choice(list(CAMERAS))
+            act = rnd.choice(["entry", "exit"])
+            people = SERVER_CONFIG["test_people"]
+            person = rnd.choice(people) if people else None
+            res = await simulate(cid, SimulateBody(action=act, person=person))
+            results.append(res)
+            time.sleep(0.05)
+    elif preset == "night_mode":
+        SERVER_CONFIG["night_mode_enabled"] = True
+        for _ in range(8):
+            cid = rnd.choice(list(CAMERAS))
+            res = await simulate(cid, SimulateBody(action="idle"))
+            results.append(res)
+            time.sleep(0.05)
+    elif preset == "stranger":
+        old_threshold = SERVER_CONFIG["confidence_threshold"]
+        SERVER_CONFIG["confidence_threshold"] = 0.9
+        for _ in range(6):
+            cid = rnd.choice(list(CAMERAS))
+            act = rnd.choice(["entry", "exit"])
+            people = SERVER_CONFIG["test_people"]
+            person = rnd.choice(people) if people else None
+            res = await simulate(cid, SimulateBody(action=act, person=person))
+            results.append(res)
+            time.sleep(0.05)
+        SERVER_CONFIG["confidence_threshold"] = old_threshold
+    elif preset == "all_entry":
+        for cid in CAMERAS:
+            people = SERVER_CONFIG["test_people"]
+            person = rnd.choice(people) if people else None
+            res = await simulate(cid, SimulateBody(action="entry", person=person))
+            results.append(res)
+            time.sleep(0.1)
+    elif preset == "all_exit":
+        for cid in CAMERAS:
+            people = SERVER_CONFIG["test_people"]
+            person = rnd.choice(people) if people else None
+            res = await simulate(cid, SimulateBody(action="exit", person=person))
+            results.append(res)
+            time.sleep(0.1)
+    elif preset == "clear_log":
+        event_log.clear()
+        return dict(success=True, preset=preset, events_cleared=True)
+    else:
+        raise HTTPException(400, f"Unknown preset: {preset}")
+
+    return dict(success=True, preset=preset, generated=len(results), results=results)
 
 
 # ── Static files (web dashboard) ────────────────────────────────────────────

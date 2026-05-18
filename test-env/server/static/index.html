@@ -199,6 +199,22 @@
   }
   .cam-feed img.loading { opacity: 0.5; }
 
+  /* Feed error state */
+  .cam-card.feed-error .cam-feed img { opacity: 0.3; }
+  .cam-card.feed-error .cam-feed .feed-error-overlay {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--red);
+    font-size: 11px;
+    letter-spacing: 1px;
+    background: rgba(0,0,0,0.35);
+    z-index: 3;
+    pointer-events: none;
+  }
+
   /* Scanning line overlay */
   .cam-feed::after {
     content: '';
@@ -572,6 +588,31 @@
     color: var(--green);
   }
   .gen-btn:active { transform: scale(0.96); }
+  .gen-btn.batch-btn {
+    font-size: 9px;
+    padding: 4px 8px;
+  }
+
+  .scenario-select {
+    padding: 3px 8px;
+    background: var(--bg-card);
+    border: 1px solid var(--border-bright);
+    border-radius: 14px;
+    color: var(--text-dim);
+    font-family: var(--font);
+    font-size: 10px;
+    cursor: pointer;
+    outline: none;
+    letter-spacing: 0.3px;
+    max-width: 130px;
+  }
+  .scenario-select:hover {
+    border-color: rgba(0,255,136,0.3);
+  }
+  .scenario-select option {
+    background: var(--bg-panel);
+    color: var(--text);
+  }
 
   .events-counter {
     font-size: 11px;
@@ -998,18 +1039,194 @@
     to { transform: rotate(360deg); }
   }
 
+  /* ── Camera Management ── */
+  .cam-mgmt-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 6px 0;
+    gap: 6px;
+    border-bottom: 1px solid var(--border);
+  }
+  .cam-mgmt-info {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    flex: 1;
+  }
+  .cam-mgmt-color {
+    width: 12px; height: 12px;
+    border-radius: 50%;
+    flex-shrink: 0;
+    border: 1px solid var(--border);
+  }
+  .cam-mgmt-id {
+    font-size: 10px;
+    color: var(--green-dim);
+    min-width: 42px;
+  }
+  .cam-mgmt-info input[type="text"] {
+    padding: 3px 6px;
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 3px;
+    color: var(--text);
+    font-family: var(--font);
+    font-size: 10px;
+    outline: none;
+  }
+  .cam-mgmt-info input[type="text"]:focus {
+    border-color: rgba(0,255,136,0.3);
+  }
+  .cam-mgmt-info input[type="color"] {
+    width: 24px; height: 20px;
+    padding: 0;
+    border: 1px solid var(--border);
+    border-radius: 3px;
+    background: transparent;
+    cursor: pointer;
+  }
+  .cam-mgmt-actions button {
+    padding: 3px 8px;
+    border: 1px solid var(--border);
+    border-radius: 3px;
+    background: transparent;
+    color: var(--text-dim);
+    font-family: var(--font);
+    font-size: 9px;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+  .cam-mgmt-actions button:hover {
+    color: var(--green);
+    border-color: rgba(0,255,136,0.3);
+  }
+  .cam-mgmt-new {
+    padding-top: 8px;
+  }
+  .cam-mgmt-new-row {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+  }
+  .cam-mgmt-new-row input {
+    padding: 4px 6px;
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 3px;
+    color: var(--text);
+    font-family: var(--font);
+    font-size: 10px;
+    outline: none;
+  }
+  .cam-mgmt-new-row input:focus {
+    border-color: rgba(0,255,136,0.3);
+  }
+  .cam-mgmt-new-row button {
+    padding: 4px 10px;
+    border: 1px solid var(--border);
+    border-radius: 3px;
+    background: transparent;
+    color: var(--green);
+    font-family: var(--font);
+    font-size: 10px;
+    cursor: pointer;
+    transition: all 0.2s;
+    white-space: nowrap;
+  }
+  .cam-mgmt-new-row button:hover {
+    background: rgba(0,255,136,0.1);
+    border-color: rgba(0,255,136,0.3);
+  }
+
+  /* ── Pipeline Status ── */
+  .pipe-step { padding: 4px 0; }
+  .pipe-connector {
+    width: 1px;
+    height: 12px;
+    background: var(--border);
+    margin-left: 5px;
+  }
+  .pipe-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .pipe-label {
+    font-size: 11px;
+    color: var(--text);
+    flex: 1;
+  }
+  .pipe-status {
+    font-size: 9px;
+    padding: 1px 8px;
+    border-radius: 8px;
+    letter-spacing: 0.3px;
+  }
+  .pipe-status.green {
+    color: var(--green);
+    background: var(--green-bg);
+    border: 1px solid rgba(0,255,136,0.2);
+  }
+  .pipe-status.red {
+    color: var(--red);
+    background: var(--red-bg);
+    border: 1px solid rgba(255,51,85,0.2);
+  }
+  .pipe-info {
+    margin-top: 10px;
+    padding: 8px;
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+  }
+  .pipe-info-row {
+    display: flex;
+    justify-content: space-between;
+    padding: 3px 0;
+    font-size: 10px;
+  }
+  .pipe-info-row span:first-child {
+    color: var(--text-dim);
+  }
+  .pipe-info-row span:last-child {
+    color: var(--text);
+    font-family: var(--font);
+  }
+
   /* ── Responsive fallback ── */
+  @media (max-width: 1200px) {
+    .status-bar .status-left .sb-item:not(:first-child) { display: none; }
+    .status-right .batch-btn:not(:first-child) { display: none; }
+  }
   @media (max-width: 1100px) {
     .event-panel { width: 240px; min-width: 200px; }
+    .status-bar .status-left .sb-item:nth-child(3) { display: none; }
+  }
+  @media (max-width: 900px) {
+    .header .uptime { display: none; }
+    .status-right .batch-btn { display: none !important; }
+    .scenario-select { max-width: 100px; }
   }
   @media (max-width: 800px) {
     .main { flex-direction: column; }
     .event-panel { width: 100%; min-width: 0; border-left: none; border-top: 1px solid var(--border); max-height: 200px; }
     .grid-wrap { gap: 6px; padding: 6px; }
+    .header-badge { display: none; }
+    .status-bar { flex-wrap: wrap; height: auto; padding: 6px 10px; gap: 4px; }
+    .status-bar .status-left { flex-wrap: wrap; gap: 6px; }
+    .status-bar .status-right { flex-wrap: wrap; gap: 4px; }
   }
   @media (max-width: 600px) {
+    :root { --header-h: 44px; }
+    .header { padding: 0 10px; }
+    .logo-icon { width: 28px; height: 28px; font-size: 12px; }
+    .logo-text { font-size: 13px; }
     .grid-wrap { grid-template-columns: 1fr; grid-template-rows: auto; }
     .drawer { width: 100vw; }
+    .gen-btn, .gen-btn.batch-btn { padding: 3px 8px; font-size: 8px; }
+    .scenario-select { font-size: 8px; padding: 2px 6px; max-width: 80px; }
+    .status-bar .status-left .sb-item { font-size: 9px; }
   }
 </style>
 </head>
@@ -1064,13 +1281,26 @@
       </div>
     </div>
     <div class="status-right">
+      <!-- Batch operation buttons -->
+      <button type="button" class="gen-btn batch-btn" data-action="all_entry" title="所有摄像头模拟进入">&#128204; 全部进入</button>
+      <button type="button" class="gen-btn batch-btn" data-action="all_exit" title="所有摄像头模拟离开">&#128683; 全部离开</button>
+      <button type="button" class="gen-btn batch-btn" data-action="clear_log" title="清空事件日志">&#128465; 清空日志</button>
+
+      <!-- Scenario dropdown -->
+      <select class="scenario-select" id="scenario-select">
+        <option value="">&#127922; 场景预设...</option>
+        <option value="rush_hour">高峰时段 (Rush Hour)</option>
+        <option value="night_mode">夜间模式</option>
+        <option value="stranger">陌生人告警</option>
+      </select>
+
       <div class="toggle-wrap" id="random-toggle">
-        <span class="toggle-label" id="random-label">&#127922; 随机模拟</span>
+        <span class="toggle-label" id="random-label">&#127922; 随机</span>
         <div class="toggle-track" id="random-track">
           <div class="toggle-thumb"></div>
         </div>
       </div>
-      <button type="button" class="gen-btn" id="gen-traffic-btn">&#9889; 生成流量</button>
+      <button type="button" class="gen-btn" id="gen-traffic-btn">&#9889; 流量</button>
     </div>
   </div>
 </div>
@@ -1089,6 +1319,10 @@
     <div id="cfg-content" style="display:none">
       <!-- Populated by JS -->
     </div>
+    <!-- Camera management section (appended by JS after config form) -->
+    <div id="camera-mgmt" style="display:none"></div>
+    <!-- Pipeline status section (appended by JS) -->
+    <div id="pipeline-status" style="display:none"></div>
   </div>
   <div class="drawer-footer">
     <button type="button" id="save-config">&#128190; 保存配置</button>
@@ -1281,6 +1515,10 @@
       feed.appendChild(badge);
       feed.appendChild(rec);
       feed.appendChild(ts);
+      // Feed error overlay (hidden by default)
+      const errOverlay = document.createElement('div');
+      errOverlay.className = 'feed-error-overlay';
+      feed.appendChild(errOverlay);
       card.appendChild(feed);
 
       // Controls
@@ -1830,6 +2068,8 @@
       const data = await res.json();
       if (data.config) {
         buildConfigForm(data.config);
+        buildCameraMgmt();
+        buildPipelineStatus();
       }
       showToast('success', '配置已恢复默认');
     } catch (err) {
@@ -1848,9 +2088,10 @@
     if (btn) btn.style.opacity = '0.5';
 
     try {
-      const body = { camera_id: cameraId, action: action };
-      if (action === 'start' && currentConfig && currentConfig.webcam_device !== undefined) {
-        body.device_index = currentConfig.webcam_device;
+      const body = { camera_id: cameraId };
+      if (action === 'start') {
+        body.device_index = (currentConfig && currentConfig.webcam_device !== undefined)
+          ? currentConfig.webcam_device : 0;
       }
       const res = await fetch(API_BASE + '/api/webcam/' + action, {
         method: 'POST',
@@ -1859,12 +2100,8 @@
       });
       if (!res.ok) throw new Error('HTTP ' + res.status);
       const data = await res.json();
-      // Update webcam status based on response
-      if (data.status && data.status.active_captures) {
-        webcamStatus[cameraId] = action === 'start';
-      } else {
-        webcamStatus[cameraId] = action === 'start';
-      }
+      // Backend returns { success, camera_id, running } for both start and stop
+      webcamStatus[cameraId] = action === 'start' && data.running !== false;
       showToast('success', '[' + CAMERAS[cameraId].label + '] Webcam ' + (action === 'start' ? '已启动' : '已停止'));
     } catch (err) {
       showToast('error', 'Webcam操作失败: ' + err.message);
@@ -1872,6 +2109,36 @@
       if (btn) btn.style.opacity = '1';
       updateWebcamButtons();
     }
+  }
+
+  /* ── Toggle webcam for all cameras ── */
+  async function toggleAllWebcams() {
+    const anyActive = Object.values(webcamStatus).some(v => v === true);
+    if (anyActive) {
+      // Stop all
+      try {
+        const res = await fetch(API_BASE + '/api/webcam/stop-all', { method: 'POST' });
+        if (!res.ok) throw new Error('HTTP ' + res.status);
+        Object.keys(CAMERAS).forEach(id => { webcamStatus[id] = false; });
+        showToast('success', '所有摄像头Webcam已停止');
+      } catch (err) {
+        showToast('error', '停止失败: ' + err.message);
+      }
+    } else {
+      // Start all
+      try {
+        const res = await fetch(API_BASE + '/api/webcam/start-all', { method: 'POST' });
+        if (!res.ok) throw new Error('HTTP ' + res.status);
+        const data = await res.json();
+        if (data.results) {
+          Object.keys(data.results).forEach(id => { webcamStatus[id] = true; });
+        }
+        showToast('success', '所有摄像头Webcam已启动');
+      } catch (err) {
+        showToast('error', '启动失败: ' + err.message);
+      }
+    }
+    updateWebcamButtons();
   }
 
   /* ── People management ── */
@@ -1933,6 +2200,8 @@
       const data = await res.json();
       const config = data.config || data;
       buildConfigForm(config);
+      buildCameraMgmt();
+      buildPipelineStatus();
     } catch (err) {
       cfgLoading.innerHTML = '加载配置失败: ' + escapeHtml(err.message);
       showToast('error', '加载配置失败');
@@ -1963,6 +2232,10 @@
   }
 
   /* ── Start feed refresh loop ── */
+  /* ── Feed error tracking with reconnection ── */
+  const feedErrorCount = {};
+  const FEED_RETRY_MAX = 3;
+
   function startFeedLoop() {
     // Feed refresh every 2s
     Object.keys(CAMERAS).forEach(id => {
@@ -1971,9 +2244,251 @@
         if (img) {
           img.classList.add('loading');
           img.src = API_BASE + '/api/cameras/' + id + '/frame.jpg?t=' + Date.now();
+          img.onerror = function() {
+            feedErrorCount[id] = (feedErrorCount[id] || 0) + 1;
+            if (feedErrorCount[id] >= FEED_RETRY_MAX) {
+              const card = img.closest('.cam-card');
+              if (card) card.classList.add('feed-error');
+            }
+          };
+          img.onload = function() {
+            if (feedErrorCount[id]) {
+              delete feedErrorCount[id];
+              const card = img.closest('.cam-card');
+              if (card) card.classList.remove('feed-error');
+            }
+          };
         }
       }, 2000);
     });
+  }
+
+  /* ── Webcam reconnection ── */
+  async function reconnectWebcams() {
+    try {
+      const res = await fetch(API_BASE + '/api/webcam/status');
+      if (!res.ok) return;
+      const data = await res.json();
+      if (data.active_captures) {
+        Object.entries(data.active_captures).forEach(([id, info]) => {
+          const running = info.running || info.has_frame || false;
+          if (running && webcamStatus[id] !== true) {
+            webcamStatus[id] = true;
+          } else if (!running && webcamStatus[id] === true) {
+            webcamStatus[id] = false;
+          }
+        });
+      }
+    } catch (_) { /* ignore */ }
+    updateWebcamButtons();
+  }
+
+  // Periodic webcam reconnection check
+  setInterval(reconnectWebcams, 15000);
+
+  /* ── Camera Management UI ── */
+  function buildCameraMgmt() {
+    const container = document.getElementById('camera-mgmt');
+    if (!container) return;
+    container.style.display = 'block';
+
+    let html = '<div class="cfg-section">';
+    html += '<div class="cfg-section-header" data-target="sec-cam-mgmt-body">';
+    html += '<span>&#128247; 摄像头管理</span><span class="chevron">&#x25BC;</span>';
+    html += '</div><div class="cfg-section-body" id="sec-cam-mgmt-body">';
+
+    Object.entries(CAMERAS).forEach(([id, cfg]) => {
+      html += '<div class="cam-mgmt-item" data-camera="' + id + '">';
+      html += '<div class="cam-mgmt-info">';
+      html += '<span class="cam-mgmt-color" style="background:' + cfg.color + '"></span>';
+      html += '<span class="cam-mgmt-id">' + id + '</span>';
+      html += '<input type="text" class="cam-mgmt-label" value="' + escapeHtml(cfg.label) + '" data-camera="' + id + '">';
+      html += '<input type="text" class="cam-mgmt-building" value="' + escapeHtml(cfg.building) + '" data-camera="' + id + '" style="width:40px">';
+      html += '<input type="color" class="cam-mgmt-colorpicker" value="' + cfg.color + '" data-camera="' + id + '">';
+      html += '</div>';
+      html += '<div class="cam-mgmt-actions">';
+      html += '<button class="cam-mgmt-save" data-camera="' + id + '">保存</button>';
+      html += '</div>';
+      html += '</div>';
+    });
+
+    // Add new camera form
+    html += '<div class="cam-mgmt-new">';
+    html += '<div class="cam-mgmt-new-row">';
+    html += '<input type="text" id="cam-new-id" placeholder="ID (如 cam-e)" style="width:80px">';
+    html += '<input type="text" id="cam-new-label" placeholder="名称 (如 E栋入口)" style="flex:1">';
+    html += '<input type="text" id="cam-new-building" placeholder="楼栋" style="width:50px">';
+    html += '<input type="color" id="cam-new-color" value="#e74c3c">';
+    html += '<button id="cam-new-add">+ 添加</button>';
+    html += '</div>';
+    html += '</div>';
+
+    html += '</div></div>';
+    container.innerHTML = html;
+
+    // Bind save buttons
+    container.querySelectorAll('.cam-mgmt-save').forEach(btn => {
+      btn.addEventListener('click', async function() {
+        const camId = this.dataset.camera;
+        const labelInput = container.querySelector('.cam-mgmt-label[data-camera="' + camId + '"]');
+        const buildingInput = container.querySelector('.cam-mgmt-building[data-camera="' + camId + '"]');
+        const colorInput = container.querySelector('.cam-mgmt-colorpicker[data-camera="' + camId + '"]');
+        if (!labelInput || !buildingInput) return;
+        try {
+          const res = await fetch(API_BASE + '/api/cameras/' + camId, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              building: buildingInput.value.trim() || 'A',
+              label: labelInput.value.trim() || camId,
+              color: colorInput ? colorInput.value : undefined,
+            }),
+          });
+          if (!res.ok) throw new Error('HTTP ' + res.status);
+          showToast('success', '摄像头 ' + camId + ' 已更新');
+          await loadCameras();
+          buildGrid();
+          buildCameraMgmt();
+        } catch (err) {
+          showToast('error', '更新失败: ' + err.message);
+        }
+      });
+    });
+
+    // Bind add camera
+    const addBtn = document.getElementById('cam-new-add');
+    if (addBtn) {
+      addBtn.addEventListener('click', async function() {
+        const idEl = document.getElementById('cam-new-id');
+        const labelEl = document.getElementById('cam-new-label');
+        const buildingEl = document.getElementById('cam-new-building');
+        const colorEl = document.getElementById('cam-new-color');
+        if (!idEl || !idEl.value.trim()) {
+          showToast('error', '请输入摄像头ID');
+          return;
+        }
+        const camId = idEl.value.trim();
+        try {
+          const res = await fetch(API_BASE + '/api/cameras/' + camId, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              building: (buildingEl ? buildingEl.value.trim() : 'A') || 'A',
+              label: (labelEl ? labelEl.value.trim() : camId) || camId,
+              color: colorEl ? colorEl.value : '#555577',
+            }),
+          });
+          if (!res.ok) throw new Error('HTTP ' + res.status);
+          showToast('success', '摄像头 ' + camId + ' 已添加');
+          await loadCameras();
+          buildGrid();
+          buildCameraMgmt();
+        } catch (err) {
+          showToast('error', '添加失败: ' + err.message);
+        }
+      });
+    }
+
+    // Bind section collapse
+    container.querySelectorAll('.cfg-section-header').forEach(el => {
+      el.addEventListener('click', function() {
+        this.classList.toggle('collapsed');
+        const targetId = this.dataset.target;
+        const body = document.getElementById(targetId);
+        if (body) body.classList.toggle('hidden');
+      });
+    });
+  }
+
+  /* ── Pipeline Status UI ── */
+  function buildPipelineStatus() {
+    const container = document.getElementById('pipeline-status');
+    if (!container) return;
+    container.style.display = 'block';
+
+    const kafkaOk = document.getElementById('sb-kafka-text') && document.getElementById('sb-kafka-text').textContent.includes('已连接');
+    const source = currentConfig ? currentConfig.camera_source : 'simulated';
+
+    let html = '<div class="cfg-section">';
+    html += '<div class="cfg-section-header" data-target="sec-pipeline-body">';
+    html += '<span>&#128200; 数据流水线</span><span class="chevron">&#x25BC;</span>';
+    html += '</div><div class="cfg-section-body" id="sec-pipeline-body">';
+
+    // Pipeline steps
+    const steps = [
+      { id: 'cam', label: '摄像头 (' + source + ')', ok: true },
+      { id: 'kafka', label: 'Kafka 消息队列', ok: kafkaOk },
+      { id: 'recog', label: '人脸识别服务', ok: true },
+      { id: 'event', label: '事件处理', ok: true },
+    ];
+
+    steps.forEach((step, i) => {
+      const dotClass = step.ok ? 'green' : 'red';
+      const dotTitle = step.ok ? '运行中' : '离线';
+      html += '<div class="pipe-step">';
+      if (i > 0) html += '<div class="pipe-connector"></div>';
+      html += '<div class="pipe-row">';
+      html += '<span class="sb-dot ' + dotClass + '" style="flex-shrink:0"></span>';
+      html += '<span class="pipe-label">' + step.label + '</span>';
+      html += '<span class="pipe-status ' + dotClass + '">' + dotTitle + '</span>';
+      html += '</div>';
+      html += '</div>';
+    });
+
+    // System info
+    html += '<div class="pipe-info">';
+    html += '<div class="pipe-info-row"><span>Kafka Broker</span><span>' + API_BASE.replace(/^https?:\/\//, '').split(':')[0] + ':9092</span></div>';
+    html += '<div class="pipe-info-row"><span>帧 Topic</span><span>t_dorm_frame</span></div>';
+    html += '<div class="pipe-info-row"><span>事件 Topic</span><span>t_dorm_event</span></div>';
+    html += '<div class="pipe-info-row"><span>摄像头数</span><span>' + Object.keys(CAMERAS).length + '</span></div>';
+    html += '</div>';
+
+    html += '</div></div>';
+    container.innerHTML = html;
+
+    // Bind collapse
+    container.querySelectorAll('.cfg-section-header').forEach(el => {
+      el.addEventListener('click', function() {
+        this.classList.toggle('collapsed');
+        const targetId = this.dataset.target;
+        const body = document.getElementById(targetId);
+        if (body) body.classList.toggle('hidden');
+      });
+    });
+  }
+
+  /* ── Execute scenario preset ── */
+  async function executePreset(preset) {
+    try {
+      const res = await fetch(API_BASE + '/api/scenarios/preset', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ preset: preset }),
+      });
+      if (!res.ok) throw new Error('HTTP ' + res.status);
+      const data = await res.json();
+      if (data.generated) {
+        eventsGenerated += data.generated;
+        genCountValue.textContent = eventsGenerated;
+      }
+      if (preset === 'clear_log') {
+        eventsGenerated = 0;
+        genCountValue.textContent = '0';
+      }
+      refreshFeeds();
+      await fetchEvents(true);
+      const presetNames = {
+        rush_hour: '高峰时段模拟完成',
+        night_mode: '夜间模式已启用',
+        stranger: '陌生人告警模拟完成',
+        all_entry: '全部进入已触发',
+        all_exit: '全部离开已触发',
+        clear_log: '事件日志已清空',
+      };
+      showToast('success', presetNames[preset] || '场景 ' + preset + ' 已执行');
+    } catch (err) {
+      showToast('error', '场景执行失败: ' + err.message);
+    }
   }
 
   /* ── Initialize ── */
@@ -2008,6 +2523,24 @@
     // Save / Reset config
     saveConfigBtn.addEventListener('click', saveConfig);
     resetConfigBtn.addEventListener('click', resetConfig);
+
+    // Batch operation buttons (delegated from status bar)
+    document.querySelectorAll('.batch-btn').forEach(btn => {
+      btn.addEventListener('click', function() {
+        executePreset(this.dataset.action);
+      });
+    });
+
+    // Scenario preset dropdown
+    const scenarioSelect = document.getElementById('scenario-select');
+    if (scenarioSelect) {
+      scenarioSelect.addEventListener('change', function() {
+        if (this.value) {
+          executePreset(this.value);
+          this.value = '';
+        }
+      });
+    }
 
     // Load config into drawer (done once)
     fetchConfig();
