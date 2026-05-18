@@ -135,11 +135,45 @@ Three sources of truth that **disagree**:
 - Frame size is hardcoded: `width * height * 3 / 2` (YUV420P).
 - `KAFKA_BROKERS` env var overrides Kafka brokers (default `localhost:9092`).
 
-### Test Environment Webcam Workaround
-- `test-env` server uses **ffmpeg subprocess** (not OpenCV `VideoCapture`) for webcam capture on macOS.
-- Reason: macOS AVFoundation + uvicorn's `fork()`-based worker spawning causes crashes. ffmpeg runs as a separate process piping MJPEG frames.
-- Required: `ffmpeg` on `$PATH`, `Pillow` for frame generation fallback.
-- Config is fully adjustable via `/api/config` endpoints.
+### Test Environment (`test-env/`) — Complete Frontend + Backend
+The test-env is a **full operational testing & demo system** with a polished web frontend and comprehensive REST API.
+
+**Frontend (`server/static/index.html`):**
+- 4 simulated camera feeds with colored borders (A=blue, B=green, C=purple, D=orange)
+- Real-time stats panel (frames generated, events, Kafka status, uptime)
+- Event log with type/color-coded entries (entry=green, exit=red, motion=blue, stranger=orange)
+- Fullscreen camera overlay (double-click any feed)
+- Scanline overlay + frame quality indicator on each camera card
+- Keyboard shortcuts: Ctrl+R (random event), Ctrl+T (traffic burst), F (fullscreen toggle)
+- Export events (JSON) and clear event log buttons in status bar
+- Periodic stats refresh (5s interval)
+- Responsive dark-theme dashboard layout
+
+**Backend (`server/main.py`) API Endpoints:**
+
+| Method | Path | Description |
+|---|---|---|
+| GET | `/api/health` | Health check + config + camera info |
+| GET | `/api/cameras` | Camera list with metadata |
+| GET | `/api/config` | Full config (JPEG quality, thresholds, etc.) |
+| POST | `/api/config` | Update config |
+| GET | `/api/frame/{camera_id}` | SSE stream of simulated frames (MJPEG) |
+| POST | `/api/simulate` | Simulate a camera event (entry/exit/motion/stranger) |
+| POST | `/api/cameras/{camera_id}/simulate` | Per-camera event simulation |
+| GET | `/api/stats` | In-memory stats (frames, events by type/camera, Kafka status) |
+| GET | `/api/events` | Event list (paginated, `?limit=N`) |
+| DELETE | `/api/events` | Clear all events |
+| GET | `/api/events/export` | Export events as JSON with camera summary |
+| GET | `/api/camera-frames` | All cameras' latest frames |
+
+**Stats tracking (in-memory):**
+- `_frame_count`, `_kafka_frame_count`, `_kafka_event_count`: counters incremented during simulation
+- `_event_log`: `deque` of event dicts (used as ring buffer)
+- Stats returned by `/api/stats` include breakdowns by event_type and camera_id
+
+**Known issues:**
+- Kafka unavailable by default (NoBrokersAvailable — expected without docker compose)
+- Webcam capture on macOS uses ffmpeg subprocess (not OpenCV VideoCapture) due to AVFoundation + uvicorn fork() crash
 
 ---
 
@@ -160,7 +194,7 @@ Kafka topic `t_dorm_event` is the only coupling point. Both sides develop indepe
 - No CI/CD (`.github/workflows` doesn't exist). `doc/development-guide.md` describes a pipeline but nothing is configured — it's aspirational. Mentions Postgres/Milvus/web frontend that don't exist in this repo.
 - No Go tests (`*_test.go` = 0 files).
 - Face-recognition has Python tests under `tests/` (`test_behavior.py`, `test_detector.py`, `test_event_publisher.py`, `test_integration.py`, `test_tracker.py`). Tests use Haar Cascade fallback (no ONNX model needed).
-- `face-recognition/app/` has backup files (`detector.py.backup`, `detector.py.bak`) — should be cleaned up.
+- `face-recognition/app/` backup files (`detector.py.backup`, `detector.py.bak`) — cleaned up (removed).
 - Dormitory-service has test sources under `src/test/java/com/sims/dormitory/` (structure exists, actual tests TBD).
 
 ### Python packages
