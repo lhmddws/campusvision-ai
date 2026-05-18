@@ -1,21 +1,7 @@
-cameras:
-  - id: cam-a
-    building: A
-    rtsp_url: "rtsp://admin:password@192.168.1.101:554/stream1"
-    enabled: true
-  - id: cam-b
-    building: B
-    rtsp_url: "rtsp://admin:password@192.168.1.102:554/stream1"
-    enabled: true
-  - id: cam-c
-    building: C
-    rtsp_url: "rtsp://admin:password@192.168.1.103:554/stream1"
-    enabled: true
-  - id: cam-d
-    building: D
-    rtsp_url: "rtsp://admin:password@192.168.1.104:554/stream1"
-    enabled: true
-
+# Cameras are now managed via DB registration + Management API (port 8081).
+# Static entries removed — the gateway polls the DB for registered cameras.
+# See: stream-gateway/internal/management/handler.go
+cameras: []
 frame:
   fps_day: 5
   fps_night: 1
@@ -42,6 +28,11 @@ rtsp:
 
 health:
   port: 8080
+
+management:
+  port: 8081
+  bind_address: "127.0.0.1"
+  management_key: ""
 
 database:
   dsn: "root:root@tcp(localhost:3306)/dormitory"

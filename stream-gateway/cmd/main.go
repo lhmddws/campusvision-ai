@@ -16,6 +16,7 @@ import (
 	"github.com/sims/campusvision/stream-gateway/internal/config"
 	"github.com/sims/campusvision/stream-gateway/internal/health"
 	"github.com/sims/campusvision/stream-gateway/internal/kafka"
+	"github.com/sims/campusvision/stream-gateway/internal/management"
 
 	_ "github.com/go-sql-driver/mysql"
 )
@@ -64,6 +65,26 @@ func main() {
 		}
 	}()
 
+	mgrHandler := management.NewHandler(camManager, management.Config{
+		Port:          cfg.Management.Port,
+		BindAddress:   cfg.Management.BindAddress,
+		ManagementKey: cfg.Management.ManagementKey,
+	})
+	mgrMux := http.NewServeMux()
+	mgrHandler.Register(mgrMux)
+
+	mgrAddr := fmt.Sprintf("%s:%d", cfg.Management.BindAddress, cfg.Management.Port)
+	mgrServer := &http.Server{
+		Addr:    mgrAddr,
+		Handler: mgrMux,
+	}
+	go func() {
+		log.Printf("Management API listening on %s", mgrAddr)
+		if err := mgrServer.ListenAndServe(); err != nil && err != http.ErrServerClosed {
+			log.Fatalf("management server: %v", err)
+		}
+	}()
+
 	quit := make(chan os.Signal, 1)
 	signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM)
 	<-quit
@@ -72,6 +93,7 @@ func main() {
 	cancel()
 	camManager.Stop()
 	healthServer.Shutdown(ctx)
+	mgrServer.Shutdown(ctx)
 }
 
 func dbPollLoop(ctx context.Context, dbCfg config.DatabaseConfig, camManager *camera.Manager) {

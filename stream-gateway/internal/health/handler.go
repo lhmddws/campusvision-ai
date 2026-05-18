@@ -3,6 +3,7 @@ package health
 import (
 	"encoding/json"
 	"net/http"
+	"strings"
 	"time"
 
 	"github.com/sims/campusvision/stream-gateway/internal/camera"
@@ -60,6 +61,30 @@ func (h *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(resp)
 }
 
+func (h *Handler) HandleCameraHealth(w http.ResponseWriter, r *http.Request) {
+	path := strings.TrimPrefix(r.URL.Path, "/cameras/")
+	parts := strings.SplitN(path, "/", 2)
+	if len(parts) < 2 || parts[1] != "health" {
+		http.Error(w, `{"error":"invalid path"}`, http.StatusBadRequest)
+		return
+	}
+	cameraID := parts[0]
+	if cameraID == "" {
+		http.Error(w, `{"error":"camera ID required"}`, http.StatusBadRequest)
+		return
+	}
+
+	statuses := h.manager.Statuses()
+	status, ok := statuses[cameraID]
+	if !ok {
+		http.Error(w, `{"error":"camera not found"}`, http.StatusNotFound)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(status)
+}
+
 func (h *Handler) Register(mux *http.ServeMux) {
 	mux.HandleFunc("/health", func(w http.ResponseWriter, r *http.Request) {
 		statuses := h.manager.Statuses()
@@ -88,4 +113,6 @@ func (h *Handler) Register(mux *http.ServeMux) {
 			"cameras": items,
 		})
 	})
+
+	mux.HandleFunc("/cameras/", h.HandleCameraHealth)
 }
