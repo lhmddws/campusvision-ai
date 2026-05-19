@@ -1,0 +1,31 @@
+cameras: []
+frame:
+  fps_day: 5
+  fps_night: 1
+  jpeg_quality: 80
+  width: 1280
+  height: 720
+  dynamic_extraction: true
+  motion_threshold: 0.05
+kafka:
+  brokers:
+    - "kafka:9092"
+  topic: "t_dorm_frame"
+  compression: "snappy"
+  batch_size: 65536
+rtsp:
+  reconnect_interval: 5s
+  read_timeout: 10s
+  max_reconnect_attempts: 0
+health:
+  port: 8080
+management:
+  port: 8081
+  bind_address: "0.0.0.0"
+  management_key: ""
+database:
+  dsn: "root:root_dev@tcp(mariadb:3306)/dormitory"
+  driver: "mysql"
+  poll_interval: 30s
+log:
+  level: "info"

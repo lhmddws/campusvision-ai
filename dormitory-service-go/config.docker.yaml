@@ -1,0 +1,29 @@
+server:
+  port: 8083
+
+database:
+  dsn: "root:root_dev@tcp(mariadb:3306)/dormitory?charset=utf8mb4&parseTime=True&loc=Asia%2FShanghai"
+  driver: mysql
+  max_open_conns: 25
+  max_idle_conns: 10
+
+redis:
+  host: "redis"
+  port: 6379
+  db: 0
+  password: ""
+
+kafka:
+  brokers:
+    - "kafka:9092"
+  event_topic: "t_dorm_event"
+  alert_topic: "t_dorm_alert"
+  group_id: "dormitory-service-group"
+  max_poll_records: 500
+
+jwt:
+  secret: "your-256-bit-secret"
+  expiration_hours: 24
+
+log:
+  level: "info"

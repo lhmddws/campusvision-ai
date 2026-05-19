@@ -1,5 +1,6 @@
 package com.sims.dormitory.client;
 
+import jakarta.annotation.PostConstruct;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
@@ -16,26 +17,31 @@ public class CameraPushClient {
 
     private static final Logger log = LoggerFactory.getLogger(CameraPushClient.class);
 
-    private final RestTemplate restTemplate;
-    private final String managementBaseUrl;
-    private final String managementKey;
+    private RestTemplate restTemplate;
 
-    public CameraPushClient(
-            @Value("${camera.management.base-url}") String managementBaseUrl,
-            @Value("${camera.management.key:}") String managementKey) {
-        var factory = new SimpleClientHttpRequestFactory();
-        factory.setConnectTimeout(2 * 1000);
-        factory.setReadTimeout(5 * 1000);
-        this.restTemplate = new RestTemplate(factory);
-        this.managementBaseUrl = managementBaseUrl;
-        this.managementKey = managementKey;
+    @Value("${camera.management.base-url:http://stream-gateway:8080}")
+    private String managementBaseUrl;
+
+    @Value("${camera.management.key:}")
+    private String managementKey;
+
+    // Spring uses the default no-arg constructor (not the test-only one below)
+    public CameraPushClient() {
     }
 
-    // For testing with custom RestTemplate
+    // Test-only constructor — avoids mocking Spring container
     CameraPushClient(RestTemplate restTemplate, String managementBaseUrl, String managementKey) {
         this.restTemplate = restTemplate;
         this.managementBaseUrl = managementBaseUrl;
         this.managementKey = managementKey;
+    }
+
+    @PostConstruct
+    public void init() {
+        var factory = new SimpleClientHttpRequestFactory();
+        factory.setConnectTimeout(2 * 1000);
+        factory.setReadTimeout(5 * 1000);
+        this.restTemplate = new RestTemplate(factory);
     }
 
     private HttpHeaders buildHeaders() {

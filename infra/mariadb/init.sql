@@ -197,6 +197,7 @@ CREATE TABLE IF NOT EXISTS dorm_camera (
     fps_current       DECIMAL(5,2)  DEFAULT 0                       COMMENT '当前帧率',
     total_frames      BIGINT        DEFAULT 0                       COMMENT '累计帧数',
     last_heartbeat    DATETIME                                      COMMENT '最近心跳时间',
+    last_health_check DATETIME DEFAULT NULL                          COMMENT '最近健康检查时间',
     last_event_time   DATETIME                                      COMMENT '最近事件时间',
     enabled           TINYINT(1)    DEFAULT 1                       COMMENT '是否启用',
     config_json       TEXT                                          COMMENT '摄像头级配置(JSON)',

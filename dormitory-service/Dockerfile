@@ -1,10 +1,10 @@
 # ---- Build stage ----
-FROM eclipse-temurin:17-jdk AS builder
+FROM maven:3.9-eclipse-temurin-17 AS builder
 WORKDIR /build
 COPY pom.xml .
+RUN mvn dependency:go-offline -q
 COPY src/ src/
-RUN apt-get update && apt-get install -y maven && rm -rf /var/lib/apt/lists/* && \
-    mvn package -DskipTests -q
+RUN mvn package -DskipTests -q
 
 # ---- Runtime stage ----
 FROM eclipse-temurin:17-jre

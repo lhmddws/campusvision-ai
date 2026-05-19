@@ -1,0 +1,73 @@
+kafka:
+  brokers:
+    - "kafka:9092"
+  frame_topic: "t_dorm_frame"
+  event_topic: "t_dorm_event"
+  group_id: "face-recognition-group"
+  max_poll_records: 10
+
+detection:
+  model_path: "app/models/retinaface-R50.onnx"
+  confidence_threshold: 0.6
+  input_size: [640, 640]
+  min_face_size: 80
+  blur_threshold: 100.0
+  nms_iou_threshold: 0.5
+
+feature:
+  model_path: "app/models/arcface-resnet100.onnx"
+  embedding_size: 512
+
+match:
+  method: "sims_api"
+  sims_api_url: "http://dormitory-service:8081/sims/face/match"
+  sims_api_timeout: 3.0
+  auth_token: ""
+  cache_ttl: 3600
+  match_threshold: 0.65
+  fallback_to_cache: true
+
+direction:
+  method: "roi_line"
+  roi_line_x: 0.5
+  min_track_points: 3
+
+dedup:
+  window_seconds: 10
+  max_cache_size: 1000
+
+stranger:
+  enabled: true
+  alert_threshold: 0.45
+
+night_mode:
+  enabled: true
+  start_hour: 22
+  end_hour: 6
+  clahe_clip_limit: 2.0
+
+redis:
+  host: "redis"
+  port: 6379
+  db: 0
+  socket_timeout: 2.0
+
+log:
+  level: "INFO"
+
+behavior:
+  enabled: false
+  loitering_threshold_seconds: 30
+  loitering_radius_px: 50.0
+  running_speed_threshold_px_per_sec: 200.0
+  crowd_threshold_count: 5
+  crowd_debounce_frames: 3
+  event_cooldown_seconds: 30.0
+  zones: []
+  event:
+    enabled: true
+    event_type_mapping:
+      loitering: "loiter"
+      running: "running"
+      zone_intrusion: "zone"
+      crowd_alert: "crowd"

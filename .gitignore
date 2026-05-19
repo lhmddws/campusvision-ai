@@ -36,13 +36,18 @@ $RECYCLE.BIN/
 *.komodoproject
 
 # ===========================================================================
-#  Go (stream-gateway)
+#  Go (stream-gateway, test-env)
 # ===========================================================================
 # Binaries
 stream-gateway/cmd/cmd
+stream-gateway/main
 stream-gateway/*.exe
 stream-gateway/*.test
 stream-gateway/*.out
+test-env/test-env
+test-env/*.exe
+test-env/*.test
+test-env/*.out
 
 # go.work (local workspace config)
 go.work
@@ -91,6 +96,59 @@ dmypy.json
 
 # UV lock (optionally commit; uncomment if you use uv and prefer pinning)
 # uv.lock
+
+# ===========================================================================
+#  Node.js / JavaScript / TypeScript (frontend, tooling)
+# ===========================================================================
+# Dependencies
+node_modules/
+.npm
+package-lock.json
+yarn.lock
+pnpm-lock.yaml
+bun.lockb
+
+# Build output
+dist/
+build/
+*.tsbuildinfo
+
+# Next.js
+.next/
+out/
+
+# Nuxt.js
+.nuxt/
+.output/
+
+# Vite
+.vite/
+
+# SvelteKit
+.svelte-kit/
+
+# Astro
+.astro/
+
+# ESLint
+.eslintcache
+
+# Prettier
+.prettierignore
+
+# Environment
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+
+# Debug
+*.node
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
 
 # ===========================================================================
 #  Java / Maven (dormitory-service)
@@ -152,14 +210,23 @@ core.*
 # ===========================================================================
 #  Config files containing secrets (COMMIT TEMPLATES ONLY)
 # ===========================================================================
-# Local configs with real credentials — adjust filenames to match your project:
-# stream-gateway/config.yaml   ← REVIEW BEFORE COMMITTING (contains RTSP URLs)
-# face-recognition/config.yaml ← REVIEW BEFORE COMMITTING
+# Local configs with real credentials — uncomment to ignore:
+# stream-gateway/config.yaml        ← REVIEW BEFORE COMMITTING (contains RTSP URLs)
+# face-recognition/config.yaml      ← REVIEW BEFORE COMMITTING
+# stream-gateway/config.docker.yaml ← Docker-specific overrides
+# face-recognition/config.docker.yaml
 
 # ===========================================================================
 #  .sisyphus (internal tooling cache)
 # ===========================================================================
 .sisyphus/
+
+# ===========================================================================
+#  Generated / Reports
+# ===========================================================================
+# Auto-generated HTML reports
+*remediation-summary.html
+*summary-report.html
 
 # ===========================================================================
 #  Misc
@@ -175,4 +242,3 @@ core.*
 *.rar
 *.tar
 *.zip
-stream-gateway/main
