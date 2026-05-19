@@ -134,6 +134,9 @@ services:
       - "8080:8080"
     volumes:
       - ./stream-gateway/config.docker.yaml:/app/config.yaml
+    environment:
+      # Optional: set to enable RTSP password decryption (16/24/32-byte hex key)
+      # CAMERA_ENCRYPTION_KEY: ""
     depends_on:
       kafka:
         condition: service_healthy
@@ -194,6 +197,10 @@ services:
       - "8083:8083"
     volumes:
       - ./dormitory-service-go/config.docker.yaml:/app/config.yaml
+    environment:
+      # Override JWT secret (default from config.yaml or "dev-secret-change-in-production")
+      # Must match main backend's signing key in production
+      # JWT_SECRET: ""
     depends_on:
       kafka:
         condition: service_healthy

@@ -14,6 +14,7 @@ import (
 
 	"github.com/sims/campusvision/stream-gateway/internal/camera"
 	"github.com/sims/campusvision/stream-gateway/internal/config"
+	"github.com/sims/campusvision/stream-gateway/internal/crypto"
 	"github.com/sims/campusvision/stream-gateway/internal/health"
 	"github.com/sims/campusvision/stream-gateway/internal/kafka"
 	"github.com/sims/campusvision/stream-gateway/internal/management"
@@ -36,7 +37,17 @@ func main() {
 	producer := kafka.NewProducer(cfg.Kafka)
 	defer producer.Close()
 
-	camManager := camera.NewManager(cfg.Frame, cfg.RTSP, producer)
+	var encKey []byte
+	if keyStr := os.Getenv(crypto.EnvKey); keyStr != "" {
+		if len(keyStr) == crypto.KeyLength {
+			encKey = []byte(keyStr)
+		} else {
+			log.Printf("[WARN] %s has invalid length (%d bytes, need %d), password decryption disabled",
+				crypto.EnvKey, len(keyStr), crypto.KeyLength)
+		}
+	}
+
+	camManager := camera.NewManager(cfg.Frame, cfg.RTSP, producer, encKey)
 	camManager.Start(ctx, cfg.Cameras)
 
 	// Start DB polling for dynamic camera configuration

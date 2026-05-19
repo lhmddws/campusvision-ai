@@ -13,7 +13,7 @@ import (
 func makeManager() *camera.Manager {
 	cfg := config.FrameConfig{FPSDay: 5, FPSNight: 1, JPEGQuality: 85, Width: 1280, Height: 720}
 	rtspCfg := config.RTSPConfig{ReconnectInterval: 5, ReadTimeout: 10, MaxReconnectAttempts: 3}
-	return camera.NewManager(cfg, rtspCfg, nil)
+	return camera.NewManager(cfg, rtspCfg, nil, nil)
 }
 
 func TestCameraHealth_ExistingCamera(t *testing.T) {

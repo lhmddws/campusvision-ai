@@ -77,22 +77,22 @@ func (r *EventLogRepository) FindByTimeRange(start, end time.Time, limit int) ([
 }
 
 // FindByBuilding finds events for a given building.
-func (r *EventLogRepository) FindByBuilding(buildingID int64, limit int) ([]entity.DormEventLog, error) {
+func (r *EventLogRepository) FindByBuilding(building string, limit int) ([]entity.DormEventLog, error) {
 	if limit <= 0 {
 		limit = 100
 	}
 	var events []entity.DormEventLog
-	query := "SELECT * FROM dorm_event_log WHERE building_id = ? ORDER BY timestamp DESC LIMIT ?"
-	err := r.DB.Select(&events, query, buildingID, limit)
+	query := "SELECT * FROM dorm_event_log WHERE building = ? ORDER BY timestamp DESC LIMIT ?"
+	err := r.DB.Select(&events, query, building, limit)
 	if err != nil {
-		return nil, fmt.Errorf("find events by building %d: %w", buildingID, err)
+		return nil, fmt.Errorf("find events by building '%s': %w", building, err)
 	}
 	return events, nil
 }
 
 // FindWithPagination paginates events with filters.
 func (r *EventLogRepository) FindWithPagination(
-	buildingID int64,
+	building string,
 	cameraID string,
 	eventType string,
 	studentID string,
@@ -103,9 +103,9 @@ func (r *EventLogRepository) FindWithPagination(
 	var args []interface{}
 	conditions := []string{}
 
-	if buildingID > 0 {
-		conditions = append(conditions, "building_id = ?")
-		args = append(args, buildingID)
+	if building != "" {
+		conditions = append(conditions, "building = ?")
+		args = append(args, building)
 	}
 	if cameraID != "" {
 		conditions = append(conditions, "camera_id = ?")

@@ -25,7 +25,7 @@ type FaceEventMessage struct {
 type EventDTO struct {
 	ID           int64           `json:"id"`
 	CameraID     sql.NullString  `json:"camera_id"`
-	BuildingID   sql.NullInt64   `json:"building_id"`
+	Building     string          `json:"building"`
 	EventType    string          `json:"event_type"`
 	StudentID    sql.NullString  `json:"student_id"`
 	IsStranger   bool            `json:"is_stranger"`
@@ -37,12 +37,12 @@ type EventDTO struct {
 
 // EventQueryDTO is the query parameters for filtering event logs.
 type EventQueryDTO struct {
-	BuildingID int64      `json:"building_id" form:"building_id"`
-	CameraID   string     `json:"camera_id" form:"camera_id"`
-	EventType  string     `json:"event_type" form:"event_type"`
-	StudentID  string     `json:"student_id" form:"student_id"`
-	StartTime  *time.Time `json:"start_time" form:"start_time"`
-	EndTime    *time.Time `json:"end_time" form:"end_time"`
-	Page       int        `json:"page" form:"page"`
-	Size       int        `json:"size" form:"size"`
+	Building  string     `json:"building" form:"building"`
+	CameraID  string     `json:"camera_id" form:"camera_id"`
+	EventType string     `json:"event_type" form:"event_type"`
+	StudentID string     `json:"student_id" form:"student_id"`
+	StartTime *time.Time `json:"start_time" form:"start_time"`
+	EndTime   *time.Time `json:"end_time" form:"end_time"`
+	Page      int        `json:"page" form:"page"`
+	Size      int        `json:"size" form:"size"`
 }

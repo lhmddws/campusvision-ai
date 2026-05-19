@@ -185,16 +185,13 @@ func (c *EventConsumer) processMessage(ctx context.Context, msg kafka.Message) e
 		return nil
 	}
 
-	// 4. Resolve building code → building ID
-	buildingID := c.resolveBuildingID(ctx, event.Building)
-
 	// 5. Update student status (if student_id present)
 	if event.StudentID != "" {
 		c.updateStudentStatus(ctx, event.StudentID, event.EventType, event.Timestamp)
 	}
 
 	// 6. Persist event log
-	eventLog := c.buildEventLog(event, buildingID)
+	eventLog := c.buildEventLog(event, event.Building)
 	if _, err := c.eventLogRepo.Create(eventLog); err != nil {
 		c.logger.Error("Failed to persist event log",
 			zap.Error(err),
@@ -307,19 +304,17 @@ func (c *EventConsumer) updateStudentStatus(ctx context.Context, studentID strin
 }
 
 // buildEventLog creates a DormEventLog entity from the incoming event message.
-func (c *EventConsumer) buildEventLog(event dto.FaceEventMessage, buildingID int64) *entity.DormEventLog {
+func (c *EventConsumer) buildEventLog(event dto.FaceEventMessage, buildingCode string) *entity.DormEventLog {
 	eventLog := &entity.DormEventLog{
 		EventType:  event.EventType,
 		IsStranger: event.IsStranger,
+		Building:   buildingCode,
 		Timestamp:  time.UnixMilli(event.Timestamp),
 		CreatedAt:  time.Now(),
 	}
 
 	if event.CameraID != "" {
 		eventLog.CameraID = sql.NullString{String: event.CameraID, Valid: true}
-	}
-	if buildingID > 0 {
-		eventLog.BuildingID = sql.NullInt64{Int64: buildingID, Valid: true}
 	}
 	if event.StudentID != "" {
 		eventLog.StudentID = sql.NullString{String: event.StudentID, Valid: true}

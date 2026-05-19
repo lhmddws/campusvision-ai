@@ -24,6 +24,8 @@ type DormCamera struct {
 	ConfigJSON      sql.NullString `db:"config_json" json:"config_json"`
 	Remark          sql.NullString `db:"remark" json:"remark"`
 	LastHealthCheck sql.NullTime   `db:"last_health_check" json:"last_health_check"`
+	PasswordEnc     sql.NullString `db:"password_enc" json:"password_enc"`
+	Nonce           sql.NullString `db:"nonce" json:"nonce"`
 	CreatedAt       time.Time      `db:"created_at" json:"created_at"`
 	UpdatedAt       time.Time      `db:"updated_at" json:"updated_at"`
 }

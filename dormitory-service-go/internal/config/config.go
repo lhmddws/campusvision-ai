@@ -83,7 +83,7 @@ func Load(configPath string) (*Config, error) {
 	v.SetDefault("kafka.alert_topic", "t_dorm_alert")
 	v.SetDefault("kafka.group_id", "dormitory-service-group")
 	v.SetDefault("kafka.max_poll_records", 500)
-	v.SetDefault("jwt.secret", "your-256-bit-secret")
+	v.SetDefault("jwt.secret", "dev-secret-change-in-production")
 	v.SetDefault("jwt.expiration_hours", 24)
 	v.SetDefault("log.level", "info")
 
@@ -141,6 +141,12 @@ func Load(configPath string) (*Config, error) {
 	// Override kafka.brokers from comma-separated env var
 	if brokers, ok := os.LookupEnv("KAFKA_BOOTSTRAP_SERVERS"); ok {
 		v.Set("kafka.brokers", strings.Split(brokers, ","))
+	}
+
+	// Override jwt.secret via JWT_SECRET env var
+	// In production, this should match the main backend's JWT signing key.
+	if secret, ok := os.LookupEnv("JWT_SECRET"); ok {
+		v.Set("jwt.secret", secret)
 	}
 
 	var cfg Config

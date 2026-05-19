@@ -85,7 +85,7 @@ func (s *RecordService) GetDailySummary(buildingId int64, startDate, endDate tim
 // This is a skeleton matching the Java stub that used getEvents(EventQueryDTO, Pageable).
 func (s *RecordService) GetEvents(query dto.EventQueryDTO) ([]entity.DormEventLog, int64, error) {
 	return s.eventLogRepo.FindWithPagination(
-		query.BuildingID,
+		query.Building,
 		query.CameraID,
 		query.EventType,
 		query.StudentID,

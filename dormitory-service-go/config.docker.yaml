@@ -22,7 +22,7 @@ kafka:
   max_poll_records: 500
 
 jwt:
-  secret: "your-256-bit-secret"
+  secret: "dev-secret-change-in-production"
   expiration_hours: 24
 
 log:

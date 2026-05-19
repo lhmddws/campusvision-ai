@@ -9,10 +9,11 @@ import (
 // This is the core event stream recording entry/exit events from face recognition.
 // Note: init.sql names this table dorm_entry_exit_event; the Go service uses
 // dorm_event_log for compatibility with the existing Java entity convention.
+// Building is stored as a string code (A/B/C/D) matching init.sql's building VARCHAR(8).
 type DormEventLog struct {
 	ID           int64          `db:"id" json:"id"`
 	CameraID     sql.NullString `db:"camera_id" json:"camera_id"`
-	BuildingID   sql.NullInt64  `db:"building_id" json:"building_id"`
+	Building     string         `db:"building" json:"building"`
 	EventType    string         `db:"event_type" json:"event_type"`
 	StudentID    sql.NullString `db:"student_id" json:"student_id"`
 	IsStranger   bool           `db:"is_stranger" json:"is_stranger"`

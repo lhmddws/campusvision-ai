@@ -9,8 +9,12 @@ import (
 )
 
 // JWTAuthMiddleware provides JWT authentication for API routes.
-// This is a skeleton — the actual auth integration with the main backend
-// will be implemented in a later phase.
+// The middleware is fully functional for development using the configured
+// JWT secret (from config.yaml or JWT_SECRET env var). In production, the
+// JWT_SECRET must be set to match the main backend's signing key so that
+// tokens issued by the main backend are accepted by this service.
+// Full auth integration with the main backend's token refresh/validation
+// endpoints will be implemented in a later phase.
 type JWTAuthMiddleware struct {
 	Secret string
 }

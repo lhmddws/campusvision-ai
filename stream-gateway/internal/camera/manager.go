@@ -30,15 +30,17 @@ type Manager struct {
 	producer *kafka.Producer
 	cfg      config.FrameConfig
 	rtspCfg  config.RTSPConfig
+	encKey   []byte
 }
 
-func NewManager(cfg config.FrameConfig, rtspCfg config.RTSPConfig, producer *kafka.Producer) *Manager {
+func NewManager(cfg config.FrameConfig, rtspCfg config.RTSPConfig, producer *kafka.Producer, encKey []byte) *Manager {
 	return &Manager{
 		streams:  make(map[string]*Stream),
 		statuses: make(map[string]CameraStatus),
 		producer: producer,
 		cfg:      cfg,
 		rtspCfg:  rtspCfg,
+		encKey:   encKey,
 	}
 }
 
@@ -49,6 +51,7 @@ func (m *Manager) Start(ctx context.Context, cameras []config.CameraConfig) {
 		}
 		stream := NewStream(cam, m.cfg, m.rtspCfg, m.producer,
 			func(id string, s CameraStatus) { m.UpdateStatus(id, s) },
+			m.encKey,
 		)
 		m.mu.Lock()
 		m.streams[cam.ID] = stream
@@ -103,6 +106,7 @@ func (m *Manager) AddCamera(cfg config.CameraConfig) {
 
 	stream := NewStream(cfg, m.cfg, m.rtspCfg, m.producer,
 		func(id string, s CameraStatus) { m.UpdateStatus(id, s) },
+		m.encKey,
 	)
 	m.streams[cfg.ID] = stream
 	m.statuses[cfg.ID] = CameraStatus{

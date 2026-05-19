@@ -50,18 +50,38 @@ func (s *CameraService) RegisterCamera(dto dto.CameraCreateDTO) (*entity.DormCam
 		return nil, ErrCameraLimitExceeded
 	}
 
+	var passwordEnc, nonce sql.NullString
+	if dto.RtspURL != "" {
+		if parsed, err := url.Parse(dto.RtspURL); err == nil {
+			if parsed.User != nil {
+				pass, hasPass := parsed.User.Password()
+				if hasPass && pass != "" {
+					if ep, encErr := util.EncryptPassword(pass); encErr == nil {
+						passwordEnc = toNullString(ep.Ciphertext)
+						nonce = toNullString(ep.Nonce)
+						log.Printf("[CameraService] Password encrypted for camera %s", dto.CameraID)
+					}
+				}
+			}
+		} else {
+			log.Printf("[CameraService] Failed to parse RTSP URL: %v", err)
+		}
+	}
+
 	cam := &entity.DormCamera{
-		CameraID:  dto.CameraID,
-		Building:  dto.Building,
-		Name:      dto.Name,
-		RtspURL:   dto.RtspURL,
-		Direction: dto.Direction,
-		Resolution: dto.Resolution,
-		Status:    "unknown",
-		Enabled:   true,
-		Remark:    toNullString(dto.Remark),
-		CreatedAt: time.Now(),
-		UpdatedAt: time.Now(),
+		CameraID:    dto.CameraID,
+		Building:    dto.Building,
+		Name:        dto.Name,
+		RtspURL:     dto.RtspURL,
+		Direction:   dto.Direction,
+		Resolution:  dto.Resolution,
+		Status:      "unknown",
+		Enabled:     true,
+		Remark:      toNullString(dto.Remark),
+		PasswordEnc: passwordEnc,
+		Nonce:       nonce,
+		CreatedAt:   time.Now(),
+		UpdatedAt:   time.Now(),
 	}
 
 	id, err := s.cameraRepo.Create(cam)
@@ -71,25 +91,6 @@ func (s *CameraService) RegisterCamera(dto dto.CameraCreateDTO) (*entity.DormCam
 	cam.ID = id
 
 	s.insertCameraLog(cam, "", "unknown", "Camera registered")
-
-	// Parse RTSP URL for protocol/host/port/path
-	if dto.RtspURL != "" {
-		if parsed, err := url.Parse(dto.RtspURL); err == nil {
-			_ = parsed // extracted but entity lacks storage; logged for trace
-			if parsed.User != nil {
-				pass, hasPass := parsed.User.Password()
-				if hasPass && pass != "" {
-					ep, encErr := util.EncryptPassword(pass)
-					if encErr == nil {
-						_ = ep // encrypted but Go entity has no password_enc/nonce fields
-						log.Printf("[CameraService] Password encrypted for camera %s", dto.CameraID)
-					}
-				}
-			}
-		} else {
-			log.Printf("[CameraService] Failed to parse RTSP URL: %v", err)
-		}
-	}
 
 	// Push notification (best-effort)
 	if s.pushClient != nil {
@@ -319,7 +320,7 @@ func (s *CameraService) ListOnlineCameras() ([]entity.DormCamera, error) {
 
 // QuerySnapshots returns paginated event logs for a camera within a time range.
 func (s *CameraService) QuerySnapshots(cameraID string, startTime, endTime time.Time, page, size int) ([]entity.DormEventLog, int64, error) {
-	return s.eventLogRepo.FindWithPagination(0, cameraID, "", "", &startTime, &endTime, page, size)
+	return s.eventLogRepo.FindWithPagination("", cameraID, "", "", &startTime, &endTime, page, size)
 }
 
 func (s *CameraService) insertCameraLog(cam *entity.DormCamera, statusFrom, statusTo, reason string) {

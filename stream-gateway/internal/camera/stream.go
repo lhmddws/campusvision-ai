@@ -19,6 +19,7 @@ type Stream struct {
 	frameCfg config.FrameConfig
 	rtspCfg  config.RTSPConfig
 	producer *kafka.Producer
+	rtspURL  string
 
 	updateStatus func(string, CameraStatus)
 
@@ -37,12 +38,19 @@ func NewStream(
 	rtspCfg config.RTSPConfig,
 	producer *kafka.Producer,
 	updateStatus func(string, CameraStatus),
+	encKey []byte,
 ) *Stream {
+	rtspURL, err := camCfg.BuildRTSPURL(encKey)
+	if err != nil {
+		log.Printf("[stream] failed to build RTSP URL for %s: %v, falling back to raw URL", camCfg.ID, err)
+		rtspURL = camCfg.RTSPURL
+	}
 	return &Stream{
 		camCfg:       camCfg,
 		frameCfg:     frameCfg,
 		rtspCfg:      rtspCfg,
 		producer:     producer,
+		rtspURL:      rtspURL,
 		updateStatus: updateStatus,
 		stopCh:       make(chan struct{}),
 	}
@@ -72,7 +80,7 @@ func (s *Stream) Run(ctx context.Context) {
 		}
 
 		dec := decoder.NewDecoder(
-			s.camCfg.RTSPURL,
+			s.rtspURL,
 			s.frameCfg.Width,
 			s.frameCfg.Height,
 			s.frameCfg.FPSDay, // decode at max rate; extractor handles rate limiting
@@ -82,7 +90,7 @@ func (s *Stream) Run(ctx context.Context) {
 		s.dec = dec
 		s.mu.Unlock()
 
-		log.Printf("[stream] starting decoder for %s (%s栋) – %s", s.camCfg.ID, s.camCfg.Building, s.camCfg.RTSPURL)
+		log.Printf("[stream] starting decoder for %s (%s栋) – %s", s.camCfg.ID, s.camCfg.Building, s.rtspURL)
 		frameCh, err := dec.Start(ctx)
 		if err != nil {
 			log.Printf("[stream] decoder start error [%s]: %v", s.camCfg.ID, err)

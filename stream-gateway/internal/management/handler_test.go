@@ -16,6 +16,7 @@ func newTestManager() *camera.Manager {
 		config.FrameConfig{},
 		config.RTSPConfig{},
 		nil, // producer is nil; AddCamera with enabled=false avoids stream startup
+		nil,
 	)
 }
 

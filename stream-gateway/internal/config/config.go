@@ -2,10 +2,12 @@ package config
 
 import (
 	"fmt"
+	"log"
 	"net/url"
 	"os"
 	"time"
 
+	"github.com/sims/campusvision/stream-gateway/internal/crypto"
 	"gopkg.in/yaml.v3"
 )
 
@@ -42,15 +44,30 @@ type CameraConfig struct {
 
 // BuildRTSPURL constructs the full RTSP URL from Components when password_enc is set,
 // or falls back to RTSPURL for backward compatibility.
-// masterKey is reserved for future decryption use (see Task 4).
-func (c *CameraConfig) BuildRTSPURL(masterKey []byte) (string, error) {
-	_ = masterKey // TODO: Use CryptoService to decrypt password_enc when CryptoService is available (Task 4)
+func (c *CameraConfig) BuildRTSPURL(encKey []byte) (string, error) {
+	if c.Components.PasswordEnc != "" && c.Components.Nonce != "" && len(encKey) == crypto.KeyLength {
+		cs, err := crypto.NewServiceWithKey(encKey)
+		if err != nil {
+			log.Printf("[config] failed to create crypto service for camera %s: %v, using raw password", c.ID, err)
+		} else {
+			password, err := cs.DecryptPassword(c.Components.PasswordEnc, c.Components.Nonce)
+			if err != nil {
+				log.Printf("[config] failed to decrypt password for camera %s: %v, using raw password", c.ID, err)
+			} else {
+				userinfo := url.UserPassword(c.Components.Username, password)
+				u := &url.URL{
+					Scheme: c.Components.Protocol,
+					User:   userinfo,
+					Host:   fmt.Sprintf("%s:%d", c.Components.Host, c.Components.Port),
+					Path:   c.Components.Path,
+				}
+				return u.String(), nil
+			}
+		}
+	}
 
 	if c.Components.PasswordEnc != "" {
 		password := c.Components.PasswordEnc
-
-		// TODO: Decrypt password using CryptoService.Decrypt when available (Task 4)
-		// For now, password_enc is passed through as-is.
 
 		userinfo := url.UserPassword(c.Components.Username, password)
 		u := &url.URL{

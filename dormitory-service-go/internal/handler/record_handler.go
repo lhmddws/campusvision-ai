@@ -67,8 +67,6 @@ func (h *RecordHandler) GetEvents(c *gin.Context) {
 		size = 20
 	}
 
-	buildingID, _ := strconv.ParseInt(c.Query("building_id"), 10, 64)
-
 	var startTime, endTime *time.Time
 	if st := c.Query("start_time"); st != "" {
 		t, err := time.Parse(time.RFC3339, st)
@@ -83,8 +81,10 @@ func (h *RecordHandler) GetEvents(c *gin.Context) {
 		}
 	}
 
+	building := c.Query("building")
+
 	query := dto.EventQueryDTO{
-		BuildingID: buildingID,
+		Building: building,
 		CameraID:   c.Query("camera_id"),
 		EventType:  c.Query("event_type"),
 		StudentID:  c.Query("student_id"),
