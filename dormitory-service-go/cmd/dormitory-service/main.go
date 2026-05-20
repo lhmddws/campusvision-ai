@@ -110,13 +110,11 @@ func main() {
 	reportSvc := service.NewReportService(nightlyReportRepo)
 
 	// Initialize handlers
-	h := handler.NewHandler(cameraSvc, recordSvc, alertSvc, configSvc, reportSvc)
+	h := handler.NewHandler(cameraSvc, recordSvc, alertSvc, configSvc, reportSvc, db)
 	cameraHandler := handler.NewCameraHandler(cameraSvc)
 	recordHandler := handler.NewRecordHandler(recordSvc)
 	alertHandler := handler.NewAlertHandler(alertSvc)
 	configHandler := handler.NewConfigHandler(configSvc)
-
-	_ = h      // available for future combined handler usage
 
 	// Initialize Kafka event consumer
 	eventConsumer := consumer.NewEventConsumer(
@@ -243,6 +241,10 @@ func main() {
 		configs.PUT("/batch", configHandler.BatchUpdate)
 		configs.POST("/:key/reset", configHandler.ResetConfig)
 	}
+
+	// Face routes
+	router.POST("/api/face/match", h.FaceMatch)
+	router.POST("/api/face/embed", h.FaceEmbed)
 
 	// Start Kafka consumers and schedulers
 	consumerCtx, consumerCancel := context.WithCancel(context.Background())
