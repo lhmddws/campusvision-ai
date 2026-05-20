@@ -115,15 +115,13 @@ function handleScenario() {
   width: 6px;
   height: 6px;
   border-radius: 50%;
-  background: var(--red);
-  box-shadow: var(--glow-red);
-  transition: all var(--transition);
+  background: var(--text-muted);
+  transition: background var(--transition-fast);
   flex-shrink: 0;
 }
 
 .kafka-indicator.connected .status-dot {
-  background: var(--green);
-  box-shadow: var(--glow-green);
+  background: var(--color-success);
 }
 
 .status-label {
@@ -185,16 +183,17 @@ function handleScenario() {
 }
 
 .scenario-select:hover {
-  border-color: rgba(0, 255, 136, 0.3);
-  color: var(--text);
+  border-color: var(--color-primary);
+  color: var(--text-primary);
 }
 
 .scenario-select:focus {
-  border-color: rgba(0, 255, 136, 0.3);
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 3px var(--color-primary-bg);
 }
 
 .scenario-select option {
-  background: var(--bg-panel);
-  color: var(--text);
+  background: var(--bg-card);
+  color: var(--text-primary);
 }
 </style>

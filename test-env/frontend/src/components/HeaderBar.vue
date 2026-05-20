@@ -3,7 +3,7 @@
     <!-- Left: Logo + Title -->
     <div class="header-left">
       <div class="logo-box">CV</div>
-      <span class="title">Campus <span class="title-green">Vision</span> AI</span>
+      <span class="title">Campus<span class="title-primary">Vision</span>AI</span>
     </div>
 
     <!-- Middle: Tab buttons -->
@@ -116,17 +116,15 @@ defineEmits(['toggle-dash', 'toggle-settings', 'tab-select'])
 .logo-box {
   width: 30px;
   height: 30px;
-  border: 1.5px solid var(--green);
+  border: 1.5px solid var(--color-primary);
   border-radius: var(--radius-sm);
   display: flex;
   align-items: center;
   justify-content: center;
   font-size: 11px;
   font-weight: 700;
-  color: var(--green);
+  color: var(--color-primary);
   letter-spacing: 1px;
-  box-shadow: var(--glow-green);
-  background: rgba(0, 255, 136, 0.06);
 }
 
 .title {
@@ -136,8 +134,8 @@ defineEmits(['toggle-dash', 'toggle-settings', 'tab-select'])
   white-space: nowrap;
 }
 
-.title-green {
-  color: var(--green);
+.title-primary {
+  color: var(--color-primary);
 }
 
 /* ── Tabs ── */
@@ -149,30 +147,25 @@ defineEmits(['toggle-dash', 'toggle-settings', 'tab-select'])
 
 .header-tabs .tab-btn {
   padding: 5px 14px;
-  border: 1px solid transparent;
-  border-bottom: none;
-  border-radius: 4px 4px 0 0;
+  border: none;
+  border-bottom: 2px solid transparent;
   background: transparent;
-  color: var(--text-dim);
+  color: var(--text-muted);
   font-family: var(--font);
   font-size: 11px;
   letter-spacing: 0.5px;
   cursor: pointer;
-  transition: all var(--transition);
-  position: relative;
-  bottom: 0;
+  transition: color var(--transition-fast), border-color var(--transition-fast);
   white-space: nowrap;
 }
 
 .header-tabs .tab-btn:hover {
-  color: var(--text);
-  background: rgba(255, 255, 255, 0.02);
+  color: var(--text-secondary);
 }
 
 .header-tabs .tab-btn.active {
-  color: var(--green);
-  border-color: var(--border);
-  background: var(--bg-card);
+  color: var(--color-primary);
+  border-bottom-color: var(--color-primary);
 }
 
 .header-tabs .tab-btn .tab-icon {
@@ -202,14 +195,12 @@ defineEmits(['toggle-dash', 'toggle-settings', 'tab-select'])
   width: 7px;
   height: 7px;
   border-radius: 50%;
-  background: var(--red);
-  box-shadow: var(--glow-red);
-  transition: all var(--transition);
+  background: var(--text-muted);
+  transition: background var(--transition-fast);
 }
 
 .kafka-indicator.connected .status-dot {
-  background: var(--green);
-  box-shadow: var(--glow-green);
+  background: var(--color-success);
 }
 
 .status-text {
@@ -270,7 +261,7 @@ defineEmits(['toggle-dash', 'toggle-settings', 'tab-select'])
 }
 
 .stat-item.entry {
-  color: var(--green);
+  color: var(--color-success);
 }
 
 .stat-item.exit {
@@ -313,8 +304,8 @@ defineEmits(['toggle-dash', 'toggle-settings', 'tab-select'])
 }
 
 .icon-btn:hover {
-  background: rgba(255, 255, 255, 0.03);
-  border-color: var(--border);
-  color: var(--text);
+  background: var(--bg-hover);
+  border-color: var(--border-color);
+  color: var(--text-primary);
 }
 </style>
