@@ -39,3 +39,4 @@ NNN_description.sql
 | # | File | Applied | Description |
 |---|---|---|---|
 | 001 | `001_camera_platform.sql` | 2026-05-18 | Add camera platform expansion columns (type, protocol, host, port, path, username, password_enc, nonce, key_id, last_health_check) |
+| 002 | `V002__face_embedding.sql` | 2026-05-20 | Create face_embedding table for face recognition pipeline (512-dim embeddings, student_id lookup) |
