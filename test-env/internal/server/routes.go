@@ -33,6 +33,9 @@ func SetupRouter(st *state.State, baseDir string) *gin.Engine {
 	// Health
 	r.GET("/api/health", h.Health)
 
+	// SSE event stream
+	r.GET("/api/events/stream", h.SSEHandler)
+
 	// Cameras
 	r.GET("/api/cameras", h.GetCameras)
 	r.PUT("/api/cameras/:id", h.UpsertCamera)
@@ -60,6 +63,8 @@ func SetupRouter(st *state.State, baseDir string) *gin.Engine {
 
 	// Recognition
 	r.GET("/api/recognition/status", h.RecognitionStatus)
+	r.GET("/api/recognition/results", h.GetRecognitionResults)
+	r.POST("/api/toggle-fake-data", h.ToggleFakeData)
 
 	// Behavior
 	r.GET("/api/behavior/status", h.BehaviorStatus)

@@ -2,6 +2,8 @@ package server
 
 import (
 	"bytes"
+	"context"
+	"database/sql"
 	"encoding/base64"
 	"encoding/csv"
 	"encoding/json"
@@ -677,6 +679,11 @@ func (h *Handler) EnrollFace(c *gin.Context) {
 	os.WriteFile(metaFile, metaData, 0644)
 
 	h.state.LogEvent("system", "face_enroll", fmt.Sprintf("人脸录入: %s (%s)", name, studentID))
+
+	// Write to MariaDB asynchronously (non-blocking)
+	if h.state.MariaDB != nil {
+		go writeFaceToDB(h.state.MariaDB, name, studentID, imgPath)
+	}
 
 	c.JSON(http.StatusOK, gin.H{"success": true, "face": entry})
 }
@@ -1450,6 +1457,8 @@ func (h *Handler) webcamWorker(cameraID string, deviceIdx int) {
 		fps = 5
 	}
 	qRaw := h.state.Config.JPEGQuality
+	useFakeData := h.state.Config.UseFakeData
+	building := h.state.Cameras[cameraID].Building
 	h.state.RUnlock()
 
 	q := qRaw
@@ -1517,6 +1526,7 @@ func (h *Handler) webcamWorker(cameraID string, deviceIdx int) {
 	eoi := []byte{0xFF, 0xD9}
 
 	running := true
+	lastFramePush := time.Now()
 	for running {
 		n, err := stdout.Read(readBuf)
 		if err != nil {
@@ -1549,6 +1559,12 @@ func (h *Handler) webcamWorker(cameraID string, deviceIdx int) {
 			buf = buf[frameEnd:]
 
 			h.state.SetLatestFrame(cameraID, jpeg)
+
+			// Push to Kafka at ~1fps when in real pipeline mode
+			if !useFakeData && time.Since(lastFramePush) >= time.Second {
+				lastFramePush = time.Now()
+				kafka.PushFrame(cameraID, building, jpeg)
+			}
 		}
 
 		h.state.RLock()
@@ -1566,4 +1582,47 @@ func (h *Handler) webcamWorker(cameraID string, deviceIdx int) {
 	h.state.Unlock()
 
 	log.Printf("Webcam %s: stopped", cameraID)
+}
+
+// ── GET /api/recognition/results ────────────────────────────────────────────
+
+func (h *Handler) GetRecognitionResults(c *gin.Context) {
+	results := make(map[string][]state.RecognitionResult)
+	for camID := range h.state.GetCameras() {
+		if r := h.state.GetRecognitionResults(camID); r != nil {
+			results[camID] = r
+		}
+	}
+	c.JSON(http.StatusOK, gin.H{"results": results})
+}
+
+// ── POST /api/toggle-fake-data ──────────────────────────────────────────────
+
+func (h *Handler) ToggleFakeData(c *gin.Context) {
+	var body struct {
+		UseFakeData bool `json:"use_fake_data"`
+	}
+	if err := c.ShouldBindJSON(&body); err != nil {
+		jsonError(c, http.StatusBadRequest, "invalid request body")
+		return
+	}
+	h.state.Lock()
+	h.state.Config.UseFakeData = body.UseFakeData
+	h.state.Unlock()
+	h.state.LogEvent("system", "config", fmt.Sprintf("USE_FAKE_DATA set to %v", body.UseFakeData))
+	c.JSON(http.StatusOK, gin.H{"success": true, "use_fake_data": body.UseFakeData})
+}
+
+// writeFaceToDB writes face enrollment data to MariaDB asynchronously.
+func writeFaceToDB(db *sql.DB, name, studentID, imagePath string) {
+	ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
+	defer cancel()
+	_, err := db.ExecContext(ctx,
+		"INSERT INTO face_embedding (name, student_id, image_path) VALUES (?, ?, ?) ON DUPLICATE KEY UPDATE image_path = VALUES(image_path), updated_at = NOW()",
+		name, studentID, imagePath)
+	if err != nil {
+		log.Printf("[face] DB write failed for %s: %v", name, err)
+		return
+	}
+	log.Printf("[face] Enrolled %s (%s) to MariaDB", name, studentID)
 }

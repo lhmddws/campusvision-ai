@@ -1,14 +1,19 @@
 package main
 
 import (
+	"context"
+	"database/sql"
 	"fmt"
 	"log"
 	"os"
+	"os/signal"
 	"strings"
+	"syscall"
 
 	"campusvision/test-env/internal/kafka"
 	"campusvision/test-env/internal/server"
 	"campusvision/test-env/internal/state"
+	_ "github.com/go-sql-driver/mysql"
 )
 
 func main() {
@@ -18,6 +23,7 @@ func main() {
 	frameTopic := getEnv("FRAME_TOPIC", "t_dorm_frame")
 	eventTopic := getEnv("EVENT_TOPIC", "t_dorm_event")
 	serverPort := getEnv("TEST_SERVER_PORT", "8082")
+	mariadbDSN := getEnv("MARIADB_DSN", "sims:sims@tcp(127.0.0.1:3306)/sims?parseTime=true")
 
 	log.Printf("=== CampusVision Test Environment (Go) ===")
 	log.Printf("Kafka brokers: %s", kafkaBrokers)
@@ -28,6 +34,21 @@ func main() {
 	// ── Init state ───────────────────────────────────────────────────────────
 
 	st := state.New()
+	st.Config.DBDsn = mariadbDSN
+
+	// ── MariaDB connection ──────────────────────────────────────────────────
+
+	db, err := sql.Open("mysql", mariadbDSN)
+	if err != nil {
+		log.Printf("[db] MariaDB connection failed: %v", err)
+	} else {
+		st.MariaDB = db
+		log.Println("[db] MariaDB connected")
+	}
+
+	useFakeData := getEnv("USE_FAKE_DATA", "true") == "true"
+	st.Config.UseFakeData = useFakeData
+	log.Printf("USE_FAKE_DATA: %v", useFakeData)
 
 	// Determine base directory for static files and face data.
 	// The binary may be invoked from either the repo root or test-env/ directory.
@@ -51,6 +72,35 @@ func main() {
 	if st.KafkaEventPub == nil {
 		log.Println("[kafka] Event producer unavailable — continuing without Kafka")
 	}
+
+	// Frame producer for webcam → Kafka pipeline
+	kafka.InitFrameProducer(brokers, frameTopic)
+
+	// ── Kafka consumer for recognition events ───────────────────────────────
+
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	eventConsumer := kafka.NewConsumer(brokers, eventTopic, "test-env-recognition")
+	if eventConsumer != nil {
+		log.Println("[kafka] Starting consumer for t_dorm_event...")
+		go func() {
+			kafka.ConsumeEvents(ctx, eventConsumer, func(msg []byte) {
+				kafka.HandleRecognitionEvent(msg, st)
+			})
+		}()
+	}
+
+	// Graceful shutdown
+	sigCh := make(chan os.Signal, 1)
+	signal.Notify(sigCh, syscall.SIGINT, syscall.SIGTERM)
+	go func() {
+		<-sigCh
+		log.Println("[kafka] Shutting down consumer...")
+		cancel()
+		kafka.CloseConsumer(eventConsumer)
+		kafka.CloseFrameProducer()
+	}()
 
 	// ── Setup router ─────────────────────────────────────────────────────────
 

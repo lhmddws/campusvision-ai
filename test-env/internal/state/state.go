@@ -1,6 +1,7 @@
 package state
 
 import (
+	"database/sql"
 	"fmt"
 	"math/rand"
 	"sync"
@@ -38,7 +39,9 @@ type Config struct {
 	DynamicExtraction    bool      `json:"dynamic_extraction"`
 	CameraSource         string    `json:"camera_source"`
 	WebcamDevice         int       `json:"webcam_device"`
+	UseFakeData          bool      `json:"use_fake_data"`
 	TestPeople           []string  `json:"test_people"`
+	DBDsn                string    `json:"db_dsn"`
 }
 
 type EventEntry struct {
@@ -54,6 +57,16 @@ type FaceEntry struct {
 	StudentID  string `json:"student_id"`
 	EnrolledAt string `json:"enrolled_at"`
 	ImageURL   string `json:"image_url"`
+}
+
+type RecognitionResult struct {
+	CameraID   string  `json:"camera_id"`
+	EventType  string  `json:"event_type"`
+	StudentID  string  `json:"student_id"`
+	Name       string  `json:"name"`
+	Confidence float64 `json:"confidence"`
+	IsStranger bool    `json:"is_stranger"`
+	Timestamp  int64   `json:"timestamp"`
 }
 
 // ── Defaults ───────────────────────────────────────────────────────────────────
@@ -86,6 +99,7 @@ var DefaultConfig = Config{
 	DynamicExtraction:    true,
 	CameraSource:         "simulated",
 	WebcamDevice:         0,
+	UseFakeData:          true,
 	TestPeople: []string{
 		"张三 (2024001)", "李四 (2024002)", "王五 (2024003)",
 		"赵六 (2024004)", "孙七 (2024005)", "周八 (2024006)",
@@ -105,10 +119,14 @@ type State struct {
 	WebcamRunning map[string]bool
 	WebcamIndex   map[string]*int
 	FacesMeta     []FaceEntry
+	RecognitionResults map[string][]RecognitionResult
+	SSEClients    map[chan string]bool
+	sseMu         sync.RWMutex
 	StartTime     time.Time
 	EventCounter  int64
 	KafkaProducer *kafka.Writer
 	KafkaEventPub *kafka.Writer
+	MariaDB       *sql.DB
 }
 
 func New() *State {
@@ -129,7 +147,9 @@ func New() *State {
 		LatestFrames:  make(map[string][]byte),
 		WebcamRunning: make(map[string]bool),
 		WebcamIndex:   make(map[string]*int),
-		FacesMeta:     make([]FaceEntry, 0),
+		FacesMeta:          make([]FaceEntry, 0),
+		RecognitionResults: make(map[string][]RecognitionResult),
+		SSEClients:    make(map[chan string]bool),
 		StartTime:     time.Now(),
 	}
 }
@@ -175,6 +195,46 @@ func (s *State) SetLatestFrame(id string, data []byte) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	s.LatestFrames[id] = data
+}
+
+func (s *State) StoreRecognitionResult(cameraID string, r RecognitionResult) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	s.RecognitionResults[cameraID] = append(s.RecognitionResults[cameraID], r)
+	if len(s.RecognitionResults[cameraID]) > 50 {
+		s.RecognitionResults[cameraID] = s.RecognitionResults[cameraID][1:]
+	}
+}
+
+func (s *State) GetRecognitionResults(cameraID string) []RecognitionResult {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+	return s.RecognitionResults[cameraID]
+}
+
+// ── SSE Client Management ─────────────────────────────────────────────────────
+
+func (s *State) AddSSEClient(ch chan string) {
+	s.sseMu.Lock()
+	defer s.sseMu.Unlock()
+	s.SSEClients[ch] = true
+}
+
+func (s *State) RemoveSSEClient(ch chan string) {
+	s.sseMu.Lock()
+	defer s.sseMu.Unlock()
+	delete(s.SSEClients, ch)
+}
+
+func (s *State) BroadcastSSE(event string) {
+	s.sseMu.RLock()
+	defer s.sseMu.RUnlock()
+	for ch := range s.SSEClients {
+		select {
+		case ch <- event:
+		default:
+		}
+	}
 }
 
 func (s *State) LogEvent(cameraID, eventType, detail string) EventEntry {
