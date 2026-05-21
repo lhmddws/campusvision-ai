@@ -3,24 +3,24 @@
     <!-- ── Header ── -->
     <div class="panel-header">
       <div class="header-left">
-        <span class="panel-title">■ 实时 事件 日志</span>
+        <span class="panel-title">实时事件日志</span>
         <span class="event-count-badge">{{ eventStats.total }}</span>
       </div>
       <div class="header-right">
         <div class="mini-chart" v-if="eventStats.total > 0">
           <div
-            class="mini-bar entry-bar"
-            :style="{ height: barHeight(eventStats.entry) }"
+            class="mini-bar"
+            :style="{ height: barHeight(eventStats.entry), background: 'var(--color-success)' }"
             :title="`entry: ${eventStats.entry}`"
           ></div>
           <div
-            class="mini-bar exit-bar"
-            :style="{ height: barHeight(eventStats.exit) }"
+            class="mini-bar"
+            :style="{ height: barHeight(eventStats.exit), background: 'var(--text-muted)' }"
             :title="`exit: ${eventStats.exit}`"
           ></div>
           <div
-            class="mini-bar idle-bar"
-            :style="{ height: barHeight(eventStats.idle) }"
+            class="mini-bar"
+            :style="{ height: barHeight(eventStats.idle), background: 'var(--color-warning)' }"
             :title="`idle: ${eventStats.idle}`"
           ></div>
         </div>
@@ -43,7 +43,7 @@
       <div v-if="events.length === 0" class="empty-state">
         等待事件数据...
       </div>
-      <TransitionGroup name="event-slide" tag="div" class="event-items">
+      <TransitionGroup name="event-fade" tag="div" class="event-items">
         <div
           v-for="(evt, idx) in visibleEvents"
           :key="evt.id || evt.time || idx"
@@ -116,8 +116,8 @@ function barHeight(count) {
 .event-panel {
   width: 320px;
   min-width: 280px;
-  background: var(--bg-panel);
-  border-left: 1px solid var(--border);
+  background: var(--bg-card);
+  border-left: 1px solid var(--border-color);
   display: flex;
   flex-direction: column;
   overflow: hidden;
@@ -130,7 +130,7 @@ function barHeight(count) {
   align-items: center;
   justify-content: space-between;
   padding: 10px 12px;
-  border-bottom: 1px solid var(--border);
+  border-bottom: 1px solid var(--border-color);
   flex-shrink: 0;
   gap: 8px;
 }
@@ -144,9 +144,9 @@ function barHeight(count) {
 
 .panel-title {
   font-size: 12px;
-  font-weight: 400;
-  color: var(--text-bright);
-  letter-spacing: 0.5px;
+  font-weight: 600;
+  color: var(--text-primary);
+  letter-spacing: 0.3px;
   white-space: nowrap;
 }
 
@@ -158,9 +158,9 @@ function barHeight(count) {
   height: 18px;
   padding: 0 6px;
   border-radius: 9px;
-  background: var(--bg-card);
-  border: 1px solid var(--border);
-  color: var(--text-dim);
+  background: var(--bg-page);
+  border: 1px solid var(--border-color);
+  color: var(--text-muted);
   font-size: 10px;
   font-family: var(--font);
   line-height: 1;
@@ -188,24 +188,12 @@ function barHeight(count) {
   transition: height 0.3s ease;
 }
 
-.mini-bar.entry-bar {
-  background: var(--green);
-}
-
-.mini-bar.exit-bar {
-  background: var(--red);
-}
-
-.mini-bar.idle-bar {
-  background: var(--amber);
-}
-
 /* ── Icon button ── */
 .icon-btn {
   background: transparent;
-  border: 1px solid var(--border);
+  border: 1px solid var(--border-color);
   border-radius: var(--radius-sm);
-  color: var(--text-dim);
+  color: var(--text-muted);
   width: 26px;
   height: 26px;
   font-size: 12px;
@@ -213,19 +201,20 @@ function barHeight(count) {
   align-items: center;
   justify-content: center;
   cursor: pointer;
-  transition: all var(--transition);
+  transition: all var(--transition-fast);
   line-height: 1;
 }
 
 .icon-btn:hover {
-  color: var(--text);
-  border-color: var(--border-bright);
+  color: var(--text-primary);
+  border-color: var(--border-color);
+  background: var(--bg-hover);
 }
 
 .icon-btn.active {
-  color: var(--green);
-  border-color: rgba(0, 255, 136, 0.3);
-  background: rgba(0, 255, 136, 0.06);
+  color: var(--color-primary);
+  border-color: var(--color-primary);
+  background: var(--color-primary-bg);
 }
 
 /* ── Toolbar ── */
@@ -233,28 +222,28 @@ function barHeight(count) {
   display: flex;
   gap: 4px;
   padding: 6px 12px;
-  border-bottom: 1px solid var(--border);
+  border-bottom: 1px solid var(--border-color);
   flex-shrink: 0;
 }
 
 .tool-btn {
   flex: 1;
   padding: 4px 0;
-  border: 1px solid var(--border);
+  border: 1px solid var(--border-color);
   border-radius: var(--radius-sm);
   background: transparent;
-  color: var(--text-dim);
+  color: var(--text-secondary);
   font-family: var(--font);
   font-size: 10px;
-  letter-spacing: 0.5px;
+  letter-spacing: 0.3px;
   cursor: pointer;
-  transition: all var(--transition);
+  transition: all var(--transition-fast);
 }
 
 .tool-btn:hover {
-  background: rgba(0, 255, 136, 0.06);
-  border-color: rgba(0, 255, 136, 0.3);
-  color: var(--green);
+  background: var(--bg-hover);
+  border-color: var(--border-color);
+  color: var(--text-primary);
 }
 
 .tool-btn:active {
@@ -262,9 +251,9 @@ function barHeight(count) {
 }
 
 .tool-btn.clear-btn:hover {
-  border-color: rgba(255, 51, 85, 0.3);
-  color: var(--red);
-  background: rgba(255, 51, 85, 0.06);
+  color: var(--color-danger);
+  border-color: var(--color-danger);
+  background: var(--color-danger-bg);
 }
 
 /* ── Event List ── */
@@ -272,6 +261,23 @@ function barHeight(count) {
   flex: 1;
   overflow-y: auto;
   overflow-x: hidden;
+}
+
+.event-list::-webkit-scrollbar {
+  width: 5px;
+}
+
+.event-list::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.event-list::-webkit-scrollbar-thumb {
+  background: var(--border-color);
+  border-radius: 3px;
+}
+
+.event-list::-webkit-scrollbar-thumb:hover {
+  background: var(--text-muted);
 }
 
 .event-items {
@@ -286,9 +292,9 @@ function barHeight(count) {
   justify-content: center;
   height: 100%;
   min-height: 120px;
-  color: var(--text-dim);
+  color: var(--text-muted);
   font-size: 12px;
-  letter-spacing: 0.5px;
+  letter-spacing: 0.3px;
 }
 
 /* ── Event Item ── */
@@ -296,13 +302,18 @@ function barHeight(count) {
   display: flex;
   gap: 8px;
   padding: 6px 12px;
-  border-bottom: 1px solid var(--border);
-  transition: background var(--transition);
+  border-bottom: 1px solid var(--border-light);
+  transition: background var(--transition-fast);
   align-items: flex-start;
+  background: var(--bg-card);
+}
+
+.event-item:nth-child(even) {
+  background: var(--bg-page);
 }
 
 .event-item:hover {
-  background: var(--bg-card-hover);
+  background: var(--bg-hover);
 }
 
 .event-left {
@@ -316,10 +327,11 @@ function barHeight(count) {
 
 .event-time {
   font-size: 10px;
-  color: var(--text-dim);
+  color: var(--text-muted);
   font-family: var(--font);
   line-height: 1;
   white-space: nowrap;
+  font-variant-numeric: tabular-nums;
 }
 
 .event-badge {
@@ -332,37 +344,34 @@ function barHeight(count) {
   font-size: 10px;
   font-family: var(--font);
   line-height: 1;
-  font-weight: 500;
+  font-weight: 600;
+  border: none;
 }
 
+/* ── Flat style badges with semantic colors ── */
 .badge-entry {
-  background: var(--green-bg);
-  color: var(--green);
-  border: 1px solid rgba(0, 255, 136, 0.2);
+  background: var(--color-success-bg);
+  color: var(--color-success);
 }
 
 .badge-exit {
-  background: var(--red-bg);
-  color: var(--red);
-  border: 1px solid rgba(255, 51, 85, 0.2);
+  background: var(--bg-hover);
+  color: var(--text-muted);
 }
 
 .badge-idle {
-  background: var(--amber-bg);
-  color: var(--amber);
-  border: 1px solid rgba(255, 170, 51, 0.2);
+  background: var(--color-warning-bg);
+  color: var(--color-warning);
 }
 
 .badge-motion {
-  background: var(--blue-bg);
-  color: var(--blue);
-  border: 1px solid rgba(51, 153, 255, 0.2);
+  background: var(--color-primary-bg);
+  color: var(--color-primary-light);
 }
 
 .badge-stranger {
-  background: var(--purple-bg);
-  color: var(--purple);
-  border: 1px solid rgba(170, 102, 255, 0.2);
+  background: var(--color-danger-bg);
+  color: var(--color-danger);
 }
 
 .event-right {
@@ -375,44 +384,44 @@ function barHeight(count) {
 
 .event-detail {
   font-size: 11px;
-  color: var(--text);
+  color: var(--text-primary);
   line-height: 1.3;
   word-break: break-word;
 }
 
 .event-camera {
   font-size: 9px;
-  color: var(--text-dim);
+  color: var(--text-muted);
   letter-spacing: 0.3px;
 }
 
 /* ── Type label on left border ── */
-.type-entry { border-left: 2px solid var(--green); }
-.type-exit { border-left: 2px solid var(--red); }
-.type-idle { border-left: 2px solid var(--amber); }
-.type-motion { border-left: 2px solid var(--blue); }
-.type-stranger { border-left: 2px solid var(--purple); }
+.type-entry { border-left: 2px solid var(--color-success); }
+.type-exit { border-left: 2px solid var(--text-muted); }
+.type-idle { border-left: 2px solid var(--color-warning); }
+.type-motion { border-left: 2px solid var(--color-primary-light); }
+.type-stranger { border-left: 2px solid var(--color-danger); }
 
-/* ── Slide-in animation ── */
-.event-slide-enter-active {
-  transition: all 0.3s ease-out;
+/* ── Simple fade transition ── */
+.event-fade-enter-active {
+  transition: all 0.25s ease-out;
 }
 
-.event-slide-leave-active {
+.event-fade-leave-active {
   transition: all 0.2s ease-in;
 }
 
-.event-slide-enter-from {
+.event-fade-enter-from {
   opacity: 0;
-  transform: translateX(-20px);
+  transform: translateY(-6px);
 }
 
-.event-slide-leave-to {
+.event-fade-leave-to {
   opacity: 0;
-  transform: translateX(20px);
+  transform: translateY(-4px);
 }
 
-.event-slide-move {
-  transition: transform 0.3s ease;
+.event-fade-move {
+  transition: transform 0.25s ease;
 }
 </style>

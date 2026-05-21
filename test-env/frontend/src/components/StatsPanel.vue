@@ -3,28 +3,28 @@
     <!-- ── 系统概况 ── -->
     <div class="stats-section">
       <div class="section-title">系统概况</div>
-      <div class="kv-grid">
-        <div class="dash-kv">
-          <span class="kv-label">运行时长</span>
-          <span class="kv-value">{{ uptime || '--:--:--' }}</span>
+      <div class="kp-grid">
+        <div class="kp-card">
+          <div class="kp-value">{{ uptime || '--:--:--' }}</div>
+          <div class="kp-label">运行时长</div>
         </div>
-        <div class="dash-kv">
-          <span class="kv-label">总帧数</span>
-          <span class="kv-value">{{ stats.frames_generated ?? 0 }}</span>
+        <div class="kp-card kp-accent-blue">
+          <div class="kp-value">{{ stats.frames_generated ?? 0 }}</div>
+          <div class="kp-label">总帧数</div>
         </div>
-        <div class="dash-kv">
-          <span class="kv-label">总事件</span>
-          <span class="kv-value">{{ stats.events_total ?? 0 }}</span>
+        <div class="kp-card kp-accent-blue">
+          <div class="kp-value">{{ stats.events_total ?? 0 }}</div>
+          <div class="kp-label">总事件</div>
         </div>
-        <div class="dash-kv">
-          <span class="kv-label">摄像头</span>
-          <span class="kv-value">{{ stats.active_cameras ?? cameraCount }}</span>
+        <div class="kp-card kp-accent-blue">
+          <div class="kp-value">{{ stats.active_cameras ?? cameraCount }}</div>
+          <div class="kp-label">摄像头</div>
         </div>
-        <div class="dash-kv">
-          <span class="kv-label">Kafka</span>
-          <span class="kv-value" :class="kafkaConnected ? 'status-ok' : 'status-err'">
+        <div class="kp-card" :class="kafkaConnected ? 'kp-accent-green' : 'kp-accent-red'">
+          <div class="kp-value" :class="kafkaConnected ? 'text-green' : 'text-red'">
             {{ kafkaConnected ? '已连接' : '断开' }}
-          </span>
+          </div>
+          <div class="kp-label">Kafka 状态</div>
         </div>
       </div>
     </div>
@@ -32,26 +32,26 @@
     <!-- ── 事件类型 ── -->
     <div class="stats-section">
       <div class="section-title">事件类型</div>
-      <div class="kv-grid">
-        <div class="dash-kv type-entry-box">
-          <span class="kv-label">进入 (entry)</span>
-          <span class="kv-value type-entry-val">{{ stats.event_type_counts?.entry ?? 0 }}</span>
+      <div class="kp-grid">
+        <div class="kp-card kp-accent-green">
+          <div class="kp-value text-green">{{ stats.event_type_counts?.entry ?? 0 }}</div>
+          <div class="kp-label">进入 (entry)</div>
         </div>
-        <div class="dash-kv type-exit-box">
-          <span class="kv-label">离开 (exit)</span>
-          <span class="kv-value type-exit-val">{{ stats.event_type_counts?.exit ?? 0 }}</span>
+        <div class="kp-card kp-accent-red">
+          <div class="kp-value text-red">{{ stats.event_type_counts?.exit ?? 0 }}</div>
+          <div class="kp-label">离开 (exit)</div>
         </div>
-        <div class="dash-kv type-idle-box">
-          <span class="kv-label">徘徊 (idle)</span>
-          <span class="kv-value type-idle-val">{{ stats.event_type_counts?.idle ?? 0 }}</span>
+        <div class="kp-card kp-accent-amber">
+          <div class="kp-value text-amber">{{ stats.event_type_counts?.idle ?? 0 }}</div>
+          <div class="kp-label">徘徊 (idle)</div>
         </div>
-        <div class="dash-kv">
-          <span class="kv-label">事件/分钟</span>
-          <span class="kv-value">{{ stats.events_per_min ?? 0 }}</span>
+        <div class="kp-card kp-accent-blue">
+          <div class="kp-value">{{ stats.events_per_min ?? 0 }}</div>
+          <div class="kp-label">事件/分钟</div>
         </div>
-        <div class="dash-kv">
-          <span class="kv-label">峰值/分钟</span>
-          <span class="kv-value">{{ stats.peak_events_per_min ?? 0 }}</span>
+        <div class="kp-card kp-accent-blue">
+          <div class="kp-value">{{ stats.peak_events_per_min ?? 0 }}</div>
+          <div class="kp-label">峰值/分钟</div>
         </div>
       </div>
     </div>
@@ -59,14 +59,14 @@
     <!-- ── Kafka 吞吐 ── -->
     <div class="stats-section">
       <div class="section-title">Kafka 吞吐</div>
-      <div class="kv-grid">
-        <div class="dash-kv">
-          <span class="kv-label">已发送帧</span>
-          <span class="kv-value">{{ stats.kafka_frames_sent ?? 0 }}</span>
+      <div class="kp-grid">
+        <div class="kp-card kp-accent-blue">
+          <div class="kp-value">{{ stats.kafka_frames_sent ?? 0 }}</div>
+          <div class="kp-label">已发送帧</div>
         </div>
-        <div class="dash-kv">
-          <span class="kv-label">已发送事件</span>
-          <span class="kv-value">{{ stats.kafka_events_sent ?? 0 }}</span>
+        <div class="kp-card kp-accent-blue">
+          <div class="kp-value">{{ stats.kafka_events_sent ?? 0 }}</div>
+          <div class="kp-label">已发送事件</div>
         </div>
       </div>
     </div>
@@ -135,11 +135,12 @@ function cameraBarWidth(cameraId) {
 </script>
 
 <style scoped>
+/* ── Panel ── */
 .stats-panel {
   width: 280px;
   min-width: 240px;
-  background: var(--bg-panel);
-  border-left: 1px solid var(--border);
+  background: var(--bg-card);
+  border-left: 1px solid var(--border-color);
   overflow-y: auto;
   display: flex;
   flex-direction: column;
@@ -148,87 +149,79 @@ function cameraBarWidth(cameraId) {
 
 /* ── Section ── */
 .stats-section {
-  padding: 10px 12px;
-  border-bottom: 1px solid var(--border);
+  padding: 14px 14px;
+  border-bottom: 1px solid var(--border-color);
 }
 
 .section-title {
-  font-size: 10px;
-  font-weight: 400;
-  color: var(--text-dim);
-  letter-spacing: 1px;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text-muted);
+  letter-spacing: 0.5px;
   text-transform: uppercase;
-  margin-bottom: 8px;
+  margin-bottom: 10px;
 }
 
-/* ── KV Grid ── */
-.kv-grid {
+/* ── KPI Grid ── */
+.kp-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(90px, 1fr));
-  gap: 6px;
+  grid-template-columns: repeat(auto-fill, minmax(110px, 1fr));
+  gap: 8px;
 }
 
-.dash-kv {
+.kp-card {
   background: var(--bg-card);
-  border: 1px solid var(--border);
-  border-radius: 4px;
-  padding: 8px 10px;
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-sm);
+  padding: 12px 12px;
   display: flex;
   flex-direction: column;
   gap: 4px;
   min-width: 0;
+  box-shadow: var(--shadow-sm);
+  position: relative;
 }
 
-.kv-label {
-  font-size: 9px;
-  color: var(--text-dim);
-  letter-spacing: 0.3px;
-  text-transform: uppercase;
+/* ── Color accent bars (left) ── */
+.kp-accent-blue {
+  border-left: 4px solid var(--color-primary);
+}
+.kp-accent-green {
+  border-left: 4px solid var(--color-success);
+}
+.kp-accent-red {
+  border-left: 4px solid var(--color-danger);
+}
+.kp-accent-amber {
+  border-left: 4px solid var(--color-warning);
+}
+
+.kp-value {
+  font-size: 24px;
+  font-weight: 700;
+  color: var(--text-primary);
+  line-height: 1.2;
+  font-family: var(--font);
+}
+
+.kp-label {
+  font-size: 11px;
+  color: var(--text-secondary);
+  line-height: 1.3;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
 }
 
-.kv-value {
-  font-size: 16px;
-  font-weight: 500;
-  color: var(--text-bright);
-  font-family: var(--font);
-  line-height: 1.2;
+/* ── Text color helpers ── */
+.text-green {
+  color: var(--color-success) !important;
 }
-
-/* ── Status colors ── */
-.status-ok {
-  color: var(--green) !important;
+.text-red {
+  color: var(--color-danger) !important;
 }
-
-.status-err {
-  color: var(--red) !important;
-}
-
-/* ── Event type colored cards ── */
-.type-entry-box {
-  border-left: 2px solid var(--green);
-}
-
-.type-entry-val {
-  color: var(--green) !important;
-}
-
-.type-exit-box {
-  border-left: 2px solid var(--red);
-}
-
-.type-exit-val {
-  color: var(--red) !important;
-}
-
-.type-idle-box {
-  border-left: 2px solid var(--amber);
-}
-
-.type-idle-val {
-  color: var(--amber) !important;
+.text-amber {
+  color: var(--color-warning) !important;
 }
 
 /* ── Camera stats ── */
@@ -239,33 +232,34 @@ function cameraBarWidth(cameraId) {
 }
 
 .no-cameras {
-  font-size: 11px;
-  color: var(--text-dim);
+  font-size: 12px;
+  color: var(--text-muted);
   text-align: center;
-  padding: 12px 0;
+  padding: 16px 0;
 }
 
 .cam-row {
   display: flex;
   align-items: center;
   gap: 8px;
-  padding: 4px 8px;
+  padding: 6px 10px;
   background: var(--bg-card);
-  border: 1px solid var(--border);
-  border-radius: 4px;
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-sm);
 }
 
 .cam-name {
-  font-size: 11px;
-  color: var(--text);
-  min-width: 48px;
+  font-size: 12px;
+  color: var(--text-secondary);
+  min-width: 44px;
   flex-shrink: 0;
+  font-weight: 500;
 }
 
 .cam-count {
-  font-size: 12px;
-  font-weight: 500;
-  color: var(--text-bright);
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-primary);
   min-width: 28px;
   text-align: right;
   font-family: var(--font);
@@ -274,14 +268,14 @@ function cameraBarWidth(cameraId) {
 .cam-bar-track {
   flex: 1;
   height: 4px;
-  background: var(--bg-deep);
+  background: var(--bg-hover);
   border-radius: 2px;
   overflow: hidden;
 }
 
 .cam-bar-fill {
   height: 100%;
-  background: var(--green);
+  background: var(--color-primary-light);
   border-radius: 2px;
   transition: width 0.4s ease;
   min-width: 2px;
