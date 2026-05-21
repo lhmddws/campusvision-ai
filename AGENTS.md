@@ -1,21 +1,20 @@
 # CampusVision AI — AGENTS.md
 
-Multi-language monorepo (Go + Python + Java) for dormitory AI surveillance.
+Multi-language monorepo (Go + Python) for dormitory AI surveillance.
 
 ## Architecture
 
 ```
 RTSP cameras (A/B/C/D) → stream-gateway (Go) → t_dorm_frame (Kafka)
   → face-recognition (Python) → t_dorm_event (Kafka)
-  → dormitory-service (Java/Go) → MariaDB + Redis
+  → dormitory-service-go (Go) → MariaDB + Redis
 ```
 
 | Module | Language | Entrypoint | Port |
 |---|---|---|---|
 | `stream-gateway/` | Go (1.26) | `go run cmd/main.go --config config.yaml` | 8080 (health), 8081 (mgmt) |
 | `face-recognition/` | Python (3.11) | `python -m app.main --config config.yaml` | — |
-| `dormitory-service/` | Java 17 (Spring Boot 3.2.5) | `DormitoryServiceApplication.java` | 8081 |
-| `dormitory-service-go/` | Go (1.26) | `go run ./cmd/dormitory-service/` | 8083 |
+| `dormitory-service-go/` | Go (1.26) | `go run ./cmd/dormitory-service/ --config config.yaml` | 8083 |
 | `test-env/` | Go (1.26) Gin + Vue 3 | `go run ./cmd/test-env/` | 8082 |
 
 Infra (`docker compose up -d`): Zookeeper (2181), Kafka (9092), Redis (6379), MariaDB (3306), MinIO (9000/9001).
@@ -33,10 +32,7 @@ cd stream-gateway && go run cmd/main.go --config config.yaml
 cd face-recognition && python -m app.download_models
 cd face-recognition && python -m app.main --config config.yaml
 
-# Dormitory Service (Java) — requires system mvn (no wrapper)
-cd dormitory-service && mvn compile && mvn spring-boot:run
-
-# Dormitory Service (Go) — runs alongside Java on :8083
+# Dormitory Service (Go) — on :8083
 cd dormitory-service-go && go run ./cmd/dormitory-service/ --config config.yaml
 
 # Test Environment (Go + Vue frontend)
@@ -50,7 +46,7 @@ docker compose exec kafka kafka-console-consumer --bootstrap-server localhost:90
 
 ## test-env (Demo Environment)
 
-Go/Gin backend + Vue 3 Vite frontend. Replaces the old Python/FastAPI version.
+Go/Gin backend + Vue 3 Vite frontend.
 
 **Run:**
 ```bash
@@ -78,8 +74,7 @@ cd test-env/frontend && npm run dev
 | `minio` | — | Unused by any service — `snapshot_path` always `""` |
 | `stream-gateway` | kafka, kafka-init, mariadb | Docker override via `config.docker.yaml` |
 | `face-recognition` | kafka, redis, stream-gateway | Docker CMD lacks `--config` — relies on bind-mounted `config.docker.yaml` |
-| `dormitory-service` | kafka, mariadb, redis | Java, port 8081 |
-| `dormitory-service-go` | kafka, mariadb, redis | Go, port 8083 — runs alongside Java |
+| `dormitory-service-go` | kafka, mariadb, redis | Go, port 8083 |
 | `test-env` | kafka, redis | Go+Vue, port 8082 |
 
 ## Kafka Topics
@@ -87,42 +82,27 @@ cd test-env/frontend && npm run dev
 | Topic | Partitions | Retention | Producer → Consumer |
 |---|---|---|---|
 | `t_dorm_frame` | 4 | 12h | stream-gateway → face-recognition |
-| `t_dorm_event` | 2 | 7d | face-recognition → dormitory-service (both Java & Go) |
-| `t_dorm_alert` | 1 | 7d | dormitory-service → (future) |
+| `t_dorm_event` | 2 | 7d | face-recognition → dormitory-service-go |
+| `t_dorm_alert` | 1 | 7d | dormitory-service-go → (future) |
 
 - `t_dorm_frame` uses **hash partitioner** (`kafka.Hash{}`) keyed by `building`.
 - Compression: Snappy for `t_dorm_frame`.
 - Python face-recognition publishes **raw JSON** (no Spring Kafka type headers).
-- Java consumer uses `StringDeserializer` + manual `ObjectMapper.readValue` with `@JsonProperty("camera_id")`.
-- Java consumer: manual ack, `max.poll.records=500`, concurrency=3.
-- Go consumer: parallel implementation, same topics, same Redis dedup key format.
+- Go consumer: parallel implementation, same Redis dedup key format.
 
 ## Critical Gotchas
 
 ### DB Schema Fragmentation
-Three sources of truth that **disagree**:
+Two main sources of truth that can **disagree**:
 
 1. **`infra/mariadb/init.sql`** (docker-compose executes this) — `dorm_student_assignment`, `dorm_entry_exit_event`, `dorm_alert_record` etc.
-2. **Java entities** — use different names: `dorm_event_log` (vs `dorm_entry_exit_event`), `dorm_student` (vs `dorm_student_assignment`), `dorm_alert` (vs `dorm_alert_record`). Reference `dorm_building`/`dorm_room` tables that **don't exist in init.sql**.
-3. **Go entities** — hybrid: follows Java convention for some tables, init.sql for others. Comments document each divergence.
+2. **Go entities** — hybrid: follows some conventions from `init.sql`, others from the previous Java implementation. Comments document each divergence.
 
-**Always verify table names before writing MyBatis Plus or sqlx queries.** No XML mappers exist — all queries rely on `BaseMapper<T>` (Java) or generic Go repository with `db` struct tags.
-
-### Java JDK / Lombok Compatibility
-- `pom.xml` targets JDK 17, dev machines run JDK 26.
-- Lombok 1.18.30 **crashes** on JDK 26 — fix: `<lombok.version>1.18.38</lombok.version>` (already applied).
-- Surefire: `-Dnet.bytebuddy.experimental=true` for Mockito (already in pom.xml).
-- `CameraServiceImplTest.java` is **excluded** from compilation (`<testExclude>` in pom.xml).
-- No `.mvn/wrapper` — Maven must be installed system-wide.
-
-### Production Credentials in application.yml
-- `dormitory-service/src/main/resources/application.yml` contains hardcoded production credentials.
-- Overridable via `SPRING_DATASOURCE_*` env vars.
-- **Do not commit real credentials.**
+**Always verify table names before writing sqlx queries.**
 
 ### Redis Config
-- Both face-recognition and dormitory-service connect to `127.0.0.1:6379`, same `db=0`.
-- Redis-based dedup: Java uses `DEDUP_TTL_SECONDS=3600` (key: `camera_id + frame_sequence`); Go uses `DefaultDedupTTL=3600` (key: `dedup:{camera_id}:{frame_sequence}`).
+- Both face-recognition and dormitory-service-go connect to `127.0.0.1:6379`, same `db=0`.
+- Redis-based dedup: Go uses `DefaultDedupTTL=3600` (key: `dedup:{camera_id}:{frame_sequence}`).
 
 ### ONNX Model Management
 - Models defined in `face-recognition/app/models/model_urls.yaml` — two models with verified SHA256 hashes (no `PLACEHOLDER_UPDATE_ME` sentinel).
@@ -158,7 +138,6 @@ Three sources of truth that **disagree**:
 ### Code Maturity
 - **stream-gateway**: 4 test files (health handler, mgmt handler, camera config, crypto).
 - **face-recognition**: 6 tests under `tests/` — use Haar Cascade fallback (no ONNX needed).
-- **dormitory-service (Java)**: test source structure exists, 10+ test classes, `CameraServiceImplTest` is excluded.
 - **dormitory-service-go**: **zero tests** — all implementation, no `*_test.go`.
 - **test-env**: no tests.
 
@@ -167,9 +146,9 @@ Three sources of truth that **disagree**:
 | Role | Owns | Languages |
 |---|---|---|
 | **You (perception)** | stream-gateway + face-recognition | Go, Python |
-| **Partner (business)** | dormitory-service (Java+Go) + main-process integration + camera management | Java, Go |
+| **Partner (business)** | dormitory-service-go + main-process integration + camera management | Go |
 
-Kafka topic `t_dorm_event` is the only coupling point. Both sides develop independently. The Go dormitory service runs alongside Java on port 8083 — core event pipeline is functional, but reporting/aggregation features are stubs.
+Kafka topic `t_dorm_event` is the only coupling point. Both sides develop independently.
 
 ## Python Packages
 - face-recognition managed via `pip`/`uv`; prefers `uv` if installed.

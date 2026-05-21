@@ -2,10 +2,19 @@
 # 启动: docker compose up -d
 # 构建并启动: docker compose up -d --build
 # 停止: docker compose down
+# 仅启动依赖服务: docker compose up -d kafka redis mariadb
 
 networks:
   campusvision:
     driver: bridge
+
+volumes:
+  redis-data:
+  mariadb-data:
+  minio-data:
+  face-models:
+  zookeeper-data:
+  zookeeper-log:
 
 services:
   # ==================== Zookeeper (Kafka dependency) ====================
@@ -14,12 +23,24 @@ services:
     hostname: zookeeper
     container_name: cv-zookeeper
     networks: [campusvision]
+    restart: unless-stopped
+    ports:
+      - "2181:2181"
     environment:
       ZOOKEEPER_CLIENT_PORT: 2181
       ZOOKEEPER_TICK_TIME: 2000
-    ports:
-      - "2181:2181"
+    volumes:
+      - zookeeper-data:/var/lib/zookeeper/data
+      - zookeeper-log:/var/lib/zookeeper/log
     user: root
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+        reservations:
+          memory: 256M
+    labels:
+      campusvision.ai/service: "zookeeper"
 
   # ==================== Kafka ====================
   kafka:
@@ -27,6 +48,7 @@ services:
     hostname: kafka
     container_name: cv-kafka
     networks: [campusvision]
+    restart: unless-stopped
     depends_on:
       - zookeeper
     ports:
@@ -53,6 +75,14 @@ services:
       interval: 10s
       timeout: 5s
       retries: 5
+    deploy:
+      resources:
+        limits:
+          memory: 1G
+        reservations:
+          memory: 512M
+    labels:
+      campusvision.ai/service: "kafka"
 
   # ==================== Kafka topic initialization ====================
   kafka-init:
@@ -62,11 +92,21 @@ services:
     depends_on:
       kafka:
         condition: service_healthy
-    entrypoint: ["/bin/bash", "-c", "
-      kafka-topics --bootstrap-server kafka:9092 --create --if-not-exists --topic t_dorm_frame --partitions 4 --replication-factor 1 --config cleanup.policy=delete --config retention.ms=43200000 --config max.message.bytes=5242880 --config compression.type=producer;
-      kafka-topics --bootstrap-server kafka:9092 --create --if-not-exists --topic t_dorm_event --partitions 2 --replication-factor 1 --config cleanup.policy=delete --config retention.ms=604800000 --config max.message.bytes=1048576 --config compression.type=producer;
-      kafka-topics --bootstrap-server kafka:9092 --create --if-not-exists --topic t_dorm_alert --partitions 1 --replication-factor 1 --config cleanup.policy=delete --config retention.ms=604800000;
-      echo 'Topics created:'; kafka-topics --bootstrap-server kafka:9092 --list;"]
+    entrypoint: [
+        "/bin/bash",
+        "-c",
+        "
+        kafka-topics --bootstrap-server kafka:9092 --create --if-not-exists --topic t_dorm_frame --partitions 4 --replication-factor 1 --config cleanup.policy=delete --config retention.ms=43200000 --config max.message.bytes=5242880 --config compression.type=producer;
+        kafka-topics --bootstrap-server kafka:9092 --create --if-not-exists --topic t_dorm_event --partitions 2 --replication-factor 1 --config cleanup.policy=delete --config retention.ms=604800000 --config max.message.bytes=1048576 --config compression.type=producer;
+        kafka-topics --bootstrap-server kafka:9092 --create --if-not-exists --topic t_dorm_alert --partitions 1 --replication-factor 1 --config cleanup.policy=delete --config retention.ms=604800000;
+        echo 'Topics created:'; kafka-topics --bootstrap-server kafka:9092 --list;",
+      ]
+    deploy:
+      resources:
+        limits:
+          memory: 256M
+    labels:
+      campusvision.ai/service: "kafka-init"
 
   # ==================== Redis ====================
   redis:
@@ -74,6 +114,7 @@ services:
     hostname: redis
     container_name: cv-redis
     networks: [campusvision]
+    restart: unless-stopped
     ports:
       - "6379:6379"
     volumes:
@@ -82,6 +123,14 @@ services:
       test: ["CMD", "redis-cli", "ping"]
       interval: 5s
       timeout: 3s
+    deploy:
+      resources:
+        limits:
+          memory: 256M
+        reservations:
+          memory: 128M
+    labels:
+      campusvision.ai/service: "redis"
 
   # ==================== MariaDB ====================
   mariadb:
@@ -89,28 +138,38 @@ services:
     hostname: mariadb
     container_name: cv-mariadb
     networks: [campusvision]
+    restart: unless-stopped
     ports:
       - "3306:3306"
     environment:
       MARIADB_ROOT_PASSWORD: root_dev
-      MARIADB_DATABASE: dormitory
-      MARIADB_USER: dormitory
-      MARIADB_PASSWORD: dormitory_dev
+      MARIADB_DATABASE: sims
+      MARIADB_USER: sims
+      MARIADB_PASSWORD: sims
     volumes:
       - mariadb-data:/var/lib/mysql
       - ./infra/mariadb/init.sql:/docker-entrypoint-initdb.d/init.sql
     healthcheck:
-      test: ["CMD", "mysqladmin", "ping", "-u", "dormitory", "-pdormitory_dev"]
+      test: ["CMD", "mysqladmin", "ping", "-u", "sims", "-psims"]
       interval: 5s
       timeout: 3s
       retries: 10
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+        reservations:
+          memory: 256M
+    labels:
+      campusvision.ai/service: "mariadb"
 
-  # ==================== MinIO (face snapshots) ====================
+  # ==================== MinIO (face snapshots — currently unused) ====================
   minio:
     image: minio/minio:latest
     hostname: minio
     container_name: cv-minio
     networks: [campusvision]
+    restart: unless-stopped
     ports:
       - "9000:9000"
       - "9001:9001"
@@ -124,6 +183,14 @@ services:
       test: ["CMD", "curl", "-f", "http://localhost:9000/minio/health/live"]
       interval: 10s
       timeout: 5s
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+        reservations:
+          memory: 256M
+    labels:
+      campusvision.ai/service: "minio"
 
   # ==================== Stream Gateway (Go) ====================
   stream-gateway:
@@ -132,11 +199,11 @@ services:
     image: campusvision/stream-gateway:latest
     container_name: cv-stream-gateway
     networks: [campusvision]
+    restart: unless-stopped
     ports:
       - "8080:8080"
     volumes:
       - ./stream-gateway/config.docker.yaml:/app/config.yaml
-    environment: {}
     depends_on:
       kafka:
         condition: service_healthy
@@ -144,6 +211,14 @@ services:
         condition: service_completed_successfully
       mariadb:
         condition: service_healthy
+    deploy:
+      resources:
+        limits:
+          memory: 256M
+        reservations:
+          memory: 128M
+    labels:
+      campusvision.ai/service: "stream-gateway"
 
   # ==================== Face Recognition (Python) ====================
   face-recognition:
@@ -152,6 +227,7 @@ services:
     image: campusvision/face-recognition:latest
     container_name: cv-face-recognition
     networks: [campusvision]
+    restart: unless-stopped
     volumes:
       - face-models:/app/app/models
       - ./face-recognition/config.docker.yaml:/app/config.yaml
@@ -162,29 +238,14 @@ services:
         condition: service_healthy
       stream-gateway:
         condition: service_started
-
-  # ==================== Dormitory Service (Java) ====================
-  dormitory-service:
-    build:
-      context: ./dormitory-service
-    image: campusvision/dormitory-service:latest
-    container_name: cv-dormitory-service
-    networks: [campusvision]
-    ports:
-      - "8081:8081"
-    environment:
-      SPRING_DATASOURCE_URL: jdbc:mariadb://mariadb:3306/dormitory
-      SPRING_DATASOURCE_USERNAME: root
-      SPRING_DATASOURCE_PASSWORD: root_dev
-      SPRING_DATA_REDIS_HOST: redis
-      KAFKA_BOOTSTRAP_SERVERS: kafka:9092
-    depends_on:
-      kafka:
-        condition: service_healthy
-      mariadb:
-        condition: service_healthy
-      redis:
-        condition: service_healthy
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+        reservations:
+          memory: 256M
+    labels:
+      campusvision.ai/service: "face-recognition"
 
   # ==================== Dormitory Service (Go) ====================
   dormitory-service-go:
@@ -193,11 +254,11 @@ services:
     image: campusvision/dormitory-service-go:latest
     container_name: cv-dormitory-service-go
     networks: [campusvision]
+    restart: unless-stopped
     ports:
       - "8083:8083"
     volumes:
       - ./dormitory-service-go/config.docker.yaml:/app/config.yaml
-    environment: {}
     depends_on:
       kafka:
         condition: service_healthy
@@ -205,6 +266,14 @@ services:
         condition: service_healthy
       redis:
         condition: service_healthy
+    deploy:
+      resources:
+        limits:
+          memory: 256M
+        reservations:
+          memory: 128M
+    labels:
+      campusvision.ai/service: "dormitory-service-go"
 
   # ==================== Test Environment (Go + Vue) ====================
   test-env:
@@ -213,6 +282,7 @@ services:
     image: campusvision/test-env:latest
     container_name: cv-test-env
     networks: [campusvision]
+    restart: unless-stopped
     ports:
       - "8082:8082"
     environment:
@@ -226,11 +296,11 @@ services:
         condition: service_healthy
       redis:
         condition: service_healthy
-
-volumes:
-  redis-data:
-  mariadb-data:
-  minio-data:
-  face-models:
-  zookeeper-data:
-  zookeeper-log:
+    deploy:
+      resources:
+        limits:
+          memory: 256M
+        reservations:
+          memory: 128M
+    labels:
+      campusvision.ai/service: "test-env"

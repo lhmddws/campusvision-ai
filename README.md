@@ -5,7 +5,7 @@ AI-powered dormitory surveillance system with multi-camera RTSP streaming, real-
 ```
 RTSP cameras (A/B/C/D) → stream-gateway (Go) → t_dorm_frame (Kafka)
   → face-recognition (Python) → t_dorm_event (Kafka)
-  → dormitory-service (Java) → MariaDB + Redis
+  → dormitory-service-go (Go) → MariaDB + Redis
 ```
 
 ## Architecture
@@ -16,7 +16,7 @@ RTSP cameras (A/B/C/D) → stream-gateway (Go) → t_dorm_frame (Kafka)
 |---|---|---|---|
 | Stream ingest | Go | `stream-gateway` | RTSP capture → Kafka frame producer |
 | Recognition | Python | `face-recognition` | Face detection/recognition → event producer |
-| Business | Java/Go | `dormitory-service` / `dormitory-service-go` | Event processing, alerts, reports, API |
+| Business | Go | `dormitory-service-go` | Event processing, alerts, reports, API |
 | Test env | Go | `test-env` | Simulated 4-camera setup for dev/testing |
 
 **Infrastructure** (Docker Compose): Kafka, Redis, MariaDB, MinIO
@@ -27,7 +27,6 @@ RTSP cameras (A/B/C/D) → stream-gateway (Go) → t_dorm_frame (Kafka)
 |---|---|---|---|---|
 | `stream-gateway/` | Go | `cmd/main.go --config config.yaml` | 8080 (health), 8081 (mgmt) |
 | `face-recognition/` | Python | `python -m app.main --config config.yaml` | — |
-| `dormitory-service/` | Java (Spring Boot) | `DormitoryServiceApplication.java` | 8081 |
 | `dormitory-service-go/` | Go | `go run ./cmd/dormitory-service/ --config config.yaml` | 8083 |
 | `test-env/` | Go (Gin) + Vue 3 | `go run ./cmd/test-env/` | 8082 |
 | `infra/` | — | `docker-compose.yml` | — |
@@ -45,13 +44,10 @@ cd stream-gateway && go run cmd/main.go --config config.yaml
 cd face-recognition && python -m app.download_models
 cd face-recognition && python -m app.main --config config.yaml
 
-# 4. Dormitory service (Java — requires JDK 17+, Maven)
-cd dormitory-service && mvn compile && mvn spring-boot:run
-
-# 5. Dormitory service (Go — runs alongside Java on :8083)
+# 4. Dormitory service (Go)
 cd dormitory-service-go && go run ./cmd/dormitory-service/ --config config.yaml
 
-# 6. Test environment (Go + Vue frontend — simulates 4 cameras)
+# 5. Test environment (Go + Vue frontend — simulates 4 cameras)
 cd test-env/frontend && npm ci && npm run build
 cd test-env && go run ./cmd/test-env/
 ```
@@ -61,8 +57,8 @@ cd test-env && go run ./cmd/test-env/
 | Topic | Partitions | Retention | Producer → Consumer |
 |---|---|---|---|
 | `t_dorm_frame` | 4 | 12h | stream-gateway → face-recognition |
-| `t_dorm_event` | 2 | 7d | face-recognition → dormitory-service |
-| `t_dorm_alert` | 1 | 7d | dormitory-service → (future) |
+| `t_dorm_event` | 2 | 7d | face-recognition → dormitory-service-go |
+| `t_dorm_alert` | 1 | 7d | dormitory-service-go → (future) |
 
 ## Key Features
 
