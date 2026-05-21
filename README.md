@@ -10,25 +10,26 @@ RTSP cameras (A/B/C/D) → stream-gateway (Go) → t_dorm_frame (Kafka)
 
 ## Architecture
 
-**3-tier perception pipeline:**
+**Perception pipeline:**
 
 | Layer | Language | Service | Role |
 |---|---|---|---|
 | Stream ingest | Go | `stream-gateway` | RTSP capture → Kafka frame producer |
 | Recognition | Python | `face-recognition` | Face detection/recognition → event producer |
-| Business | Java | `dormitory-service` | Event processing, alerts, reports, API |
-| Test env | Python | `test-env` | Simulated 4-camera setup for dev/testing |
+| Business | Java/Go | `dormitory-service` / `dormitory-service-go` | Event processing, alerts, reports, API |
+| Test env | Go | `test-env` | Simulated 4-camera setup for dev/testing |
 
 **Infrastructure** (Docker Compose): Kafka, Redis, MariaDB, MinIO
 
 ## Modules
 
 | Directory | Language | Entrypoint | Port |
-|---|---|---|---|
-| `stream-gateway/` | Go | `cmd/main.go --config config.yaml` | 8080 |
+|---|---|---|---|---|
+| `stream-gateway/` | Go | `cmd/main.go --config config.yaml` | 8080 (health), 8081 (mgmt) |
 | `face-recognition/` | Python | `python -m app.main --config config.yaml` | — |
 | `dormitory-service/` | Java (Spring Boot) | `DormitoryServiceApplication.java` | 8081 |
-| `test-env/` | Python (FastAPI) | `bash start.sh` | 8082 |
+| `dormitory-service-go/` | Go | `go run ./cmd/dormitory-service/ --config config.yaml` | 8083 |
+| `test-env/` | Go (Gin) + Vue 3 | `go run ./cmd/test-env/` | 8082 |
 | `infra/` | — | `docker-compose.yml` | — |
 
 ## Quick Start
@@ -44,12 +45,15 @@ cd stream-gateway && go run cmd/main.go --config config.yaml
 cd face-recognition && python -m app.download_models
 cd face-recognition && python -m app.main --config config.yaml
 
-# 4. Dormitory service (requires JDK 17+, Maven)
-cd dormitory-service && mvn compile
-mvn spring-boot:run
+# 4. Dormitory service (Java — requires JDK 17+, Maven)
+cd dormitory-service && mvn compile && mvn spring-boot:run
 
-# 5. Test environment (simulates 4 cameras)
-bash test-env/start.sh
+# 5. Dormitory service (Go — runs alongside Java on :8083)
+cd dormitory-service-go && go run ./cmd/dormitory-service/ --config config.yaml
+
+# 6. Test environment (Go + Vue frontend — simulates 4 cameras)
+cd test-env/frontend && npm ci && npm run build
+cd test-env && go run ./cmd/test-env/
 ```
 
 ## Kafka Topics
