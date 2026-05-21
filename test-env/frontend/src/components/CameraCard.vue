@@ -1,5 +1,5 @@
 <template>
-  <div class="cam-card" :class="[flashClass]">
+  <div class="cam-card" :class="{ large }">
     <div class="cam-feed">
       <img
         v-show="!imgError"
@@ -22,18 +22,14 @@
 
       <slot name="overlay" />
 
-      <div class="cam-badge">
-        <span class="badge-dot" :style="{ background: color }"></span>
-        <span class="badge-id">{{ cameraId }}</span>
-        <span class="badge-label">{{ label }}</span>
+      <div class="cam-info">
+        <div class="cam-info-left">
+          <span class="status-dot online"></span>
+          <span class="cam-name">{{ cameraId }}</span>
+          <span class="cam-label">{{ label }}</span>
+        </div>
+        <span class="cam-timestamp">{{ currentTime }}</span>
       </div>
-
-      <div class="rec-indicator">
-        <span class="rec-dot"></span>
-        REC
-      </div>
-
-      <div class="cam-timestamp">{{ currentTime }}</div>
     </div>
 
     <div class="cam-controls">
@@ -56,6 +52,7 @@ const props = defineProps({
   color: { type: String, required: true },
   latestEvent: { type: Object, default: null },
   config: { type: Object, default: () => ({}) },
+  large: { type: Boolean, default: false },
 })
 
 const emit = defineEmits(['simulate'])
@@ -111,60 +108,40 @@ onMounted(() => {
   updateTime()
   timeTimer = setInterval(updateTime, 1000)
 })
-
-// ── Flash effect ──
-const flashClass = ref('')
-let flashTimeout = null
-
-watch(() => props.latestEvent?.action, (newAction, oldAction) => {
-  if (!newAction || newAction === oldAction) return
-
-  if (flashTimeout) clearTimeout(flashTimeout)
-
-  if (newAction === 'entry') flashClass.value = 'flash'
-  else if (newAction === 'exit') flashClass.value = 'flash-exit'
-  else flashClass.value = 'flash-idle'
-
-  flashTimeout = setTimeout(() => {
-    flashClass.value = ''
-    flashTimeout = null
-  }, 1000)
-})
 </script>
 
 <style scoped>
 .cam-card {
   background: var(--bg-card);
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
+  border: 1px solid var(--border-color);
+  border-radius: 12px;
   display: flex;
   flex-direction: column;
   overflow: hidden;
-  transition: border-color 0.3s ease, box-shadow 0.3s ease;
   position: relative;
+  box-shadow: var(--shadow-sm);
+  transition: box-shadow var(--transition-normal);
 }
 
-.cam-card.flash {
-  border-color: var(--green);
-  box-shadow: var(--glow-green);
+.cam-card:hover {
+  box-shadow: var(--shadow-md);
 }
 
-.cam-card.flash-exit {
-  border-color: var(--red);
-  box-shadow: var(--glow-red);
+.cam-card.large {
+  grid-column: 1 / -1;
 }
 
-.cam-card.flash-idle {
-  border-color: var(--amber);
-  box-shadow: var(--glow-amber);
-}
-
+/* ── Camera feed ── */
 .cam-feed {
   position: relative;
   flex: 1;
   min-height: 0;
-  background: #000;
+  background: var(--bg-hover);
   overflow: hidden;
+}
+
+.cam-card.large .cam-feed {
+  min-height: 320px;
 }
 
 .cam-feed img {
@@ -180,25 +157,6 @@ watch(() => props.latestEvent?.action, (newAction, oldAction) => {
   opacity: 0.4;
 }
 
-/* Scanning line overlay */
-.cam-feed::after {
-  content: '';
-  position: absolute;
-  left: 0;
-  right: 0;
-  height: 2px;
-  background: linear-gradient(90deg, transparent, var(--green), transparent);
-  opacity: 0.5;
-  animation: scan 2s linear infinite;
-  pointer-events: none;
-  z-index: 2;
-}
-
-@keyframes scan {
-  0% { top: 0; }
-  100% { top: 100%; }
-}
-
 /* NO SIGNAL fallback */
 .no-signal {
   position: absolute;
@@ -206,8 +164,8 @@ watch(() => props.latestEvent?.action, (newAction, oldAction) => {
   display: flex;
   align-items: center;
   justify-content: center;
-  color: var(--text-dim);
-  background: #050510;
+  color: var(--text-muted);
+  background: var(--bg-page);
 }
 
 .no-signal svg {
@@ -215,153 +173,115 @@ watch(() => props.latestEvent?.action, (newAction, oldAction) => {
   height: 60px;
 }
 
-/* Badge — top left */
-.cam-badge {
+/* ── Bottom info bar ── */
+.cam-info {
   position: absolute;
-  top: 8px;
-  left: 8px;
+  bottom: 0;
+  left: 0;
+  right: 0;
   display: flex;
   align-items: center;
-  gap: 5px;
-  padding: 3px 8px;
-  background: rgba(0, 0, 0, 0.7);
-  border-radius: var(--radius-sm);
+  justify-content: space-between;
+  padding: 8px 12px;
+  background: rgba(255, 255, 255, 0.92);
+  backdrop-filter: blur(4px);
+  border-top: 1px solid var(--border-color);
   z-index: 3;
-  font-size: 10px;
-  letter-spacing: 0.5px;
 }
 
-.badge-dot {
-  width: 6px;
-  height: 6px;
-  border-radius: 50%;
-  flex-shrink: 0;
-  box-shadow: 0 0 4px currentColor;
+.cam-info-left {
+  display: flex;
+  align-items: center;
+  gap: 6px;
 }
 
-.badge-id {
-  color: var(--text-bright);
+.cam-name {
+  font-size: 12px;
   font-weight: 600;
+  color: var(--text-primary);
+  letter-spacing: 0.3px;
 }
 
-.badge-label {
-  color: var(--text-dim);
+.cam-label {
+  font-size: 11px;
+  color: var(--text-muted);
 }
 
-/* REC indicator — top right */
-.rec-indicator {
-  position: absolute;
-  top: 8px;
-  right: 8px;
-  display: flex;
-  align-items: center;
-  gap: 4px;
-  padding: 3px 8px;
-  background: rgba(0, 0, 0, 0.7);
-  border-radius: var(--radius-sm);
-  color: var(--red);
-  font-size: 9px;
-  letter-spacing: 1px;
-  z-index: 3;
-}
-
-.rec-dot {
-  width: 5px;
-  height: 5px;
-  border-radius: 50%;
-  background: var(--red);
-  animation: pulse 1.2s ease-in-out infinite;
-}
-
-@keyframes pulse {
-  0%, 100% { opacity: 1; }
-  50% { opacity: 0.3; }
-}
-
-/* Timestamp — bottom right */
 .cam-timestamp {
-  position: absolute;
-  bottom: 8px;
-  right: 8px;
-  padding: 2px 6px;
-  background: rgba(0, 0, 0, 0.7);
-  border-radius: var(--radius-sm);
-  color: var(--text);
-  font-size: 10px;
-  z-index: 3;
-  letter-spacing: 0.5px;
+  font-size: 11px;
+  color: var(--text-secondary);
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.3px;
 }
 
-/* Controls bar */
+/* ── Controls bar ── */
 .cam-controls {
   display: flex;
   gap: 4px;
-  padding: 6px 8px;
-  border-top: 1px solid var(--border);
-  background: var(--bg-panel);
+  padding: 8px 10px;
+  border-top: 1px solid var(--border-color);
+  background: var(--bg-card);
   flex-shrink: 0;
 }
 
 .ctrl-btn {
   flex: 1;
-  padding: 5px 0;
+  padding: 6px 0;
   border-radius: var(--radius-sm);
-  border: 1px solid var(--border);
+  border: 1px solid var(--border-color);
   background: transparent;
-  color: var(--text);
+  color: var(--text-secondary);
   font-family: var(--font);
-  font-size: 10px;
-  letter-spacing: 0.5px;
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 0.3px;
   cursor: pointer;
-  transition: all var(--transition);
+  transition: all var(--transition-fast);
   text-align: center;
 }
 
 .ctrl-btn:hover {
-  background: rgba(255, 255, 255, 0.03);
+  background: var(--bg-hover);
 }
 
 .ctrl-entry {
-  color: var(--green);
-  border-color: rgba(0, 255, 136, 0.25);
+  color: var(--color-success);
+  border-color: var(--color-success-bg);
 }
 
 .ctrl-entry:hover {
-  background: rgba(0, 255, 136, 0.08);
-  box-shadow: 0 0 8px rgba(0, 255, 136, 0.06);
+  background: var(--color-success-bg);
 }
 
 .ctrl-exit {
-  color: var(--red);
-  border-color: rgba(255, 51, 85, 0.25);
+  color: var(--color-danger);
+  border-color: var(--color-danger-bg);
 }
 
 .ctrl-exit:hover {
-  background: rgba(255, 51, 85, 0.08);
-  box-shadow: 0 0 8px rgba(255, 51, 85, 0.06);
+  background: var(--color-danger-bg);
 }
 
 .ctrl-idle {
-  color: var(--text-dim);
-  border-color: var(--border);
+  color: var(--text-muted);
 }
 
 .ctrl-idle:hover {
-  background: rgba(255, 255, 255, 0.03);
-  color: var(--text);
+  color: var(--text-secondary);
+  background: var(--bg-hover);
 }
 
 .ctrl-webcam {
   flex: 0 0 auto;
-  width: 30px;
-  padding: 5px 0;
-  color: var(--text-dim);
-  font-size: 12px;
+  width: 32px;
+  padding: 6px 0;
+  color: var(--text-muted);
+  font-size: 13px;
   line-height: 1;
 }
 
 .ctrl-webcam:hover {
-  color: var(--text-bright);
-  background: rgba(255, 255, 255, 0.03);
+  color: var(--text-secondary);
+  background: var(--bg-hover);
 }
 </style>

@@ -285,6 +285,12 @@
           <span class="chevron">&#9660;</span>
         </div>
         <div class="cfg-section-body" :class="{ hidden: !sections.pipeline }">
+          <div class="cfg-toggle-row">
+            <span class="cfg-label">使用模拟数据</span>
+            <div class="toggle-track" :class="{ active: form.use_fake_data }" @click="toggleFakeData">
+              <div class="toggle-thumb" />
+            </div>
+          </div>
           <div class="pipeline-flow">
             <div class="pipeline-step">
               <span class="pipeline-dot green" />
@@ -333,6 +339,7 @@
 
 <script setup>
 import { ref, reactive, watch } from 'vue'
+import { api } from '../api/index.js'
 
 const props = defineProps({
   visible: { type: Boolean, default: false },
@@ -379,6 +386,7 @@ const form = reactive({
   camera_source: '',
   webcam_device: 0,
   test_people: '',
+  use_fake_data: false,
 })
 
 // ── Section collapse state ──
@@ -451,7 +459,7 @@ function handleSave() {
     'night_mode_enabled', 'night_mode_start_hour', 'night_mode_end_hour',
     'motion_threshold', 'dynamic_extraction',
     'dedup_window_seconds',
-    'camera_source', 'webcam_device',
+    'camera_source', 'webcam_device', 'use_fake_data',
   ]
   for (const key of keys) {
     if (form[key] !== undefined) {
@@ -459,6 +467,15 @@ function handleSave() {
     }
   }
   emit('update-config', updates)
+}
+
+function toggleFakeData() {
+  const newVal = !form.use_fake_data
+  form.use_fake_data = newVal
+  api.toggleFakeData(newVal).catch(err => {
+    console.error('Failed to toggle fake data:', err)
+    form.use_fake_data = !newVal
+  })
 }
 
 // ── Sync form from props ──
@@ -472,7 +489,7 @@ function syncFormFromConfig(cfg) {
     'night_mode_enabled', 'night_mode_start_hour', 'night_mode_end_hour',
     'motion_threshold', 'dynamic_extraction',
     'dedup_window_seconds',
-    'camera_source', 'webcam_device',
+    'camera_source', 'webcam_device', 'use_fake_data',
   ]
   for (const key of keys) {
     if (cfg[key] !== undefined) {
