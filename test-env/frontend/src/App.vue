@@ -28,6 +28,8 @@
         <FaceEnroll
           v-show="activeTab === 'faces'"
           :faces="faces"
+          :cameras="cameras"
+          :recognition-events="sseRecognitionEvents"
           @refresh="loadFaces"
         />
 
@@ -37,6 +39,7 @@
           :behavior-config="behaviorConfig"
           :cameras="cameras"
           :stats="stats"
+          :behavior-events="sseBehaviorEvents"
         />
       </div>
 
@@ -106,6 +109,7 @@
 <script setup>
 import { ref, onMounted, onUnmounted, computed, nextTick } from 'vue'
 import { api } from './api/index.js'
+import { createSSEClient, getSSEClient } from './utils/sse-client.js'
 import HeaderBar from './components/HeaderBar.vue'
 import StatusBar from './components/StatusBar.vue'
 import CameraGrid from './components/CameraGrid.vue'
@@ -131,6 +135,9 @@ const kafkaConnected = ref(false)
 const uptime = ref('')
 const latestEvents = ref({})
 const eventStats = ref({ entry: 0, exit: 0, idle: 0, total: 0 })
+
+const sseRecognitionEvents = ref([])
+const sseBehaviorEvents = ref([])
 
 const settingsVisible = ref(false)
 const statsVisible = ref(false)
@@ -398,6 +405,47 @@ function handleKeydown(e) {
 
 // ── Lifecycle ──
 onMounted(async () => {
+  // ── SSE Client (singleton for children) ──
+  if (!getSSEClient()) {
+    createSSEClient({
+      onRecognition: (data) => {
+        // 1. Update latestEvents for CameraGrid overlays
+        latestEvents.value[data.camera_id] = {
+          action: data.event_type, name: data.name || '陌生人',
+          confidence: data.confidence, time: Date.now(),
+        }
+        // 2. Add to global events list
+        events.value.unshift({
+          id: Date.now() + Math.random(), type: 'recognition',
+          camera_id: data.camera_id, event_type: data.event_type,
+          name: data.name, student_id: data.student_id,
+          confidence: data.confidence, is_stranger: data.is_stranger,
+          timestamp: data.timestamp || Date.now(),
+        })
+        events.value = events.value.slice(0, 300)
+        // 3. Store for FaceEnroll prop
+        sseRecognitionEvents.value.unshift({ ...data, id: Date.now() + Math.random() })
+        if (sseRecognitionEvents.value.length > 50) sseRecognitionEvents.value = sseRecognitionEvents.value.slice(0, 50)
+      },
+      onBehavior: (data) => {
+        latestEvents.value[data.camera_id] = {
+          action: data.event_type, detail: data.detail, time: Date.now(),
+        }
+        events.value.unshift({
+          id: Date.now() + Math.random(), type: 'behavior',
+          camera_id: data.camera_id, event_type: data.event_type,
+          detail: data.detail, timestamp: data.timestamp || Date.now(),
+        })
+        events.value = events.value.slice(0, 300)
+        sseBehaviorEvents.value.unshift({ ...data, id: Date.now() + Math.random() })
+        if (sseBehaviorEvents.value.length > 100) sseBehaviorEvents.value = sseBehaviorEvents.value.slice(0, 100)
+      },
+      onHeartbeat: (data) => {
+        // heartbeat received - connection alive, no action needed
+      },
+    })
+  }
+
   await pollAll()
   await loadPeople()
   await loadFaces()

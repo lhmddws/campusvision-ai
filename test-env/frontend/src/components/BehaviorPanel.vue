@@ -1,6 +1,6 @@
 <template>
   <div class="behavior-panel">
-    <!-- Section 1: 行为分析状态 -->
+    <!-- ── Section 1: 行为分析状态 ── -->
     <div class="bp-section">
       <div class="bp-section-header">
         <span class="bp-section-icon">⚡</span>
@@ -40,142 +40,65 @@
       </div>
     </div>
 
-    <!-- Section 2: 实时轨迹 -->
+    <!-- ── Section 2: 行为事件 (SSE) ── -->
     <div class="bp-section">
       <div class="bp-section-header">
-        <span class="bp-section-icon">🔄</span>
-        <span>实时轨迹</span>
+        <span class="bp-section-icon">🔍</span>
+        <span>行为事件</span>
+        <span v-if="behaviorEvents.length" class="bp-section-count">{{ behaviorEvents.length }}</span>
       </div>
       <div class="bp-section-body">
-        <div v-if="camIds.length === 0" class="bp-empty">暂无摄像头数据</div>
-        <div v-else class="bp-traj-list">
-          <div
-            v-for="camId in camIds"
-            :key="camId"
-            class="bp-traj-card"
-          >
-            <div class="bp-traj-header">
-              <span class="bp-cam-dot" :style="{ background: getCamColor(camId) }"></span>
-              <span class="bp-traj-cam-name">{{ getCamLabel(camId) }}</span>
-              <span class="bp-traj-building">{{ getCamBuilding(camId) }}</span>
-            </div>
-
-            <!-- ROI line visualization -->
-            <div class="bp-roi-bar">
-              <div class="bp-roi-track">
-                <div
-                  class="bp-roi-line"
-                  :style="{ left: roiPercent + '%' }"
-                ></div>
-                <span class="bp-roi-label" :style="{ left: roiPercent + '%' }">ROI</span>
-              </div>
-            </div>
-
-            <div class="bp-traj-meta">
-              <div class="bp-traj-stat">
-                <span class="bp-traj-stat-label">活动</span>
-                <span class="bp-traj-stat-value" :style="{ color: trajActivityColor(camId) }">
-                  {{ getTrajActivity(camId) }}
+        <div v-if="behaviorEvents.length === 0" class="bp-empty">暂无行为事件数据</div>
+        <div v-else class="bp-events-two-col">
+          <!-- Left: Event log -->
+          <div class="bp-events-log">
+            <div
+              v-for="evt in visibleBehaviorEvents"
+              :key="evt.id"
+              class="bp-behavior-event"
+              :class="'severity-' + severityMap[evt.event_type]"
+            >
+              <div class="bp-bevent-left">
+                <span class="bp-bevent-time">{{ formatTime(evt.timestamp) }}</span>
+                <span class="bp-bevent-badge" :style="{ background: typeColor(evt.event_type, 0.12), color: typeColor(evt.event_type) }">
+                  {{ typeLabel(evt.event_type) }}
                 </span>
               </div>
-              <div class="bp-traj-stat">
-                <span class="bp-traj-stat-label">轨迹点</span>
-                <span class="bp-traj-stat-value bp-traj-points">{{ getTrajPoints(camId) }}</span>
-              </div>
-              <div class="bp-traj-stat">
-                <span class="bp-traj-stat-label">方向</span>
-                <span class="bp-traj-direction" :class="getTrajDirection(camId).cls">
-                  {{ getTrajDirection(camId).arrow }}
-                </span>
+              <div class="bp-bevent-right">
+                <span class="bp-bevent-detail">{{ evt.detail || evt.event_type }}</span>
+                <span class="bp-bevent-camera">{{ getCamLabel(evt.camera_id) }}</span>
               </div>
             </div>
+          </div>
+          <!-- Right: Trend chart -->
+          <div class="bp-events-chart">
+            <div class="bp-chart-title">行为类型分布</div>
+            <div class="bp-chart-bars">
+              <div v-for="item in chartData" :key="item.type" class="bp-chart-row">
+                <div class="bp-chart-row-label">{{ item.label }}</div>
+                <div class="bp-chart-row-track">
+                  <div
+                    class="bp-chart-row-fill"
+                    :style="{ width: item.pct + '%', background: item.color }"
+                  ></div>
+                </div>
+                <div class="bp-chart-row-value">{{ item.count }}</div>
+              </div>
+            </div>
+            <div v-if="chartData.every(c => c.count === 0)" class="bp-chart-empty">等待事件...</div>
           </div>
         </div>
       </div>
     </div>
 
-    <!-- Section 3: 运动检测 -->
-    <div class="bp-section">
-      <div class="bp-section-header">
-        <span class="bp-section-icon">📡</span>
-        <span>运动检测</span>
-      </div>
-      <div class="bp-section-body">
-        <div v-if="camIds.length === 0" class="bp-empty">暂无摄像头数据</div>
-        <div v-else class="bp-motion-list">
-          <div
-            v-for="camId in camIds"
-            :key="camId"
-            class="bp-motion-card"
-          >
-            <div class="bp-motion-top">
-              <span class="bp-cam-dot" :style="{ background: getCamColor(camId) }"></span>
-              <span class="bp-motion-cam-name">{{ getCamLabel(camId) }}</span>
-            </div>
-
-            <!-- Motion level bar -->
-            <div class="bp-motion-bar-wrap">
-              <div class="bp-motion-bar-track">
-                <div
-                  class="bp-motion-bar-fill"
-                  :style="{ width: getMotionLevel(camId) + '%', background: getMotionColor(camId) }"
-                ></div>
-                <div
-                  class="bp-motion-threshold"
-                  :style="{ left: motionThresholdPct + '%' }"
-                  title="阈值"
-                ></div>
-              </div>
-              <span class="bp-motion-pct">{{ getMotionLevel(camId) }}%</span>
-            </div>
-
-            <div class="bp-motion-meta">
-              <div class="bp-motion-tag" :class="motionDetectedStatus(camId).cls">
-                {{ motionDetectedStatus(camId).label }}
-              </div>
-              <div class="bp-motion-tag" :class="dynamicExtractStatus(camId).cls">
-                {{ dynamicExtractStatus(camId).label }}
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <!-- Section 4: 行为事件统计 -->
+    <!-- ── Section 3: 行为统计 ── -->
     <div class="bp-section">
       <div class="bp-section-header">
         <span class="bp-section-icon">📈</span>
-        <span>行为事件统计</span>
+        <span>行为统计</span>
       </div>
       <div class="bp-section-body">
         <div class="bp-event-stats-grid">
-          <!-- Event rate gauge -->
-          <div class="bp-event-card">
-            <div class="bp-event-card-label">事件速率</div>
-            <div class="bp-gauge-wrap">
-              <svg class="bp-gauge" viewBox="0 0 100 50">
-                <path
-                  d="M 10 50 A 40 40 0 0 1 90 50"
-                  fill="none"
-                  stroke="var(--border)"
-                  stroke-width="8"
-                  stroke-linecap="round"
-                />
-                <path
-                  :d="gaugeArc"
-                  fill="none"
-                  :stroke="gaugeColor"
-                  stroke-width="8"
-                  stroke-linecap="round"
-                />
-              </svg>
-              <div class="bp-gauge-value" :style="{ color: gaugeColor }">
-                {{ eventRate }}<span class="bp-gauge-unit">/min</span>
-              </div>
-            </div>
-          </div>
-
           <!-- Entry/Exit ratio -->
           <div class="bp-event-card">
             <div class="bp-event-card-label">出入比</div>
@@ -239,138 +162,78 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted, onUnmounted } from 'vue'
+import { computed } from 'vue'
 
 const props = defineProps({
   behaviorConfig: { type: Object, default: () => ({}) },
   cameras: { type: Object, default: () => ({}) },
   stats: { type: Object, default: () => ({}) },
+  behaviorEvents: { type: Array, default: () => [] },
 })
 
-// ── Helpers ──
-const camIds = computed(() => Object.keys(props.cameras))
-
-function getCamColor(camId) {
-  return props.cameras[camId]?.color || 'var(--text-dim)'
-}
-
+// ── Camera helpers ──
 function getCamLabel(camId) {
   return props.cameras[camId]?.label || props.cameras[camId]?.building || camId
 }
 
-function getCamBuilding(camId) {
-  return props.cameras[camId]?.building || ''
+// ── Behavior event types ──
+const EVENT_TYPES = {
+  loiter:  { label: '滞留', color: 'var(--amber)' },
+  running: { label: '奔跑', color: 'var(--red)' },
+  crowd:   { label: '聚集', color: '#e67e22' },
+  zone:    { label: '入侵', color: 'var(--red)' },
 }
 
-const roiPercent = computed(() => {
-  const v = props.behaviorConfig.roi_line_x
-  return v != null ? Math.min(Math.max(Number(v), 0), 100) : 50
+const severityMap = {
+  loiter: 'warning',
+  running: 'critical',
+  crowd: 'warning',
+  zone: 'critical',
+}
+
+function typeLabel(type) {
+  return EVENT_TYPES[type]?.label || type
+}
+
+function typeColor(type, alpha) {
+  const raw = EVENT_TYPES[type]?.color || 'var(--text-dim)'
+  if (alpha == null) return raw
+  // Convert CSS variable reference to rgba string
+  const map = {
+    'var(--amber)': `rgba(217,119,6,${alpha})`,
+    'var(--red)': `rgba(220,38,38,${alpha})`,
+    '#e67e22': `rgba(230,126,34,${alpha})`,
+  }
+  return map[raw] || raw
+}
+
+const visibleBehaviorEvents = computed(() => {
+  return props.behaviorEvents.slice(0, 100)
 })
 
-const motionThresholdPct = computed(() => {
-  const v = props.behaviorConfig.motion_threshold
-  if (v == null) return 50
-  return Math.min(Math.max(Number(v) * 100, 0), 100)
+const chartData = computed(() => {
+  const counts = {}
+  props.behaviorEvents.forEach(e => {
+    counts[e.event_type] = (counts[e.event_type] || 0) + 1
+  })
+  const maxCount = Math.max(...Object.values(counts), 1)
+  return Object.keys(EVENT_TYPES).map(type => ({
+    type,
+    label: EVENT_TYPES[type].label,
+    count: counts[type] || 0,
+    pct: ((counts[type] || 0) / maxCount) * 100,
+    color: EVENT_TYPES[type].color,
+  }))
 })
 
-// ── Simulated trajectory state ──
-const trajState = ref({})
-let trajTimer = null
-
-const activities = ['运动中', '静止', '无人']
-const directions = ['entry', 'exit']
-
-function randomInt(min, max) {
-  return Math.floor(Math.random() * (max - min + 1)) + min
+function formatTime(ts) {
+  if (!ts) return '--:--:--'
+  const d = new Date(ts)
+  if (Number.isNaN(d.getTime())) return '--:--:--'
+  return d.toTimeString().slice(0, 8)
 }
 
-function initTrajState() {
-  const state = {}
-  camIds.value.forEach(id => {
-    state[id] = {
-      activity: activities[randomInt(0, 2)],
-      points: randomInt(0, 24),
-      direction: directions[randomInt(0, 1)],
-      motionLevel: randomInt(0, 100),
-    }
-  })
-  trajState.value = state
-}
-
-function updateTrajState() {
-  const state = { ...trajState.value }
-  camIds.value.forEach(id => {
-    if (!state[id]) {
-      state[id] = {
-        activity: activities[randomInt(0, 2)],
-        points: randomInt(0, 24),
-        direction: directions[randomInt(0, 1)],
-        motionLevel: randomInt(0, 100),
-      }
-      return
-    }
-    // Slight random walk
-    const actRoll = Math.random()
-    if (actRoll < 0.15) {
-      state[id].activity = activities[randomInt(0, 2)]
-    }
-    state[id].points = Math.max(0, state[id].points + randomInt(-3, 5))
-    if (Math.random() < 0.2) {
-      state[id].direction = state[id].direction === 'entry' ? 'exit' : 'entry'
-    }
-    state[id].motionLevel = Math.min(100, Math.max(0, state[id].motionLevel + randomInt(-15, 15)))
-  })
-  trajState.value = state
-}
-
-function getTrajActivity(camId) {
-  return trajState.value[camId]?.activity || '无人'
-}
-
-function trajActivityColor(camId) {
-  const act = getTrajActivity(camId)
-  if (act === '运动中') return 'var(--green)'
-  if (act === '静止') return 'var(--amber)'
-  return 'var(--text-dim)'
-}
-
-function getTrajPoints(camId) {
-  return trajState.value[camId]?.points ?? 0
-}
-
-function getTrajDirection(camId) {
-  const dir = trajState.value[camId]?.direction
-  if (dir === 'entry') return { arrow: '→ 进入', cls: 'entry' }
-  return { arrow: '← 离开', cls: 'exit' }
-}
-
-// ── Simulated motion detection ──
-function getMotionLevel(camId) {
-  return trajState.value[camId]?.motionLevel ?? 0
-}
-
-function getMotionColor(camId) {
-  const level = getMotionLevel(camId)
-  if (level > 60) return 'var(--green)'
-  if (level > 25) return 'var(--amber)'
-  return 'var(--text-dim)'
-}
-
-function motionDetectedStatus(camId) {
-  const level = getMotionLevel(camId)
-  if (level > 30) return { label: '已检测', cls: 'detected' }
-  if (level > 10) return { label: '微弱', cls: 'weak' }
-  return { label: '未检测', cls: 'none' }
-}
-
-function dynamicExtractStatus(camId) {
-  const enabled = props.behaviorConfig.dynamic_extraction
-  const active = getMotionLevel(camId) > 30
-  if (!enabled) return { label: '动态提取: 关', cls: 'disabled' }
-  return active ? { label: '动态提取: 开', cls: 'active' } : { label: '动态提取: 待机', cls: 'standby' }
-}
-
-// ── Event stats ──
+// ── Entry/Exit stats (from props) ──
 const entryCount = computed(() => {
   return props.stats?.event_type_counts?.entry ?? 0
 })
@@ -393,29 +256,7 @@ const exitRatioPct = computed(() => {
   return (exitCount.value / totalEvents.value) * 100
 })
 
-const eventRate = computed(() => {
-  const uptimeSec = props.stats?.uptime_sec || 1
-  const rate = (totalEvents.value / Math.max(uptimeSec, 1)) * 60
-  return Math.round(rate * 10) / 10
-})
-
-const gaugeColor = computed(() => {
-  if (eventRate.value > 20) return 'var(--red)'
-  if (eventRate.value > 8) return 'var(--amber)'
-  return 'var(--green)'
-})
-
-const gaugeArc = computed(() => {
-  const maxRate = 30
-  const pct = Math.min(eventRate.value / maxRate, 1)
-  const angle = pct * 180
-  const rad = (angle * Math.PI) / 180
-  const x = 50 - 40 * Math.cos(rad)
-  const y = 50 - 40 * Math.sin(rad)
-  const largeArc = angle > 90 ? 1 : 0
-  return `M 10 50 A 40 40 0 ${largeArc} 1 ${x.toFixed(2)} ${y.toFixed(2)}`
-})
-
+// ── Night mode ──
 const nightModeActive = computed(() => {
   if (!props.behaviorConfig.night_mode_enabled) return false
   const now = new Date()
@@ -425,7 +266,6 @@ const nightModeActive = computed(() => {
   if (start <= end) {
     return hour >= start && hour < end
   }
-  // Crosses midnight
   return hour >= start || hour < end
 })
 
@@ -435,15 +275,7 @@ const nightModeRange = computed(() => {
   return `${String(s).padStart(2, '0')}:00 - ${String(e).padStart(2, '0')}:00`
 })
 
-// ── Lifecycle ──
-onMounted(() => {
-  initTrajState()
-  trajTimer = setInterval(updateTrajState, 2500)
-})
 
-onUnmounted(() => {
-  if (trajTimer) clearInterval(trajTimer)
-})
 </script>
 
 <style scoped>
@@ -480,15 +312,32 @@ onUnmounted(() => {
   font-size: 12px;
 }
 
+.bp-section-count {
+  margin-left: auto;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 18px;
+  height: 16px;
+  padding: 0 5px;
+  border-radius: 8px;
+  background: var(--bg-panel);
+  border: 1px solid var(--border);
+  color: var(--text-dim);
+  font-size: 9px;
+  font-variant-numeric: tabular-nums;
+}
+
 .bp-section-body {
   padding: 10px 12px;
 }
 
 .bp-empty {
   text-align: center;
-  padding: 20px 0;
+  padding: 32px 0;
   color: var(--text-dim);
   font-size: 11px;
+  letter-spacing: 0.3px;
 }
 
 /* ── Status badge ── */
@@ -562,242 +411,180 @@ onUnmounted(() => {
   font-variant-numeric: tabular-nums;
 }
 
-/* ── Trajectory cards ── */
-.bp-traj-list {
+/* ── Events two-column layout ── */
+.bp-events-two-col {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+  min-height: 140px;
+}
+
+.bp-events-log {
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: 4px;
+  max-height: 260px;
+  overflow-y: auto;
+  padding-right: 4px;
 }
 
-.bp-traj-card {
-  padding: 8px 10px;
-  background: var(--bg-panel);
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
+.bp-events-log::-webkit-scrollbar {
+  width: 4px;
 }
 
-.bp-traj-header {
+.bp-events-log::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.bp-events-log::-webkit-scrollbar-thumb {
+  background: var(--border);
+  border-radius: 2px;
+}
+
+/* ── Behavior event item ── */
+.bp-behavior-event {
   display: flex;
-  align-items: center;
-  gap: 6px;
-  margin-bottom: 6px;
+  gap: 8px;
+  padding: 5px 8px;
+  border-radius: var(--radius-sm);
+  border-left: 2px solid transparent;
+  background: var(--bg-panel);
+  transition: background var(--transition-fast);
 }
 
-.bp-cam-dot {
-  width: 6px;
-  height: 6px;
-  border-radius: 50%;
+.bp-behavior-event:hover {
+  background: var(--bg-hover);
+}
+
+.bp-behavior-event.severity-warning {
+  border-left-color: var(--amber);
+}
+
+.bp-behavior-event.severity-critical {
+  border-left-color: var(--red);
+}
+
+.bp-bevent-left {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 2px;
   flex-shrink: 0;
+  min-width: 42px;
 }
 
-.bp-traj-cam-name {
-  font-size: 11px;
-  color: var(--text-bright);
-  font-weight: 500;
-}
-
-.bp-traj-building {
+.bp-bevent-time {
   font-size: 9px;
   color: var(--text-dim);
-  margin-left: auto;
+  font-variant-numeric: tabular-nums;
+  line-height: 1;
+  white-space: nowrap;
 }
 
-/* ROI bar */
-.bp-roi-bar {
-  margin-bottom: 6px;
-}
-
-.bp-roi-track {
-  position: relative;
-  height: 16px;
-  background: var(--bg-deep);
-  border: 1px solid var(--border);
+.bp-bevent-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1px 6px;
   border-radius: 3px;
-  overflow: visible;
+  font-size: 9px;
+  font-weight: 600;
+  line-height: 1.4;
+  white-space: nowrap;
 }
 
-.bp-roi-line {
-  position: absolute;
-  top: -2px;
-  bottom: -2px;
-  width: 2px;
-  background: var(--amber);
-  box-shadow: 0 0 6px rgba(255,170,51,0.4);
-  transform: translateX(-50%);
+.bp-bevent-right {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+  flex: 1;
 }
 
-.bp-roi-label {
-  position: absolute;
-  top: -1px;
-  font-size: 8px;
-  color: var(--amber);
-  transform: translateX(-50%);
+.bp-bevent-detail {
+  font-size: 10px;
+  color: var(--text-bright);
+  line-height: 1.3;
+  word-break: break-word;
+}
+
+.bp-bevent-camera {
+  font-size: 9px;
+  color: var(--text-dim);
+}
+
+/* ── Chart ── */
+.bp-events-chart {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 6px 8px;
+  background: var(--bg-panel);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+}
+
+.bp-chart-title {
+  font-size: 10px;
+  color: var(--text-dim);
   letter-spacing: 0.3px;
 }
 
-/* Trajectory meta */
-.bp-traj-meta {
-  display: flex;
-  gap: 12px;
-}
-
-.bp-traj-stat {
-  display: flex;
-  align-items: center;
-  gap: 5px;
-}
-
-.bp-traj-stat-label {
-  font-size: 9px;
-  color: var(--text-dim);
-}
-
-.bp-traj-stat-value {
-  font-size: 10px;
-  font-variant-numeric: tabular-nums;
-}
-
-.bp-traj-points {
-  color: var(--blue);
-}
-
-.bp-traj-direction {
-  font-size: 10px;
-  padding: 1px 6px;
-  border-radius: 3px;
-}
-
-.bp-traj-direction.entry {
-  color: var(--green);
-  background: rgba(0,255,136,0.08);
-}
-
-.bp-traj-direction.exit {
-  color: var(--red);
-  background: rgba(255,51,85,0.08);
-}
-
-/* ── Motion detection ── */
-.bp-motion-list {
+.bp-chart-bars {
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: 8px;
+  flex: 1;
 }
 
-.bp-motion-card {
-  padding: 8px 10px;
-  background: var(--bg-panel);
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
-}
-
-.bp-motion-top {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  margin-bottom: 6px;
-}
-
-.bp-motion-cam-name {
-  font-size: 11px;
-  color: var(--text-bright);
-}
-
-/* Motion bar */
-.bp-motion-bar-wrap {
+.bp-chart-row {
   display: flex;
   align-items: center;
   gap: 8px;
-  margin-bottom: 6px;
 }
 
-.bp-motion-bar-track {
+.bp-chart-row-label {
+  font-size: 10px;
+  color: var(--text-bright);
+  min-width: 28px;
+  flex-shrink: 0;
+}
+
+.bp-chart-row-track {
   flex: 1;
-  position: relative;
-  height: 8px;
+  height: 12px;
   background: var(--bg-deep);
   border: 1px solid var(--border);
   border-radius: 4px;
-  overflow: visible;
+  overflow: hidden;
 }
 
-.bp-motion-bar-fill {
+.bp-chart-row-fill {
   height: 100%;
   border-radius: 3px;
-  transition: width 0.5s ease, background 0.5s ease;
+  transition: width 0.4s ease;
+  min-width: 0;
 }
 
-.bp-motion-threshold {
-  position: absolute;
-  top: -3px;
-  bottom: -3px;
-  width: 2px;
-  background: var(--red);
-  opacity: 0.7;
-  transform: translateX(-50%);
-  pointer-events: none;
-}
-
-.bp-motion-pct {
-  min-width: 30px;
-  text-align: right;
+.bp-chart-row-value {
   font-size: 10px;
+  color: var(--text-dim);
   font-variant-numeric: tabular-nums;
+  min-width: 20px;
+  text-align: right;
+}
+
+.bp-chart-empty {
+  text-align: center;
   color: var(--text-dim);
-}
-
-/* Motion tags */
-.bp-motion-meta {
-  display: flex;
-  gap: 6px;
-}
-
-.bp-motion-tag {
-  font-size: 9px;
-  padding: 1px 7px;
-  border-radius: 3px;
-}
-
-.bp-motion-tag.detected {
-  color: var(--green);
-  background: rgba(0,255,136,0.08);
-  border: 1px solid rgba(0,255,136,0.2);
-}
-
-.bp-motion-tag.weak {
-  color: var(--amber);
-  background: rgba(255,170,51,0.08);
-  border: 1px solid rgba(255,170,51,0.2);
-}
-
-.bp-motion-tag.none {
-  color: var(--text-dim);
-  background: transparent;
-  border: 1px solid var(--border);
-}
-
-.bp-motion-tag.active {
-  color: var(--green);
-  background: rgba(0,255,136,0.08);
-  border: 1px solid rgba(0,255,136,0.2);
-}
-
-.bp-motion-tag.standby {
-  color: var(--blue);
-  background: rgba(51,153,255,0.08);
-  border: 1px solid rgba(51,153,255,0.2);
-}
-
-.bp-motion-tag.disabled {
-  color: var(--text-dim);
-  background: transparent;
-  border: 1px solid var(--border);
+  font-size: 10px;
+  padding: 16px 0;
 }
 
 /* ── Event stats grid ── */
 .bp-event-stats-grid {
   display: grid;
-  grid-template-columns: repeat(2, 1fr);
+  grid-template-columns: repeat(3, 1fr);
   gap: 8px;
 }
 
@@ -815,37 +602,6 @@ onUnmounted(() => {
   font-size: 10px;
   color: var(--text-dim);
   letter-spacing: 0.3px;
-}
-
-/* Gauge */
-.bp-gauge-wrap {
-  position: relative;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.bp-gauge {
-  width: 100%;
-  max-width: 100px;
-  height: auto;
-}
-
-.bp-gauge-value {
-  position: absolute;
-  font-size: 18px;
-  font-weight: 600;
-  font-variant-numeric: tabular-nums;
-  bottom: 4px;
-  display: flex;
-  align-items: baseline;
-  gap: 2px;
-}
-
-.bp-gauge-unit {
-  font-size: 9px;
-  font-weight: 400;
-  color: var(--text-dim);
 }
 
 /* Ratio */

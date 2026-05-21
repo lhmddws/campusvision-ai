@@ -103,82 +103,47 @@
       </div>
     </div>
 
-    <!-- Section 3: 模拟识别结果 -->
+    <!-- Section 3: 实时识别 (SSE-driven) -->
     <div class="fe-section">
       <div class="fe-section-header">
         <span class="fe-section-icon">🎯</span>
-        <span>模拟识别结果</span>
-        <button class="fe-refresh-btn" @click="refreshSimulated">⟳</button>
+        <span>实时识别</span>
+        <span class="fe-live-dot" :class="{ active: recognitionEvents.length > 0 }"></span>
       </div>
-      <div class="fe-section-body">
-        <div v-if="simulatedResults.length === 0" class="fe-empty">
-          <span>等待模拟识别数据...</span>
+      <div class="fe-section-body fe-recog-body">
+        <div v-if="recognitionEvents.length === 0" class="fe-empty">
+          <span>Waiting for recognition...</span>
         </div>
         <div v-else class="fe-recog-table">
           <div class="fe-recog-row fe-recog-header">
             <span class="fe-recog-cell fe-col-cam">摄像头</span>
-            <span class="fe-recog-cell fe-col-person">检测目标</span>
+            <span class="fe-recog-cell fe-col-person">目标</span>
             <span class="fe-recog-cell fe-col-conf">置信度</span>
-            <span class="fe-recog-cell fe-col-match">匹配</span>
             <span class="fe-recog-cell fe-col-time">时间</span>
           </div>
           <div
-            v-for="(r, idx) in simulatedResults"
-            :key="idx"
+            v-for="evt in recognitionEvents"
+            :key="evt.id"
             class="fe-recog-row"
           >
             <span class="fe-recog-cell fe-col-cam">
               <span
                 class="fe-cam-dot"
-                :style="{ background: getCamColor(r.cameraId) }"
+                :style="{ background: getCamColor(evt.camera_id) }"
               ></span>
-              {{ getCamLabel(r.cameraId) }}
+              {{ getCamLabel(evt.camera_id) }}
             </span>
-            <span class="fe-recog-cell fe-col-person">{{ r.person }}</span>
+            <span class="fe-recog-cell fe-col-person">
+              <span v-if="evt.is_stranger" class="fe-stranger">陌生人</span>
+              <span v-else class="fe-known-name">{{ evt.name }}</span>
+            </span>
             <span class="fe-recog-cell fe-col-conf">
-              <div class="fe-conf-bar-wrap">
-                <div
-                  class="fe-conf-bar"
-                  :style="{ width: (r.confidence * 100) + '%', background: confColor(r.confidence) }"
-                ></div>
-              </div>
-              <span class="fe-conf-val" :style="{ color: confColor(r.confidence) }">
-                {{ (r.confidence * 100).toFixed(0) }}%
+              <span class="fe-conf-badge" :style="{ color: confColor(evt.confidence) }">
+                <span class="fe-conf-dot"></span>
+                {{ (evt.confidence * 100).toFixed(0) }}%
               </span>
             </span>
-            <span class="fe-recog-cell fe-col-match">
-              <span v-if="r.matched" class="fe-match-name">{{ r.matchName }}</span>
-              <span v-else class="fe-stranger">陌生人</span>
-            </span>
-            <span class="fe-recog-cell fe-col-time fe-time-cell">{{ r.timestamp }}</span>
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <!-- Section 4: 识别统计 -->
-    <div class="fe-section">
-      <div class="fe-section-header">
-        <span class="fe-section-icon">📊</span>
-        <span>识别统计</span>
-      </div>
-      <div class="fe-section-body">
-        <div class="fe-stats-grid">
-          <div class="fe-stat-card">
-            <div class="fe-stat-value">{{ faces.length }}</div>
-            <div class="fe-stat-label">总录入</div>
-          </div>
-          <div class="fe-stat-card">
-            <div class="fe-stat-value" :style="{ color: statsSuccessRate.color }">
-              {{ statsSuccessRate.value }}%
-            </div>
-            <div class="fe-stat-label">识别成功率</div>
-          </div>
-          <div class="fe-stat-card">
-            <div class="fe-stat-value" :style="{ color: 'var(--blue)' }">
-              {{ statsAvgConfidence }}%
-            </div>
-            <div class="fe-stat-label">平均置信度</div>
+            <span class="fe-recog-cell fe-col-time fe-time-cell">{{ formatTimestamp(evt.timestamp) }}</span>
           </div>
         </div>
       </div>
@@ -187,12 +152,13 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted, onUnmounted } from 'vue'
+import { ref, computed } from 'vue'
 import { api } from '../api/index.js'
 
 const props = defineProps({
   faces: { type: Array, default: () => [] },
   cameras: { type: Object, default: () => ({}) },
+  recognitionEvents: { type: Array, default: () => [] },
 })
 
 const emit = defineEmits(['refresh'])
@@ -267,12 +233,6 @@ function formatDate(dateStr) {
   }
 }
 
-// ── Simulated recognition ──
-const simulatedResults = ref([])
-let simTimer = null
-
-const knownNames = computed(() => props.faces.map(f => f.name))
-
 function getCamColor(camId) {
   return props.cameras[camId]?.color || 'var(--text-dim)'
 }
@@ -281,78 +241,23 @@ function getCamLabel(camId) {
   return props.cameras[camId]?.label || props.cameras[camId]?.building || camId
 }
 
-function randomFloat(min, max) {
-  return Math.random() * (max - min) + min
-}
-
 function confColor(conf) {
   if (conf > 0.7) return 'var(--green)'
   if (conf > 0.4) return 'var(--amber)'
   return 'var(--red)'
 }
 
-function padTime(n) {
-  return String(n).padStart(2, '0')
+function formatTimestamp(ts) {
+  if (!ts) return '—'
+  try {
+    const d = new Date(ts)
+    return d.toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit', second: '2-digit' })
+  } catch {
+    return String(ts)
+  }
 }
 
-function generateResults() {
-  const camIds = Object.keys(props.cameras)
-  if (camIds.length === 0) return []
 
-  const results = []
-  camIds.forEach(camId => {
-    const conf = randomFloat(0.2, 1.0)
-    const matched = conf > 0.35
-    const personIdx = Math.floor(Math.random() * Math.max(knownNames.value.length, 3))
-    const personKnown = knownNames.value.length > 0 && personIdx < knownNames.value.length
-
-    const now = new Date()
-    const ts = `${padTime(now.getHours())}:${padTime(now.getMinutes())}:${padTime(now.getSeconds())}`
-
-    results.push({
-      cameraId: camId,
-      person: personKnown ? knownNames.value[personIdx] : `Person_${personIdx + 1}`,
-      confidence: conf,
-      matched,
-      matchName: matched && personKnown ? knownNames.value[personIdx] : '—',
-      timestamp: ts,
-    })
-  })
-  return results
-}
-
-function refreshSimulated() {
-  simulatedResults.value = generateResults()
-}
-
-// ── Stats ──
-const statsSuccessRate = computed(() => {
-  const total = simulatedResults.value.length
-  if (total === 0) return { value: 0, color: 'var(--text-dim)' }
-  const matched = simulatedResults.value.filter(r => r.matched).length
-  const pct = Math.round((matched / total) * 100)
-  let color = 'var(--red)'
-  if (pct > 70) color = 'var(--green)'
-  else if (pct > 40) color = 'var(--amber)'
-  return { value: pct, color }
-})
-
-const statsAvgConfidence = computed(() => {
-  const total = simulatedResults.value.length
-  if (total === 0) return 0
-  const sum = simulatedResults.value.reduce((acc, r) => acc + r.confidence, 0)
-  return Math.round((sum / total) * 100)
-})
-
-// ── Lifecycle ──
-onMounted(() => {
-  refreshSimulated()
-  simTimer = setInterval(refreshSimulated, 3000)
-})
-
-onUnmounted(() => {
-  if (simTimer) clearInterval(simTimer)
-})
 </script>
 
 <style scoped>
@@ -401,6 +306,22 @@ onUnmounted(() => {
   padding: 1px 8px;
   font-size: 10px;
   color: var(--green);
+}
+
+/* ── Live indicator dot ── */
+.fe-live-dot {
+  margin-left: auto;
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--text-dim);
+  opacity: 0.4;
+  transition: all 0.3s ease;
+}
+.fe-live-dot.active {
+  background: var(--green);
+  opacity: 1;
+  box-shadow: 0 0 6px rgba(0,255,136,0.5);
 }
 
 /* ── Empty ── */
@@ -648,26 +569,11 @@ onUnmounted(() => {
   color: var(--red);
 }
 
-/* ── Recognition table ── */
-.fe-refresh-btn {
-  margin-left: auto;
-  width: 22px;
-  height: 22px;
-  border: 1px solid var(--border);
-  border-radius: var(--radius-sm);
-  background: transparent;
-  color: var(--text-dim);
-  font-size: 11px;
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  transition: all var(--transition);
-}
-
-.fe-refresh-btn:hover {
-  color: var(--green);
-  border-color: rgba(0,255,136,0.3);
+/* ── Recognition table (SSE-driven) ── */
+.fe-recog-body {
+  max-height: 320px;
+  overflow-y: auto;
+  padding: 6px 12px;
 }
 
 .fe-recog-table {
@@ -708,14 +614,14 @@ onUnmounted(() => {
 }
 
 .fe-col-cam {
-  width: 18%;
+  width: 22%;
   display: flex;
   align-items: center;
   gap: 4px;
 }
 
 .fe-col-person {
-  width: 18%;
+  width: 22%;
 }
 
 .fe-col-conf {
@@ -725,12 +631,8 @@ onUnmounted(() => {
   gap: 6px;
 }
 
-.fe-col-match {
-  width: 18%;
-}
-
 .fe-col-time {
-  width: 20%;
+  width: 30%;
   text-align: right;
 }
 
@@ -741,76 +643,42 @@ onUnmounted(() => {
   flex-shrink: 0;
 }
 
-.fe-conf-bar-wrap {
-  flex: 1;
-  height: 5px;
-  background: var(--bg-panel);
-  border-radius: 3px;
-  overflow: hidden;
-  border: 1px solid var(--border);
-}
-
-.fe-conf-bar {
-  height: 100%;
-  border-radius: 3px;
-  transition: width 0.4s ease;
-}
-
-.fe-conf-val {
-  min-width: 28px;
-  text-align: right;
-  font-variant-numeric: tabular-nums;
-  font-size: 9px;
-}
-
-.fe-match-name {
+.fe-known-name {
   color: var(--green);
+  font-weight: 500;
 }
 
 .fe-stranger {
+  display: inline-block;
   color: var(--red);
   font-size: 9px;
   padding: 1px 6px;
   border: 1px solid rgba(255,51,85,0.3);
   border-radius: 3px;
+  line-height: 1.4;
+}
+
+.fe-conf-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 10px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
+.fe-conf-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: currentColor;
+  flex-shrink: 0;
 }
 
 .fe-time-cell {
   font-size: 9px;
   color: var(--text-dim);
   font-variant-numeric: tabular-nums;
-}
-
-/* ── Stats ── */
-.fe-stats-grid {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 8px;
-}
-
-.fe-stat-card {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 4px;
-  padding: 12px 8px;
-  background: var(--bg-panel);
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
-}
-
-.fe-stat-value {
-  font-size: 20px;
-  font-weight: 600;
-  color: var(--text-bright);
-  font-variant-numeric: tabular-nums;
-  line-height: 1;
-}
-
-.fe-stat-label {
-  font-size: 10px;
-  color: var(--text-dim);
-  letter-spacing: 0.3px;
 }
 
 /* ── Misc ── */
