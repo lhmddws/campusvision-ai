@@ -72,11 +72,18 @@ export const api = {
   }),
   getFaceImageUrl: (name) => `${API_BASE}/api/faces/${encodeURIComponent(name)}/image`,
 
-  // Recognition status
+  // Recognition
   recognitionStatus: () => request('/api/recognition/status'),
+  getRecognitionResults: () => request('/api/recognition/results'),
 
   // Behavior status
   behaviorStatus: () => request('/api/behavior/status'),
+
+  // Fake data
+  toggleFakeData: (useFakeData) => request('/api/toggle-fake-data', {
+    method: 'POST',
+    body: JSON.stringify({ use_fake_data: useFakeData }),
+  }),
 
   // Webcam
   webcamStart: (cameraId, deviceIndex) => request('/api/webcam/start', {
@@ -92,4 +99,7 @@ export const api = {
   webcamStopAll: () => request('/api/webcam/stop-all', { method: 'POST' }),
 
   frameUrl: (cameraId) => `${API_BASE}/api/cameras/${cameraId}/frame.jpg`,
+
+  // SSE
+  getSSEUrl: () => `${API_BASE}/api/events/stream`,
 }
