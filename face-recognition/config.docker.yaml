@@ -20,12 +20,12 @@ feature:
 
 match:
   method: "sims_api"
-  sims_api_url: "http://dormitory-service:8081/sims/face/match"
+  sims_api_url: "http://dormitory-service-go:8083/api/face/match"
   sims_api_timeout: 3.0
   auth_token: ""
   cache_ttl: 3600
   match_threshold: 0.65
-  fallback_to_cache: true
+  fallback_to_cache: false
 
 direction:
   method: "roi_line"
@@ -56,7 +56,7 @@ log:
   level: "INFO"
 
 behavior:
-  enabled: false
+  enabled: true
   loitering_threshold_seconds: 30
   loitering_radius_px: 50.0
   running_speed_threshold_px_per_sec: 200.0

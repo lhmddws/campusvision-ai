@@ -115,7 +115,17 @@ class FaceMatcher:
         response.raise_for_status()
         data = response.json()
 
-        if data.get("match") and data.get("confidence", 0) >= self.config.match_threshold:
+        match_info = data.get("match")
+        # Support both nested (Go API) and flat (legacy SpringBoot) response formats
+        if isinstance(match_info, dict):
+            conf = match_info.get("confidence", 0)
+            if conf >= self.config.match_threshold:
+                return {
+                    "student_id": match_info["student_id"],
+                    "name": match_info.get("name", ""),
+                    "confidence": conf,
+                }
+        elif match_info and data.get("confidence", 0) >= self.config.match_threshold:
             return {
                 "student_id": data["student_id"],
                 "name": data.get("name", ""),

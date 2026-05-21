@@ -7,7 +7,7 @@ kafka:
   max_poll_records: 10
 
 detection:
-  model_path: "app/models/detection.onnx"
+  model_path: "app/models/retinaface-R50.onnx"
   confidence_threshold: 0.6
   input_size: [640, 640]
   min_face_size: 80
@@ -15,21 +15,20 @@ detection:
   nms_iou_threshold: 0.5
 
 feature:
-  model_path: "app/models/feature.onnx"
+  model_path: "app/models/arcface-resnet100.onnx"
   embedding_size: 512
 
 match:
   method: "sims_api"
-  # ── Production: 主后端 SpringBoot API ──────────────────────────
-  sims_api_url: "http://192.168.113.114:8080/sims/face/match"
-  # ── Docker / local dev ─────────────────────────────────────────
-  # sims_api_url: "http://sims-backend:8080/sims/face/match"
-  # sims_api_url: "http://localhost:8080/sims/face/match"
+  # ── Go dormitory-service (port 8083) ──────────────────────────
+  sims_api_url: "http://localhost:8083/api/face/match"
+  # ── Docker / legacy ───────────────────────────────────────────
+  # sims_api_url: "http://dormitory-service-go:8083/api/face/match"
   sims_api_timeout: 3.0
   auth_token: ""
   cache_ttl: 3600
   match_threshold: 0.65
-  fallback_to_cache: true
+  fallback_to_cache: false
 
 direction:
   method: "roi_line"
@@ -60,7 +59,7 @@ log:
   level: "INFO"
 
 behavior:
-  enabled: false
+  enabled: true
   loitering_threshold_seconds: 30
   loitering_radius_px: 50.0
   running_speed_threshold_px_per_sec: 200.0
