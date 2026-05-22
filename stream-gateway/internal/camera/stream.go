@@ -176,7 +176,12 @@ func (s *Stream) processFrames(ctx context.Context, dec *decoder.Decoder, frameC
 
 // Stop signals the Run goroutine to shut down and stops the active decoder.
 func (s *Stream) Stop() {
-	close(s.stopCh)
+	select {
+	case <-s.stopCh:
+		return
+	default:
+		close(s.stopCh)
+	}
 
 	s.mu.Lock()
 	if s.dec != nil {

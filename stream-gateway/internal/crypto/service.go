@@ -1,6 +1,7 @@
 package crypto
 
 import (
+	"bytes"
 	"crypto/aes"
 	"crypto/cipher"
 	"crypto/rand"
@@ -29,10 +30,14 @@ var (
 // The zero value is not usable — use NewService or NewServiceWithKey.
 type Service struct {
 	masterKey []byte
+	warnOnce  bool // dev key warning already emitted to avoid log spam
 }
 
-// devKey is used when CAMERA_ENCRYPTION_KEY is not set (development only).
-// Exactly 32 bytes for AES-256.
+// devKey is the fallback key used when CAMERA_ENCRYPTION_KEY is not set.
+// WARNING: This is for development only — all modules must share the SAME
+// production key. dormitory-service-go/internal/util/crypto.go has a different
+// dev key ("0123456789abcdef0123456789abcdef"), so passwords encrypted by one
+// module cannot be decrypted by the other in dev mode.
 var devKey = []byte("01234567890123456789012345678901")
 
 // NewService creates a Service by reading CAMERA_ENCRYPTION_KEY from environment.
@@ -58,10 +63,19 @@ func NewServiceWithKey(key []byte) (*Service, error) {
 	return &Service{masterKey: key}, nil
 }
 
+// warnIfDevKey logs a warning once if the service is using the hardcoded dev key.
+func (s *Service) warnIfDevKey() {
+	if !s.warnOnce && bytes.Equal(s.masterKey, devKey) {
+		s.warnOnce = true
+		log.Printf("[WARN] crypto: using DEV key for encryption/decryption (INSECURE — set %s for production)", EnvKey)
+	}
+}
+
 // Encrypt encrypts plaintext using AES-256-GCM.
 // Returns base64-encoded ciphertext and base64-encoded nonce.
 // The nonce is randomly generated for each encryption.
 func (s *Service) Encrypt(plaintext []byte) (ciphertextBase64, nonceBase64 string, err error) {
+	s.warnIfDevKey()
 	block, err := aes.NewCipher(s.masterKey)
 	if err != nil {
 		return "", "", fmt.Errorf("crypto: failed to create cipher: %w", err)
@@ -87,6 +101,7 @@ func (s *Service) Encrypt(plaintext []byte) (ciphertextBase64, nonceBase64 strin
 
 // Decrypt decrypts ciphertext using AES-256-GCM.
 func (s *Service) Decrypt(ciphertextBase64, nonceBase64 string) ([]byte, error) {
+	s.warnIfDevKey()
 	nonce, err := base64.RawStdEncoding.DecodeString(nonceBase64)
 	if err != nil {
 		return nil, fmt.Errorf("%w: invalid nonce: %v", ErrInvalidBase64, err)

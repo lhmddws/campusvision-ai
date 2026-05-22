@@ -1,6 +1,11 @@
 # Cameras are now managed via DB registration + Management API (port 8081).
 # Static entries removed — the gateway polls the DB for registered cameras.
 # See: stream-gateway/internal/management/handler.go
+#
+# CAMERA_ENCRYPTION_KEY env var (32 bytes, AES-256) must be set in production
+# for RTSP password encryption. Without it, a hardcoded dev key is used.
+# IMPORTANT: dormitory-service-go uses a DIFFERENT dev key — set the same
+# CAMERA_ENCRYPTION_KEY in both services for cross-module password portability.
 cameras: []
 frame:
   fps_day: 5

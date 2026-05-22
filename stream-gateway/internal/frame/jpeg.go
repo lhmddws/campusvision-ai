@@ -21,14 +21,21 @@ func EncodeJPEG(yuv []byte, width, height, quality int) ([]byte, error) {
 // yuvToRGBA converts a YUV420P planar buffer to an RGBA image using the
 // BT.601 full-swing conversion formula.
 func yuvToRGBA(yuv []byte, width, height int) *image.RGBA {
+	// Input validation: YUV420P requires at least width*height*3/2 bytes.
+	minLen := width*height + (width/2)*((height+1)/2)*2
+	if len(yuv) < minLen {
+		return image.NewRGBA(image.Rect(0, 0, 0, 0))
+	}
+
 	img := image.NewRGBA(image.Rect(0, 0, width, height))
 
 	yStride := width
 	uvStride := width / 2
 
 	yPlane := yuv[:width*height]
-	uPlane := yuv[width*height : width*height+uvStride*(height/2)]
-	vPlane := yuv[width*height+uvStride*(height/2) : width*height+uvStride*height]
+	// Use (height+1)/2 for safety with odd frame dimensions.
+	uPlane := yuv[width*height : width*height+uvStride*((height+1)/2)]
+	vPlane := yuv[width*height+uvStride*((height+1)/2) : width*height+uvStride*((height+1)/2)*2]
 
 	for y := 0; y < height; y++ {
 		for x := 0; x < width; x++ {

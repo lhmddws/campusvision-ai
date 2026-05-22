@@ -101,10 +101,10 @@ func main() {
 	<-quit
 
 	log.Println("Shutting down...")
-	cancel()
 	camManager.Stop()
 	healthServer.Shutdown(ctx)
 	mgrServer.Shutdown(ctx)
+	cancel() // cancel AFTER Shutdown — ctx must be alive during graceful drain
 }
 
 func dbPollLoop(ctx context.Context, dbCfg config.DatabaseConfig, camManager *camera.Manager) {
@@ -114,6 +114,11 @@ func dbPollLoop(ctx context.Context, dbCfg config.DatabaseConfig, camManager *ca
 		return
 	}
 	defer db.Close()
+
+	// Connection pool limits for DB polling (low volume, periodic sync).
+	db.SetMaxOpenConns(10)
+	db.SetMaxIdleConns(5)
+	db.SetConnMaxLifetime(5 * time.Minute)
 
 	if err := db.PingContext(ctx); err != nil {
 		log.Printf("[dbpoll] DB ping failed: %v", err)
@@ -153,6 +158,9 @@ func syncCamerasFromDB(ctx context.Context, db *sql.DB, camManager *camera.Manag
 		}
 		cam.Enabled = enabled == 1
 		cameras = append(cameras, cam)
+	}
+	if err := rows.Err(); err != nil {
+		log.Printf("[dbpoll] rows iteration error: %v", err)
 	}
 
 	camManager.DiffAndSync(cameras)

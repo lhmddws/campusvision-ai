@@ -2,7 +2,6 @@ package config
 
 import (
 	"fmt"
-	"log"
 	"net/url"
 	"os"
 	"time"
@@ -48,27 +47,12 @@ func (c *CameraConfig) BuildRTSPURL(encKey []byte) (string, error) {
 	if c.Components.PasswordEnc != "" && c.Components.Nonce != "" && len(encKey) == crypto.KeyLength {
 		cs, err := crypto.NewServiceWithKey(encKey)
 		if err != nil {
-			log.Printf("[config] failed to create crypto service for camera %s: %v, using raw password", c.ID, err)
-		} else {
-			password, err := cs.DecryptPassword(c.Components.PasswordEnc, c.Components.Nonce)
-			if err != nil {
-				log.Printf("[config] failed to decrypt password for camera %s: %v, using raw password", c.ID, err)
-			} else {
-				userinfo := url.UserPassword(c.Components.Username, password)
-				u := &url.URL{
-					Scheme: c.Components.Protocol,
-					User:   userinfo,
-					Host:   fmt.Sprintf("%s:%d", c.Components.Host, c.Components.Port),
-					Path:   c.Components.Path,
-				}
-				return u.String(), nil
-			}
+			return "", fmt.Errorf("failed to create crypto service for camera %s: %w", c.ID, err)
 		}
-	}
-
-	if c.Components.PasswordEnc != "" {
-		password := c.Components.PasswordEnc
-
+		password, err := cs.DecryptPassword(c.Components.PasswordEnc, c.Components.Nonce)
+		if err != nil {
+			return "", fmt.Errorf("failed to decrypt password for camera %s: %w", c.ID, err)
+		}
 		userinfo := url.UserPassword(c.Components.Username, password)
 		u := &url.URL{
 			Scheme: c.Components.Protocol,
@@ -77,6 +61,11 @@ func (c *CameraConfig) BuildRTSPURL(encKey []byte) (string, error) {
 			Path:   c.Components.Path,
 		}
 		return u.String(), nil
+	}
+
+	// PasswordEnc is set but nonce or encryption key is missing — cannot construct URL.
+	if c.Components.PasswordEnc != "" {
+		return "", fmt.Errorf("encrypted password set for camera %s but nonce or encryption key missing", c.ID)
 	}
 
 	if c.RTSPURL != "" {
