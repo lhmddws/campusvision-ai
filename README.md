@@ -24,7 +24,7 @@ RTSP cameras (A/B/C/D) → stream-gateway (Go) → t_dorm_frame (Kafka)
 ## Modules
 
 | Directory | Language | Entrypoint | Port |
-|---|---|---|---|---|
+|---|---|---|---|
 | `stream-gateway/` | Go | `cmd/main.go --config config.yaml` | 8080 (health), 8081 (mgmt) |
 | `face-recognition/` | Python | `python -m app.main --config config.yaml` | — |
 | `dormitory-service-go/` | Go | `go run ./cmd/dormitory-service/ --config config.yaml` | 8083 |

@@ -83,7 +83,7 @@ cd test-env/frontend && npm run dev
 |---|---|---|---|
 | `t_dorm_frame` | 4 | 12h | stream-gateway → face-recognition |
 | `t_dorm_event` | 2 | 7d | face-recognition → dormitory-service-go |
-| `t_dorm_alert` | 1 | 7d | dormitory-service-go → (future) |
+| `t_dorm_alert` | 1 | 7d | dormitory-service-go (alert consumer, skeleton) |
 
 - `t_dorm_frame` uses **hash partitioner** (`kafka.Hash{}`) keyed by `building`.
 - Compression: Snappy for `t_dorm_frame`.
@@ -114,9 +114,10 @@ Two main sources of truth that can **disagree**:
 - **Hardcoded macOS path** at `detector.py:255-256`: `/opt/homebrew/Cellar/opencv/4.13.0_8/share/opencv4/haarcascades/haarcascade_frontalface_default.xml`
 - Will **fail on non-macOS or different OpenCV versions**. Tests rely on this fallback.
 
-### Face Recognition Missing API
-- `POST /sims/face/match` endpoint may not exist on main backend.
-- `config.yaml` has `fallback_to_cache: true` — falls back to Redis cache scan.
+### Face Recognition External API
+- Calls `POST /api/face/match` on dormitory-service-go (port 8083) for identity matching.
+- `config.yaml` has `fallback_to_cache: true` — falls back to Redis cache scan on API failure.
+- `POST /api/face/embed` endpoint exists but is a **stub** (returns null embedding).
 - Docker CMD (`python -m app.main`) omits `--config` flag — relies on bind-mount or default `config.yaml`.
 
 ### Stream Gateway Requires ffmpeg
@@ -160,8 +161,28 @@ Kafka topic `t_dorm_event` is the only coupling point. Both sides develop indepe
 - `test-env`: `campusvision/test-env`, deps `gin`, `kafka-go`, `golang.org/x/image`
 - `dormitory-service-go`: `github.com/sims/campusvision/dormitory-service-go`, deps `gin`, `sqlx`, `kafka-go`, `go-redis`, `viper`, `zap`, `jwt`, `cron`
 
+## API Documentation (OpenAPI 3.0.3)
+
+The project's API surface is documented as three OpenAPI 3.0.3 spec files under `doc/api/`:
+
+| File | Module | Coverage |
+|---|---|---|
+| `doc/api/stream-gateway-api.json` | stream-gateway (Go) | Health API (port 8080), Management API (port 8081, X-Management-Key auth) — 5 endpoints |
+| `doc/api/face-recognition-kafka.json` | face-recognition (Python) | Kafka message schemas (FrameMessage, EntryExitEvent, BehaviorEvent), all 12 config dataclasses, 11-step processing pipeline |
+| `doc/api/dormitory-service-api.json` | dormitory-service-go (Go) | 22+ HTTP endpoints: cameras CRUD/status, attendance records/events, alerts, configs, face match/embed — all with standard `{code,message,data}` envelope |
+
+**Validation:**
+```bash
+# Validate all OpenAPI 3 specs
+pip install openapi-spec-validator 2>/dev/null
+python3 -m json.tool doc/api/stream-gateway-api.json > /dev/null && echo "✅ stream-gateway"
+python3 -m json.tool doc/api/face-recognition-kafka.json > /dev/null && echo "✅ face-recognition-kafka"
+python3 -m json.tool doc/api/dormitory-service-api.json > /dev/null && echo "✅ dormitory-service"
+```
+
 ## References
 - `doc/` contains PRDs (5,455 lines) and design docs (3,754 lines). `doc/prd/README.md` for navigation.
+- `doc/api/` contains OpenAPI 3.0.3 specs for stream-gateway, face-recognition (Kafka), and dormitory-service-go.
 - RTSP URLs are placeholders in both `stream-gateway/config.yaml` and `infra/mariadb/init.sql`.
 - Dynamic frame extraction: `fps_day: 5`, `fps_night: 1`, `motion_threshold: 0.05` in stream-gateway config.
 - Behavior analysis pipeline is gated by `behavior.enabled: false` — off by default.
