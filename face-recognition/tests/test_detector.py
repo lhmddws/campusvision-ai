@@ -1,3 +1,4 @@
+import cv2
 import numpy as np
 import pytest
 
@@ -121,8 +122,7 @@ class TestFallbackDetect:
         assert isinstance(result, list)
 
     def test_cascade_file_exists(self):
-        import cv2
-        path = "/opt/homebrew/Cellar/opencv/4.13.0_8/share/opencv4/haarcascades/haarcascade_frontalface_default.xml"
+        path = cv2.data.haarcascades + "haarcascade_frontalface_default.xml"
         import os
         assert os.path.isfile(path), "Haar Cascade XML file not found"
 

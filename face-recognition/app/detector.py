@@ -253,7 +253,7 @@ class FaceDetector:
         # Haar Cascade fallback for dev/testing without ONNX model
         gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
         cascade = cv2.CascadeClassifier(
-            "/opt/homebrew/Cellar/opencv/4.13.0_8/share/opencv4/haarcascades/haarcascade_frontalface_default.xml"  # type: ignore[attr-defined]  # cv2.data added dynamically by opencv-python
+            cv2.data.haarcascades + "haarcascade_frontalface_default.xml"
         )
         rects = cascade.detectMultiScale(gray, 1.1, 5, minSize=(self.min_face_size, self.min_face_size))
         faces = []

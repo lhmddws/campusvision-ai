@@ -1,7 +1,7 @@
 """SIMS API face match client with Redis cache and fallback."""
 
 import logging
-import pickle
+import json
 import time
 from typing import Optional
 
@@ -104,7 +104,7 @@ class FaceMatcher:
         payload = {"embedding": embedding.tolist()}
         headers = {
             "Content-Type": "application/json",
-            "Authorization": f"Bearer {self.config.auth_token}",
+            "Authorization": f"Bearer {self.config.get_auth_token()}",
         }
         response = httpx.post(
             self.config.sims_api_url,
@@ -149,7 +149,7 @@ class FaceMatcher:
             self._redis.setex(
                 f"face:match:{student_id}",
                 self.config.cache_ttl,
-                pickle.dumps(value),
+                json.dumps(value),
             )
         except Exception:
             logger.warning("Failed to cache match result in Redis", exc_info=True)
@@ -159,15 +159,28 @@ class FaceMatcher:
         if self._redis is None:
             return None
         try:
-            keys = self._redis.keys("face:match:*")
+            # Use SCAN instead of KEYS — non-blocking, cursor-based
+            keys = []
+            cursor = 0
+            while True:
+                cursor, batch = self._redis.scan(cursor=cursor, match="face:match:*", count=100)
+                keys.extend(batch)
+                if cursor == 0:
+                    break
+
             best_sim = 0.0
             best_result = None
 
+            # Pipeline all GET requests
+            pipe = self._redis.pipeline()
             for key in keys:
-                raw = self._redis.get(key)
+                pipe.get(key)
+            results = pipe.execute()
+
+            for key, raw in zip(keys, results):
                 if raw is None:
                     continue
-                data = pickle.loads(raw)
+                data = json.loads(raw)
                 cached_emb = np.array(data["embedding"], dtype=np.float32)
                 sim = cosine_similarity(query_emb, cached_emb)
                 if sim > best_sim:

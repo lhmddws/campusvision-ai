@@ -1,3 +1,4 @@
+import os
 from typing import List
 import yaml
 from dataclasses import dataclass, field
@@ -37,6 +38,9 @@ class MatchConfig:
     cache_ttl: int = 3600
     match_threshold: float = 0.65
     fallback_to_cache: bool = True
+
+    def get_auth_token(self) -> str:
+        return os.getenv("FACE_AUTH_TOKEN", self.auth_token)
 
 
 @dataclass
