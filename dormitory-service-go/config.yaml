@@ -1,5 +1,5 @@
 server:
-  port: 8081
+  port: 8083
 
 database:
   dsn: "root:MyStrongPassword123!@tcp(mariadb:3306)/dormitory?charset=utf8mb4&parseTime=True&loc=Asia%2FShanghai"
@@ -22,7 +22,7 @@ kafka:
   max_poll_records: 500
 
 jwt:
-  secret: "your-256-bit-secret"
+  secret: "${JWT_SECRET:your-256-bit-secret}"  # Override via JWT_SECRET env var; set to match main backend's signing key in production
   expiration_hours: 24
 
 log:

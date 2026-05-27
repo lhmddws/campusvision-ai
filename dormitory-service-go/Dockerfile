@@ -16,5 +16,5 @@ COPY config.docker.yaml config.yaml
 EXPOSE 8083
 USER appuser
 HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \
-  CMD wget --no-verbose --tries=1 --spider http://localhost:8083/health || exit 1
+  CMD wget --no-verbose --tries=1 --spider http://localhost:8083/api/health || exit 1
 ENTRYPOINT ["/app/dormitory-service"]

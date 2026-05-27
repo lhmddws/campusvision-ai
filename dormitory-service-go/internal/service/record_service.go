@@ -40,7 +40,7 @@ func (s *RecordService) HandleAttendance(record dto.FaceEventMessage) error {
 		EventType:  record.EventType,
 		StudentID:  toNullString(record.StudentID),
 		IsStranger: record.IsStranger,
-		Confidence: toNullFloat64(record.Confidence),
+		Confidence: toNullFloat64(&record.Confidence),
 		Timestamp:  time.UnixMilli(record.Timestamp),
 		CreatedAt:  time.Now(),
 	}
@@ -96,6 +96,9 @@ func (s *RecordService) GetEvents(query dto.EventQueryDTO) ([]entity.DormEventLo
 	)
 }
 
-func toNullFloat64(f float64) sql.NullFloat64 {
-	return sql.NullFloat64{Float64: f, Valid: f != 0}
+func toNullFloat64(f *float64) sql.NullFloat64 {
+	if f == nil {
+		return sql.NullFloat64{Valid: false}
+	}
+	return sql.NullFloat64{Float64: *f, Valid: true}
 }

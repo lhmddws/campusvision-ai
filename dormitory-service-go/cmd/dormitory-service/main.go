@@ -46,6 +46,11 @@ func main() {
 	}
 	defer logger.Sync()
 
+	// Warn if default JWT secret is in use (security risk for production)
+	if cfg.JWT.Secret == "your-256-bit-secret" || cfg.JWT.Secret == "dev-secret-change-in-production" {
+		logger.Warn("JWT secret is set to a default/placeholder value — set JWT_SECRET env var for production")
+	}
+
 	logger.Info("Starting dormitory-service-go",
 		zap.Int("port", cfg.Server.Port),
 		zap.String("db_driver", cfg.Database.Driver),
@@ -160,6 +165,15 @@ func main() {
 	router := gin.Default()
 	router.Use(middleware.CORSMiddleware())
 
+	// JWT auth middleware — applied to all protected route groups
+	jwtMiddleware := middleware.NewJWTAuthMiddleware(cfg.JWT.Secret)
+
+	authHandler := handler.NewAuthHandler(cfg.JWT.Secret, cfg.JWT.ExpirationHours)
+
+	// --- Public routes (no auth required) ---
+
+	router.POST("/api/auth/login", authHandler.Login)
+
 	// Health check endpoint
 	router.GET("/api/health", func(c *gin.Context) {
 		dbStatus := "ok"
@@ -192,7 +206,7 @@ func main() {
 		})
 	})
 
-	// API v1 group
+	// API v1 group (no auth — lightweight ping)
 	v1 := router.Group("/api/v1")
 	{
 		v1.GET("/ping", func(c *gin.Context) {
@@ -200,8 +214,18 @@ func main() {
 		})
 	}
 
+	// --- Protected routes (JWT required) ---
+
+	authProtected := router.Group("/api/auth")
+	authProtected.Use(jwtMiddleware.RequireAuth())
+	{
+		authProtected.GET("/info", authHandler.GetUserInfo)
+		authProtected.POST("/logout", authHandler.Logout)
+	}
+
 	// Camera routes
 	cameras := router.Group("/sims/dorm/cameras")
+	cameras.Use(jwtMiddleware.RequireAuth())
 	{
 		cameras.POST("", cameraHandler.RegisterCamera)
 		cameras.GET("", cameraHandler.GetCameras)
@@ -216,6 +240,7 @@ func main() {
 
 	// Record routes
 	records := router.Group("/sims/dorm/records")
+	records.Use(jwtMiddleware.RequireAuth())
 	{
 		records.POST("/attendance", recordHandler.HandleAttendance)
 		records.GET("/attendance/stats", recordHandler.GetAttendanceStats)
@@ -225,6 +250,7 @@ func main() {
 
 	// Alert routes
 	alerts := router.Group("/sims/dorm/alerts")
+	alerts.Use(jwtMiddleware.RequireAuth())
 	{
 		alerts.GET("", alertHandler.GetAlerts)
 		alerts.POST("/:id/acknowledge", alertHandler.AcknowledgeAlert)
@@ -233,6 +259,7 @@ func main() {
 
 	// Config routes
 	configs := router.Group("/api/configs")
+	configs.Use(jwtMiddleware.RequireAuth())
 	{
 		configs.GET("", configHandler.ListConfigs)
 		configs.GET("/groups", configHandler.ListGroups)
@@ -243,8 +270,12 @@ func main() {
 	}
 
 	// Face routes
-	router.POST("/api/face/match", h.FaceMatch)
-	router.POST("/api/face/embed", h.FaceEmbed)
+	faceRoutes := router.Group("/api/face")
+	faceRoutes.Use(jwtMiddleware.RequireAuth())
+	{
+		faceRoutes.POST("/match", h.FaceMatch)
+		faceRoutes.POST("/embed", h.FaceEmbed)
+	}
 
 	// Start Kafka consumers and schedulers
 	consumerCtx, consumerCancel := context.WithCancel(context.Background())

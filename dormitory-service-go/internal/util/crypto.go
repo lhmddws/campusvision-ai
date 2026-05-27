@@ -10,8 +10,9 @@ import (
 )
 
 // Default encryption key (32 bytes for AES-256).
-// In production, set via SetEncryptionKey at startup.
-var encryptionKey = []byte("0123456789abcdef0123456789abcdef")
+// DEV KEY: Must match stream-gateway's dev key so passwords can be decrypted across modules.
+// In production, set via SetEncryptionKey at startup or CAMERA_ENCRYPTION_KEY env var.
+var encryptionKey = []byte("01234567890123456789012345678901")
 
 // SetEncryptionKey overrides the default AES-256 key.
 // The key must be exactly 32 bytes.

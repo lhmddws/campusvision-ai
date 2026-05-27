@@ -1,6 +1,7 @@
 package repository
 
 import (
+	"context"
 	"fmt"
 	"time"
 
@@ -21,13 +22,13 @@ func NewAlertRepository(db *sqlx.DB) *AlertRepository {
 }
 
 // FindByAlertType finds alerts by type.
-func (r *AlertRepository) FindByAlertType(alertType string, limit int) ([]entity.DormAlert, error) {
+func (r *AlertRepository) FindByAlertType(ctx context.Context, alertType string, limit int) ([]entity.DormAlert, error) {
 	if limit <= 0 {
 		limit = 100
 	}
 	var alerts []entity.DormAlert
 	query := "SELECT * FROM dorm_alert_record WHERE alert_type = ? ORDER BY occurred_at DESC LIMIT ?"
-	err := r.DB.Select(&alerts, query, alertType, limit)
+	err := r.DB.SelectContext(ctx, &alerts, query, alertType, limit)
 	if err != nil {
 		return nil, fmt.Errorf("find alerts by type %s: %w", alertType, err)
 	}
@@ -35,13 +36,13 @@ func (r *AlertRepository) FindByAlertType(alertType string, limit int) ([]entity
 }
 
 // FindByBuilding finds alerts for a building.
-func (r *AlertRepository) FindByBuilding(building string, limit int) ([]entity.DormAlert, error) {
+func (r *AlertRepository) FindByBuilding(ctx context.Context, building string, limit int) ([]entity.DormAlert, error) {
 	if limit <= 0 {
 		limit = 100
 	}
 	var alerts []entity.DormAlert
 	query := "SELECT * FROM dorm_alert_record WHERE building = ? ORDER BY occurred_at DESC LIMIT ?"
-	err := r.DB.Select(&alerts, query, building, limit)
+	err := r.DB.SelectContext(ctx, &alerts, query, building, limit)
 	if err != nil {
 		return nil, fmt.Errorf("find alerts by building %s: %w", building, err)
 	}
@@ -49,10 +50,10 @@ func (r *AlertRepository) FindByBuilding(building string, limit int) ([]entity.D
 }
 
 // FindUnresolved finds all unresolved alerts.
-func (r *AlertRepository) FindUnresolved() ([]entity.DormAlert, error) {
+func (r *AlertRepository) FindUnresolved(ctx context.Context) ([]entity.DormAlert, error) {
 	var alerts []entity.DormAlert
 	query := "SELECT * FROM dorm_alert_record WHERE is_resolved = 0 ORDER BY occurred_at DESC"
-	err := r.DB.Select(&alerts, query)
+	err := r.DB.SelectContext(ctx, &alerts, query)
 	if err != nil {
 		return nil, fmt.Errorf("find unresolved alerts: %w", err)
 	}
@@ -60,9 +61,9 @@ func (r *AlertRepository) FindUnresolved() ([]entity.DormAlert, error) {
 }
 
 // ResolveAlert marks an alert as resolved.
-func (r *AlertRepository) ResolveAlert(id int64) error {
+func (r *AlertRepository) ResolveAlert(ctx context.Context, id int64) error {
 	query := "UPDATE dorm_alert_record SET is_resolved = 1 WHERE id = ?"
-	_, err := r.DB.Exec(query, id)
+	_, err := r.DB.ExecContext(ctx, query, id)
 	if err != nil {
 		return fmt.Errorf("resolve alert %d: %w", id, err)
 	}
@@ -71,6 +72,7 @@ func (r *AlertRepository) ResolveAlert(id int64) error {
 
 // FindWithPagination paginates alerts with filters.
 func (r *AlertRepository) FindWithPagination(
+	ctx context.Context,
 	building string,
 	alertType string,
 	acknowledged *bool,
@@ -109,5 +111,5 @@ func (r *AlertRepository) FindWithPagination(
 		}
 	}
 
-	return r.BaseRepository.FindWithPagination(where, args, "occurred_at DESC", page, size)
+	return r.BaseRepository.FindWithPagination(ctx, where, args, "occurred_at DESC", page, size)
 }

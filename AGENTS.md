@@ -14,7 +14,7 @@ RTSP cameras (A/B/C/D) → stream-gateway (Go) → t_dorm_frame (Kafka)
 |---|---|---|---|
 | `stream-gateway/` | Go (1.26) | `go run cmd/main.go --config config.yaml` | 8080 (health), 8081 (mgmt) |
 | `face-recognition/` | Python (3.11) | `python -m app.main --config config.yaml` | — |
-| `dormitory-service-go/` | Go (1.26) | `go run ./cmd/dormitory-service/ --config config.yaml` | 8083 |
+| `dormitory-service-go/` | Go (1.26) | `CONFIG_PATH=config.yaml go run ./cmd/dormitory-service/` | 8083 |
 | `test-env/` | Go (1.26) Gin + Vue 3 | `go run ./cmd/test-env/` | 8082 |
 
 Infra (`docker compose up -d`): Zookeeper (2181), Kafka (9092), Redis (6379), MariaDB (3306), MinIO (9000/9001).
@@ -33,7 +33,7 @@ cd face-recognition && python -m app.download_models
 cd face-recognition && python -m app.main --config config.yaml
 
 # Dormitory Service (Go) — on :8083
-cd dormitory-service-go && go run ./cmd/dormitory-service/ --config config.yaml
+cd dormitory-service-go && CONFIG_PATH=config.yaml go run ./cmd/dormitory-service/
 
 # Test Environment (Go + Vue frontend)
 cd test-env/frontend && npm ci && npm run build  # first time / after frontend changes
@@ -123,14 +123,15 @@ Two main sources of truth that can **disagree**:
 ### Stream Gateway Requires ffmpeg
 - Decoder spawns `ffmpeg` subprocess to decode RTSP → raw YUV420P.
 - Frame size hardcoded: `width * height * 3 / 2` bytes.
-- `KAFKA_BROKERS` env var overrides Kafka brokers.
+- `KAFKA_BROKERS` env var mentioned in comments but **never actually read** — dead code.
 - Camera passwords encrypted via `CAMERA_ENCRYPTION_KEY` env var (AES-256-GCM).
 - DB polling syncs cameras from `dorm_camera` table every 30s (gated by `database.dsn`).
 
-### No CI / Linters / Formatters
-- `.github/workflows/` doesn't exist. `doc/development-guide.md` describes an aspirational pipeline — nothing configured.
-- Zero linter/formatter configs across all languages (no `.golangci.yml`, `.eslintrc`, `.flake8`, `ruff.toml`, `.editorconfig`).
-- No pre-commit, no Makefile. All workflows are ad-hoc.
+### CI / Linters / Formatters
+- **CI exists** at `.github/workflows/ci.yml` — Go build+test+vet matrix for 3 modules, Python pytest. Runs on `main` branch only.
+- **Linter configs exist but are NOT run in CI**: `.golangci.yml` (6 linters), `ruff.toml` (Python 3.11, line-length 120), `.editorconfig` (tabs for Go, 4-space Python/YAML, 2-space JSON/MD).
+- **Missing**: Makefile, go.work, pyproject.toml, ESLint, pre-commit hooks, .python-version.
+- No version injection via `-ldflags` in CI.
 
 ### DB Migrations
 - `infra/mariadb/migrations/` contains manual SQL files (no Flyway or automated migration tool).
@@ -139,8 +140,18 @@ Two main sources of truth that can **disagree**:
 ### Code Maturity
 - **stream-gateway**: 4 test files (health handler, mgmt handler, camera config, crypto).
 - **face-recognition**: 6 tests under `tests/` — use Haar Cascade fallback (no ONNX needed).
-- **dormitory-service-go**: **zero tests** — all implementation, no `*_test.go`.
+- **dormitory-service-go**: 1 test file (`repository/base_test.go` — generic CRUD with go-sqlmock). All other packages untested.
 - **test-env**: no tests.
+
+### Cross-Cutting Patterns
+- **Dual config**: Every module ships `config.yaml` (local dev) + `config.docker.yaml` (Docker override). Docker Compose bind-mounts the docker variant.
+- **Config loading inconsistency**: stream-gateway uses CLI `--config` flag, dormitory-service-go uses `CONFIG_PATH` env var, face-recognition uses argparse `--config`, test-env uses pure env vars with no config file.
+- **Go module path inconsistency**: `test-env` uses bare `campusvision/test-env` vs `github.com/sims/campusvision/` prefix for the other two Go modules.
+- **Entrypoint nesting**: stream-gateway uses flat `cmd/main.go`, others use `cmd/<name>/main.go`.
+- **AES key mismatch**: Dev AES keys in `stream-gateway/internal/crypto/` differ from `dormitory-service-go/internal/util/crypto.go` — cross-module encrypt/decrypt will fail in dev.
+- **DB migrations**: `infra/mariadb/migrations/` uses manual serial numbering (`001_*.sql`, `002_*.sql`). No Flyway, no golang-migrate. Apply manually.
+- **Kafka topic naming**: `t_dorm_<entity>` convention. `t_dorm_frame` (4p, hash by building, Snappy), `t_dorm_event` (2p), `t_dorm_alert` (1p).
+- **DB table naming**: `dorm_` prefix, InnoDB/utf8mb4, BIGINT AUTO_INCREMENT, Chinese column comments.
 
 ## Team Division
 

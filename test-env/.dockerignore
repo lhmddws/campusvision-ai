@@ -1,7 +1,0 @@
-.git
-.gitignore
-*.md
-Dockerfile
-.dockerignore
-config.yaml
-face_data/

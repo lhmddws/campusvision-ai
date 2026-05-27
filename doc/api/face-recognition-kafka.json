@@ -1,0 +1,541 @@
+{
+  "openapi": "3.0.3",
+  "info": {
+    "title": "CampusVision AI — Face Recognition Kafka Schema",
+    "version": "2.0.0",
+    "description": "Kafka message schemas and processing pipeline for the face-recognition Python module. This module has **no HTTP API** — it runs as a headless Kafka consumer/producer pipeline. The only external HTTP dependency is `POST /api/face/match` on dormitory-service-go (port 8083), documented in the dormitory-service API spec."
+  },
+  "externalDocs": {
+    "description": "Project AGENTS.md",
+    "url": "https://github.com/sims/campusvision/blob/main/AGENTS.md"
+  },
+  "tags": [
+    {
+      "name": "kafka-input",
+      "description": "Messages consumed from t_dorm_frame"
+    },
+    {
+      "name": "kafka-output",
+      "description": "Messages published to t_dorm_event"
+    },
+    { "name": "config", "description": "Configuration schemas (config.yaml)" },
+    { "name": "pipeline", "description": "Internal processing pipeline" }
+  ],
+  "paths": {},
+  "x-kafka-topics": {
+    "t_dorm_frame": {
+      "partitions": 4,
+      "retention": "12h",
+      "key": "building (hash partitioner)",
+      "compression": "snappy",
+      "producer": "stream-gateway (Go)",
+      "consumer": "face-recognition (Python, this module)",
+      "message_schema": { "$ref": "#/components/schemas/FrameMessage" }
+    },
+    "t_dorm_event": {
+      "partitions": 2,
+      "retention": "7d",
+      "producer": "face-recognition (Python, this module)",
+      "consumer": "dormitory-service-go (Go)",
+      "message_schemas": {
+        "entry_exit": { "$ref": "#/components/schemas/EntryExitEvent" },
+        "behavior": { "$ref": "#/components/schemas/BehaviorEvent" }
+      },
+      "notes": "Two event families on one topic. Entry/exit events have `event_type in [entry, exit]` and an `is_stranger` field. Behavior events have `source: behavior` and `track_id`. Distinguished by the presence/absence of `source`."
+    }
+  },
+  "x-processing-pipeline": {
+    "description": "The processing pipeline runs sequentially for each consumed frame. Two parallel branches: entry/exit (always active) and behavior (gated by `behavior.enabled: false` by default).",
+    "steps": [
+      {
+        "order": 1,
+        "component": "Base64 Decode",
+        "file": "app/main.py",
+        "description": "Decodes `frame_data` (base64 JPEG) → BGR numpy array via cv2.imdecode."
+      },
+      {
+        "order": 2,
+        "component": "NightModeEnhancer",
+        "file": "app/night_mode.py",
+        "algorithm": "CLAHE on LAB L-channel",
+        "gated_by": "Time: 22:00-06:00",
+        "description": "Conditionally applies CLAHE contrast enhancement if current hour is within the night window (config: night_mode.start_hour → night_mode.end_hour)."
+      },
+      {
+        "order": 3,
+        "component": "FaceDetector",
+        "file": "app/detector.py",
+        "algorithm": "RetinaFace-ResNet50 ONNX → NMS",
+        "fallback": "Haar Cascade (macOS OpenCV hardcoded path)",
+        "description": "Detects faces: filters by confidence, min_size, blur threshold (Laplacian variance)."
+      },
+      {
+        "order": 4,
+        "component": "FeatureExtractor",
+        "file": "app/feature.py",
+        "algorithm": "ArcFace-ResNet100 ONNX",
+        "output": "512-dim L2-normalized embedding",
+        "fallback": "32×32 pixel flatten + normalize",
+        "description": "Aligns face using 5 facial landmarks (ArcFace standard), warps to 112×112, runs ArcFace model."
+      },
+      {
+        "order": 5,
+        "component": "FaceTracker",
+        "file": "app/tracker.py",
+        "algorithm": "Greedy IoU matching (threshold 0.3)",
+        "gated_by": "behavior.enabled: true",
+        "description": "Multi-face tracker producing persistent track IDs (format: cam-{camera_id}-{seq}). Max 100 tracks, 5s TTL. Only active when behavior pipeline is enabled."
+      },
+      {
+        "order": 6,
+        "component": "BehaviorAnalyzer",
+        "file": "app/behavior.py",
+        "gated_by": "behavior.enabled: true",
+        "description": "Detects loitering (position radius check), running (speed threshold), zone intrusion (cv2.pointPolygonTest), and crowd (debounce counter). Cooldown per event_type."
+      },
+      {
+        "order": 7,
+        "component": "BehaviorEventPublisher",
+        "file": "app/event_publisher.py",
+        "gated_by": "behavior.enabled: true",
+        "description": "Adds `source: behavior` field and publishes behavior events to Kafka t_dorm_event. In-memory buffer (max 1000) on Kafka failure with auto-flush."
+      },
+      {
+        "order": 8,
+        "component": "FaceMatcher",
+        "file": "app/matcher.py",
+        "description": "Calls POST /api/face/match on dormitory-service-go. Caches match results in Redis (TTL 3600s). Falls back to Redis cache scan on API failure (config: fallback_to_cache: true). Strangers get confidence 0.0."
+      },
+      {
+        "order": 9,
+        "component": "DirectionDetector",
+        "file": "app/direction.py",
+        "algorithm": "Virtual ROI line crossing",
+        "description": "Tracks center positions per face_id. Left→right = entry, right→left = exit. Requires min_track_points (default 3) observations. ROI line at roi_line_x * frame_width (default 0.5)."
+      },
+      {
+        "order": 10,
+        "component": "DedupFilter",
+        "file": "app/dedup.py",
+        "algorithm": "OrderedDict LRU, keyed on (student_id, direction)",
+        "description": "Suppresses duplicate events within window_seconds (default 10s). 1000-entry LRU cap."
+      },
+      {
+        "order": 11,
+        "component": "Kafka Producer",
+        "file": "app/main.py",
+        "description": "Publishes the final entry/exit event to Kafka t_dorm_event topic."
+      }
+    ]
+  },
+  "components": {
+    "schemas": {
+      "FrameMessage": {
+        "type": "object",
+        "description": "Kafka message on t_dorm_frame. Produced by stream-gateway (Go), consumed by this module. Keyed by `building` for hash partitioning.",
+        "required": [
+          "camera_id",
+          "building",
+          "timestamp",
+          "frame_sequence",
+          "frame_data",
+          "frame_width",
+          "frame_height",
+          "jpeg_quality",
+          "is_dynamic"
+        ],
+        "properties": {
+          "camera_id": {
+            "type": "string",
+            "description": "Camera identifier (e.g. CAM_A, A)"
+          },
+          "building": {
+            "type": "string",
+            "description": "Building code — used as Kafka message key for partitioning"
+          },
+          "timestamp": {
+            "type": "integer",
+            "format": "int64",
+            "description": "Unix millisecond timestamp"
+          },
+          "frame_sequence": {
+            "type": "integer",
+            "format": "int64",
+            "description": "Monotonic frame counter per camera stream"
+          },
+          "frame_data": {
+            "type": "string",
+            "description": "Base64-encoded JPEG frame bytes"
+          },
+          "frame_width": {
+            "type": "integer",
+            "description": "Frame width in pixels"
+          },
+          "frame_height": {
+            "type": "integer",
+            "description": "Frame height in pixels"
+          },
+          "jpeg_quality": {
+            "type": "integer",
+            "description": "JPEG compression quality (1-100)"
+          },
+          "is_dynamic": {
+            "type": "boolean",
+            "description": "True if triggered by motion detection"
+          }
+        }
+      },
+      "EntryExitEvent": {
+        "type": "object",
+        "description": "Entry/exit event published to t_dorm_event. Produced after detection → matching → direction → dedup pipeline passes.",
+        "required": [
+          "camera_id",
+          "building",
+          "event_type",
+          "student_id",
+          "confidence",
+          "timestamp",
+          "frame_sequence",
+          "is_stranger",
+          "snapshot_path",
+          "direction_method"
+        ],
+        "properties": {
+          "camera_id": {
+            "type": "string",
+            "description": "Source camera identifier (passthrough from FrameMessage)"
+          },
+          "building": {
+            "type": "string",
+            "description": "Building code (passthrough from FrameMessage)"
+          },
+          "event_type": {
+            "type": "string",
+            "enum": ["entry", "exit"],
+            "description": "Direction of movement"
+          },
+          "student_id": {
+            "type": "string",
+            "nullable": true,
+            "description": "Matched student ID, or null for strangers"
+          },
+          "name": {
+            "type": "string",
+            "nullable": true,
+            "description": "Student name from match result, or null for strangers"
+          },
+          "confidence": {
+            "type": "number",
+            "format": "float",
+            "description": "Match confidence [0, 1]; 0.0 for strangers",
+            "example": 0.85
+          },
+          "timestamp": {
+            "type": "integer",
+            "format": "int64",
+            "description": "Unix millisecond timestamp"
+          },
+          "frame_sequence": {
+            "type": "integer",
+            "description": "Source frame sequence number"
+          },
+          "is_stranger": {
+            "type": "boolean",
+            "description": "True when no match found above threshold"
+          },
+          "snapshot_path": {
+            "type": "string",
+            "description": "Always empty string (MinIO not integrated)"
+          },
+          "direction_method": {
+            "type": "string",
+            "description": "Always roi_line"
+          }
+        }
+      },
+      "BehaviorEvent": {
+        "type": "object",
+        "description": "Behavior event published to t_dorm_event (same topic as entry/exit). Only produced when `behavior.enabled: true`. Distinguished from entry/exit events by `source: behavior`.",
+        "required": [
+          "camera_id",
+          "event_type",
+          "track_id",
+          "timestamp",
+          "confidence",
+          "source"
+        ],
+        "properties": {
+          "camera_id": {
+            "type": "string",
+            "description": "Source camera identifier (extracted from track_id)"
+          },
+          "event_type": {
+            "type": "string",
+            "enum": ["loiter", "running", "zone", "crowd"],
+            "description": "Mapped short code (<=8 chars for DB VARCHAR(8)): loitering→loiter, running→running, zone_intrusion→zone, crowd_alert→crowd"
+          },
+          "track_id": {
+            "type": "string",
+            "description": "Face track identifier, format: cam-{camera_id}-{N}",
+            "example": "cam-A-42"
+          },
+          "detail": {
+            "type": "string",
+            "description": "Human-readable event description"
+          },
+          "timestamp": {
+            "type": "number",
+            "format": "float",
+            "description": "Unix second timestamp"
+          },
+          "confidence": {
+            "type": "number",
+            "format": "float",
+            "description": "Event confidence. Always 1.0."
+          },
+          "source": {
+            "type": "string",
+            "const": "behavior",
+            "description": "Always 'behavior' — distinguishes from entry/exit events"
+          }
+        }
+      },
+      "AppConfig": {
+        "type": "object",
+        "description": "Root configuration loaded from config.yaml.",
+        "properties": {
+          "kafka": { "$ref": "#/components/schemas/KafkaConfig" },
+          "detection": { "$ref": "#/components/schemas/DetectionConfig" },
+          "feature": { "$ref": "#/components/schemas/FeatureConfig" },
+          "match": { "$ref": "#/components/schemas/MatchConfig" },
+          "direction": { "$ref": "#/components/schemas/DirectionConfig" },
+          "dedup": { "$ref": "#/components/schemas/DedupConfig" },
+          "stranger": { "$ref": "#/components/schemas/StrangerConfig" },
+          "night_mode": { "$ref": "#/components/schemas/NightModeConfig" },
+          "redis": { "$ref": "#/components/schemas/RedisConfig" },
+          "log": { "$ref": "#/components/schemas/LogConfig" },
+          "behavior": { "$ref": "#/components/schemas/BehaviorConfig" }
+        }
+      },
+      "KafkaConfig": {
+        "type": "object",
+        "properties": {
+          "brokers": {
+            "type": "array",
+            "items": { "type": "string" },
+            "default": ["localhost:9092"]
+          },
+          "frame_topic": { "type": "string", "default": "t_dorm_frame" },
+          "event_topic": { "type": "string", "default": "t_dorm_event" },
+          "group_id": { "type": "string", "default": "face-recognition-group" },
+          "max_poll_records": { "type": "integer", "default": 10 }
+        }
+      },
+      "DetectionConfig": {
+        "type": "object",
+        "description": "Face detection settings (RetinaFace ONNX).",
+        "properties": {
+          "model_path": {
+            "type": "string",
+            "default": "app/models/detection.onnx",
+            "description": "Empty → Haar Cascade fallback"
+          },
+          "confidence_threshold": {
+            "type": "number",
+            "format": "float",
+            "default": 0.6
+          },
+          "input_size": {
+            "type": "array",
+            "items": { "type": "integer" },
+            "minItems": 2,
+            "maxItems": 2,
+            "default": [640, 640]
+          },
+          "min_face_size": { "type": "integer", "default": 80 },
+          "blur_threshold": {
+            "type": "number",
+            "format": "float",
+            "default": 100.0,
+            "description": "0 = disabled"
+          },
+          "nms_iou_threshold": {
+            "type": "number",
+            "format": "float",
+            "default": 0.5
+          }
+        }
+      },
+      "FeatureConfig": {
+        "type": "object",
+        "properties": {
+          "model_path": {
+            "type": "string",
+            "default": "app/models/feature.onnx",
+            "description": "Empty → pixel-flatten fallback"
+          },
+          "embedding_size": { "type": "integer", "default": 512 }
+        }
+      },
+      "MatchConfig": {
+        "type": "object",
+        "properties": {
+          "method": { "type": "string", "default": "sims_api" },
+          "sims_api_url": {
+            "type": "string",
+            "default": "",
+            "description": "Points to dormitory-service-go:8083"
+          },
+          "sims_api_timeout": {
+            "type": "number",
+            "format": "float",
+            "default": 3.0
+          },
+          "auth_token": { "type": "string", "default": "" },
+          "cache_ttl": { "type": "integer", "default": 3600 },
+          "match_threshold": {
+            "type": "number",
+            "format": "float",
+            "default": 0.65
+          },
+          "fallback_to_cache": { "type": "boolean", "default": true }
+        }
+      },
+      "DirectionConfig": {
+        "type": "object",
+        "properties": {
+          "method": { "type": "string", "default": "roi_line" },
+          "roi_line_x": {
+            "type": "number",
+            "format": "float",
+            "default": 0.5,
+            "description": "Fraction of frame width"
+          },
+          "min_track_points": { "type": "integer", "default": 3 }
+        }
+      },
+      "DedupConfig": {
+        "type": "object",
+        "properties": {
+          "window_seconds": { "type": "integer", "default": 10 },
+          "max_cache_size": { "type": "integer", "default": 1000 }
+        }
+      },
+      "StrangerConfig": {
+        "type": "object",
+        "description": "⚠️ Defined in config but NOT wired in main.py — stranger logic is hardcoded.",
+        "properties": {
+          "enabled": { "type": "boolean", "default": true },
+          "alert_threshold": {
+            "type": "number",
+            "format": "float",
+            "default": 0.45
+          }
+        }
+      },
+      "NightModeConfig": {
+        "type": "object",
+        "properties": {
+          "enabled": { "type": "boolean", "default": true },
+          "start_hour": { "type": "integer", "default": 22 },
+          "end_hour": { "type": "integer", "default": 6 },
+          "clahe_clip_limit": {
+            "type": "number",
+            "format": "float",
+            "default": 2.0
+          }
+        }
+      },
+      "RedisConfig": {
+        "type": "object",
+        "description": "Used only by FaceMatcher for match cache.",
+        "properties": {
+          "host": { "type": "string", "default": "localhost" },
+          "port": { "type": "integer", "default": 6379 },
+          "db": { "type": "integer", "default": 0 },
+          "socket_timeout": {
+            "type": "number",
+            "format": "float",
+            "default": 2.0
+          }
+        }
+      },
+      "LogConfig": {
+        "type": "object",
+        "properties": {
+          "level": {
+            "type": "string",
+            "enum": ["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"],
+            "default": "INFO"
+          }
+        }
+      },
+      "BehaviorConfig": {
+        "type": "object",
+        "description": "Behavior analysis pipeline settings. Master toggle `enabled` gates FaceTracker + BehaviorAnalyzer + BehaviorEventPublisher.",
+        "properties": {
+          "enabled": { "type": "boolean", "default": false },
+          "loitering_threshold_seconds": {
+            "type": "number",
+            "format": "float",
+            "default": 30.0
+          },
+          "loitering_radius_px": {
+            "type": "number",
+            "format": "float",
+            "default": 50.0
+          },
+          "running_speed_threshold_px_per_sec": {
+            "type": "number",
+            "format": "float",
+            "default": 200.0
+          },
+          "crowd_threshold_count": { "type": "integer", "default": 5 },
+          "crowd_debounce_frames": { "type": "integer", "default": 3 },
+          "zones": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "name": { "type": "string" },
+                "points": {
+                  "type": "array",
+                  "items": {
+                    "type": "array",
+                    "items": { "type": "number", "format": "float" },
+                    "minItems": 2,
+                    "maxItems": 2
+                  },
+                  "description": "Polygon vertices"
+                }
+              }
+            },
+            "default": []
+          },
+          "event_cooldown_seconds": {
+            "type": "number",
+            "format": "float",
+            "default": 30.0
+          },
+          "event": { "$ref": "#/components/schemas/BehaviorEventConfig" }
+        }
+      },
+      "BehaviorEventConfig": {
+        "type": "object",
+        "properties": {
+          "enabled": { "type": "boolean", "default": true },
+          "event_type_mapping": {
+            "type": "object",
+            "default": {
+              "loitering": "loiter",
+              "running": "running",
+              "zone_intrusion": "zone",
+              "crowd_alert": "crowd"
+            },
+            "description": "Maps long internal names to <=8 char DB-safe codes"
+          }
+        }
+      }
+    }
+  }
+}

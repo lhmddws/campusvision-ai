@@ -257,6 +257,8 @@ services:
     restart: unless-stopped
     ports:
       - "8083:8083"
+    environment:
+      CORS_ALLOWED_ORIGINS: "http://localhost,http://localhost:80,http://localhost:3000,http://localhost:8083"
     volumes:
       - ./dormitory-service-go/config.docker.yaml:/app/config.yaml
     depends_on:
@@ -275,32 +277,24 @@ services:
     labels:
       campusvision.ai/service: "dormitory-service-go"
 
-  # ==================== Test Environment (Go + Vue) ====================
-  test-env:
+  # ==================== Frontend (Vue 3 + Nginx) ====================
+  frontend:
     build:
-      context: ./test-env
-    image: campusvision/test-env:latest
-    container_name: cv-test-env
+      context: ./frontend
+    image: campusvision/frontend:latest
+    container_name: cv-frontend
     networks: [campusvision]
     restart: unless-stopped
     ports:
-      - "8082:8082"
-    environment:
-      KAFKA_BROKERS: kafka:9092
-      FRAME_TOPIC: t_dorm_frame
-      EVENT_TOPIC: t_dorm_event
-      TEST_SERVER_PORT: 8082
-      STREAM_GW_HEALTH: http://stream-gateway:8080/health
+      - "80:80"
     depends_on:
-      kafka:
-        condition: service_healthy
-      redis:
-        condition: service_healthy
+      - dormitory-service-go
     deploy:
       resources:
         limits:
-          memory: 256M
-        reservations:
           memory: 128M
+        reservations:
+          memory: 64M
     labels:
-      campusvision.ai/service: "test-env"
+      campusvision.ai/service: "frontend"
+

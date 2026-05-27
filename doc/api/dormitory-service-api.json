@@ -1,0 +1,1109 @@
+{
+  "openapi": "3.0.3",
+  "info": {
+    "title": "CampusVision AI — Dormitory Service API",
+    "version": "1.0.0",
+    "description": "HTTP APIs for the dormitory-service-go module. Default port: **8083**. All responses use a standard envelope: `{\"code\":200,\"message\":\"success\",\"data\":...}`. Paginated responses wrap items in `PageData` with `total`/`page`/`size`."
+  },
+  "externalDocs": {
+    "description": "Project AGENTS.md",
+    "url": "https://github.com/sims/campusvision/blob/main/AGENTS.md"
+  },
+  "servers": [
+    { "url": "http://localhost:8083", "description": "Dormitory Service (Go)" }
+  ],
+  "tags": [
+    { "name": "health", "description": "Health check & ping" },
+    {
+      "name": "cameras",
+      "description": "Camera CRUD, status, health checks, snapshot queries"
+    },
+    {
+      "name": "records",
+      "description": "Attendance, event logs, daily summaries"
+    },
+    {
+      "name": "alerts",
+      "description": "Alert listing, acknowledgement, stats"
+    },
+    {
+      "name": "configs",
+      "description": "System configuration key-value store"
+    },
+    {
+      "name": "face",
+      "description": "Face matching & embedding (internal dependency for face-recognition)"
+    }
+  ],
+  "paths": {
+    "/api/health": {
+      "get": {
+        "tags": ["health"],
+        "summary": "Service health check",
+        "description": "Returns DB, Redis, and Kafka connectivity status.",
+        "operationId": "serviceHealth",
+        "responses": {
+          "200": {
+            "description": "Service health status",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ServiceHealthResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/ping": {
+      "get": {
+        "tags": ["health"],
+        "summary": "Simple ping",
+        "operationId": "ping",
+        "responses": {
+          "200": {
+            "description": "Pong",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "message": { "type": "string", "example": "pong" }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/sims/dorm/cameras": {
+      "get": {
+        "tags": ["cameras"],
+        "summary": "List all cameras",
+        "description": "Returns all registered cameras, optionally filtered by building.",
+        "operationId": "listDormCameras",
+        "parameters": [
+          {
+            "name": "building",
+            "in": "query",
+            "schema": { "type": "string" },
+            "description": "Filter by building code"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Camera list",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Envelope"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": ["cameras"],
+        "summary": "Register a new camera",
+        "description": "Creates a camera in the database and pushes config to stream-gateway (best-effort). Max 50 cameras.",
+        "operationId": "registerCamera",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/CameraCreateDTO" }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Camera created",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/Envelope" }
+              }
+            }
+          },
+          "400": { "$ref": "#/components/responses/ValidationError" }
+        }
+      }
+    },
+    "/sims/dorm/cameras/status": {
+      "get": {
+        "tags": ["cameras"],
+        "summary": "Aggregated camera status summary",
+        "description": "Returns online/offline/idle counts per building, plus per-camera status detail.",
+        "operationId": "getCamerasStatus",
+        "parameters": [
+          {
+            "name": "building",
+            "in": "query",
+            "schema": { "type": "string" }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Status summary",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "cameras": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/CameraStatusItem"
+                      }
+                    },
+                    "summary": {
+                      "$ref": "#/components/schemas/CameraStatusSummary"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/sims/dorm/cameras/{camera_id}": {
+      "get": {
+        "tags": ["cameras"],
+        "summary": "Get single camera",
+        "operationId": "getDormCamera",
+        "parameters": [
+          {
+            "name": "camera_id",
+            "in": "path",
+            "required": true,
+            "schema": { "type": "string" }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Camera detail",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/Envelope" }
+              }
+            }
+          },
+          "404": { "$ref": "#/components/responses/NotFound" }
+        }
+      },
+      "put": {
+        "tags": ["cameras"],
+        "summary": "Update camera (partial)",
+        "description": "All fields are optional. Pushes changes to stream-gateway on success.",
+        "operationId": "updateCamera",
+        "parameters": [
+          {
+            "name": "camera_id",
+            "in": "path",
+            "required": true,
+            "schema": { "type": "string" }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/CameraUpdateDTO" }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Updated",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/Envelope" }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": ["cameras"],
+        "summary": "Delete camera",
+        "operationId": "deleteDormCamera",
+        "parameters": [
+          {
+            "name": "camera_id",
+            "in": "path",
+            "required": true,
+            "schema": { "type": "string" }
+          }
+        ],
+        "responses": {
+          "200": { "description": "Deleted" }
+        }
+      }
+    },
+    "/sims/dorm/cameras/{camera_id}/status": {
+      "get": {
+        "tags": ["cameras"],
+        "summary": "Single camera status detail",
+        "operationId": "getCameraStatus",
+        "parameters": [
+          {
+            "name": "camera_id",
+            "in": "path",
+            "required": true,
+            "schema": { "type": "string" }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Camera status",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/Envelope" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/sims/dorm/cameras/{camera_id}/health-check": {
+      "post": {
+        "tags": ["cameras"],
+        "summary": "Trigger camera health check",
+        "description": "Pings stream-gateway's GET /health endpoint to verify camera connectivity.",
+        "operationId": "cameraHealthCheck",
+        "parameters": [
+          {
+            "name": "camera_id",
+            "in": "path",
+            "required": true,
+            "schema": { "type": "string" }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Health check result",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "camera_id": { "type": "string" },
+                    "checked": { "type": "boolean" },
+                    "timestamp": { "type": "string", "format": "date-time" }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/sims/dorm/cameras/{camera_id}/snapshots": {
+      "get": {
+        "tags": ["cameras"],
+        "summary": "Query camera event snapshots",
+        "description": "Paginated event logs for a specific camera.",
+        "operationId": "querySnapshots",
+        "parameters": [
+          {
+            "name": "camera_id",
+            "in": "path",
+            "required": true,
+            "schema": { "type": "string" }
+          },
+          {
+            "name": "page",
+            "in": "query",
+            "schema": { "type": "integer", "default": 1 }
+          },
+          {
+            "name": "size",
+            "in": "query",
+            "schema": { "type": "integer", "default": 20, "maximum": 100 }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Paginated events",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/Envelope" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/sims/dorm/records/attendance": {
+      "post": {
+        "tags": ["records"],
+        "summary": "Submit face event for attendance",
+        "description": "Receives a face event (from Kafka consumer of t_dorm_event) and processes it as an attendance record.",
+        "operationId": "handleAttendance",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/FaceEventMessage" }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Event processed",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/Envelope" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/sims/dorm/records/attendance/stats": {
+      "get": {
+        "tags": ["records"],
+        "summary": "Attendance statistics",
+        "description": "⚠️ **STUB** — currently returns all zeros. Real aggregation not yet implemented.",
+        "operationId": "getAttendanceStats",
+        "parameters": [
+          {
+            "name": "building_id",
+            "in": "query",
+            "schema": { "type": "integer", "format": "int64" },
+            "required": true
+          },
+          {
+            "name": "start_date",
+            "in": "query",
+            "schema": { "type": "string", "format": "date" },
+            "description": "Format: 2006-01-02"
+          },
+          {
+            "name": "end_date",
+            "in": "query",
+            "schema": { "type": "string", "format": "date" }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Attendance stats (currently all zeros)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "total": { "type": "integer", "example": 0 },
+                    "present": { "type": "integer", "example": 0 },
+                    "absent": { "type": "integer", "example": 0 },
+                    "late": { "type": "integer", "example": 0 },
+                    "stranger": { "type": "integer", "example": 0 },
+                    "rate": {
+                      "type": "number",
+                      "format": "float",
+                      "example": 0
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/sims/dorm/records/attendance/daily-summary": {
+      "get": {
+        "tags": ["records"],
+        "summary": "Daily attendance summaries",
+        "description": "⚠️ **STUB** — currently returns empty array.",
+        "operationId": "getDailySummary",
+        "parameters": [
+          {
+            "name": "building_id",
+            "in": "query",
+            "schema": { "type": "integer", "format": "int64" }
+          },
+          {
+            "name": "start_date",
+            "in": "query",
+            "schema": { "type": "string", "format": "date" }
+          },
+          {
+            "name": "end_date",
+            "in": "query",
+            "schema": { "type": "string", "format": "date" }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Daily summaries (currently [])",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "date": { "type": "string" },
+                      "building_name": { "type": "string" },
+                      "checkin_rate": { "type": "number", "format": "float" }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/sims/dorm/records/events": {
+      "get": {
+        "tags": ["records"],
+        "summary": "Query event logs",
+        "description": "Paginated event log query with filters for building, camera, event type, student, and time range.",
+        "operationId": "getEvents",
+        "parameters": [
+          { "name": "building", "in": "query", "schema": { "type": "string" } },
+          {
+            "name": "camera_id",
+            "in": "query",
+            "schema": { "type": "string" }
+          },
+          {
+            "name": "event_type",
+            "in": "query",
+            "schema": { "type": "string" }
+          },
+          {
+            "name": "student_id",
+            "in": "query",
+            "schema": { "type": "string" }
+          },
+          {
+            "name": "start_time",
+            "in": "query",
+            "schema": { "type": "string", "format": "date-time" }
+          },
+          {
+            "name": "end_time",
+            "in": "query",
+            "schema": { "type": "string", "format": "date-time" }
+          },
+          {
+            "name": "page",
+            "in": "query",
+            "schema": { "type": "integer", "default": 1 }
+          },
+          {
+            "name": "size",
+            "in": "query",
+            "schema": { "type": "integer", "default": 20, "maximum": 100 }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Paginated events",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/Envelope" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/sims/dorm/alerts": {
+      "get": {
+        "tags": ["alerts"],
+        "summary": "List alerts",
+        "description": "Paginated alert list with filters.",
+        "operationId": "getAlerts",
+        "parameters": [
+          { "name": "building", "in": "query", "schema": { "type": "string" } },
+          {
+            "name": "alert_type",
+            "in": "query",
+            "schema": { "type": "string" }
+          },
+          {
+            "name": "acknowledged",
+            "in": "query",
+            "schema": { "type": "boolean" }
+          },
+          {
+            "name": "page",
+            "in": "query",
+            "schema": { "type": "integer", "default": 1 }
+          },
+          {
+            "name": "size",
+            "in": "query",
+            "schema": { "type": "integer", "default": 20, "maximum": 100 }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Paginated alerts",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/Envelope" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/sims/dorm/alerts/stats": {
+      "get": {
+        "tags": ["alerts"],
+        "summary": "Alert statistics",
+        "operationId": "getAlertStats",
+        "parameters": [
+          { "name": "building", "in": "query", "schema": { "type": "string" } }
+        ],
+        "responses": {
+          "200": {
+            "description": "Alert counts",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "total": { "type": "integer", "example": 50 },
+                    "unresolved": { "type": "integer", "example": 12 }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/sims/dorm/alerts/{id}/acknowledge": {
+      "post": {
+        "tags": ["alerts"],
+        "summary": "Acknowledge/resolve an alert",
+        "description": "Marks an alert as acknowledged by its numeric DB `id` (not `alert_id` string).",
+        "operationId": "acknowledgeAlert",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": { "type": "integer", "format": "int64" },
+            "description": "Numeric database ID, not alert_id string"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Acknowledged",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "id": { "type": "integer", "format": "int64" },
+                    "acknowledged": { "type": "boolean", "example": true }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/configs": {
+      "get": {
+        "tags": ["configs"],
+        "summary": "List all configs",
+        "description": "Returns all system config entries, optionally filtered by group name.",
+        "operationId": "listConfigs",
+        "parameters": [
+          { "name": "group", "in": "query", "schema": { "type": "string" } }
+        ],
+        "responses": {
+          "200": {
+            "description": "Config list",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": { "$ref": "#/components/schemas/DormConfig" }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/configs/groups": {
+      "get": {
+        "tags": ["configs"],
+        "summary": "List config group names",
+        "operationId": "listConfigGroups",
+        "responses": {
+          "200": {
+            "description": "Group names",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": { "type": "string" }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/configs/{key}": {
+      "get": {
+        "tags": ["configs"],
+        "summary": "Get single config",
+        "operationId": "getConfig",
+        "parameters": [
+          {
+            "name": "key",
+            "in": "path",
+            "required": true,
+            "schema": { "type": "string" }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Config entry",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/DormConfig" }
+              }
+            }
+          }
+        }
+      },
+      "put": {
+        "tags": ["configs"],
+        "summary": "Update config value",
+        "operationId": "updateConfig",
+        "parameters": [
+          {
+            "name": "key",
+            "in": "path",
+            "required": true,
+            "schema": { "type": "string" }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "value": { "type": "string" }
+                },
+                "required": ["value"]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": { "description": "Config updated" }
+        }
+      }
+    },
+    "/api/configs/{key}/reset": {
+      "post": {
+        "tags": ["configs"],
+        "summary": "Reset config to default value",
+        "operationId": "resetConfig",
+        "parameters": [
+          {
+            "name": "key",
+            "in": "path",
+            "required": true,
+            "schema": { "type": "string" }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Config reset",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/DormConfig" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/configs/batch": {
+      "put": {
+        "tags": ["configs"],
+        "summary": "Batch update configs",
+        "description": "Accepts an array of key-value pairs. Updates sequentially (not atomically).",
+        "operationId": "batchUpdateConfigs",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "array",
+                "minItems": 1,
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "key": { "type": "string" },
+                    "value": { "type": "string" }
+                  },
+                  "required": ["key", "value"]
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": { "description": "Batch updated" }
+        }
+      }
+    },
+    "/api/face/match": {
+      "post": {
+        "tags": ["face"],
+        "summary": "Match face embedding against enrolled students",
+        "description": "Called internally by face-recognition's FaceMatcher. Computes cosine similarity between the input 512-dim embedding and stored embeddings in the `face_embedding` table. Returns the best match above 0.65 threshold.",
+        "operationId": "faceMatch",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/FaceMatchRequest" }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Match result",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/FaceMatchResponse" }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid embedding",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": { "type": "boolean", "example": false },
+                    "error": {
+                      "type": "string",
+                      "example": "invalid embedding (must be 512 floats)"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/face/embed": {
+      "post": {
+        "tags": ["face"],
+        "summary": "Compute face embedding from image",
+        "description": "⚠️ **STUB** — currently returns null embedding. Not yet implemented.",
+        "operationId": "faceEmbed",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "image_path": { "type": "string" }
+                },
+                "required": ["image_path"]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Embedding (null — stub)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": { "type": "boolean", "example": true },
+                    "embedding": {
+                      "type": "array",
+                      "items": { "type": "number" },
+                      "nullable": true
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "responses": {
+      "ValidationError": {
+        "description": "Validation error",
+        "content": {
+          "application/json": {
+            "schema": {
+              "type": "object",
+              "properties": {
+                "code": { "type": "integer", "example": 400 },
+                "message": {
+                  "type": "string",
+                  "example": "id and building are required"
+                },
+                "data": { "nullable": true }
+              }
+            }
+          }
+        }
+      },
+      "NotFound": {
+        "description": "Resource not found",
+        "content": {
+          "application/json": {
+            "schema": {
+              "type": "object",
+              "properties": {
+                "code": { "type": "integer", "example": 404 },
+                "message": { "type": "string", "example": "camera not found" },
+                "data": { "nullable": true }
+              }
+            }
+          }
+        }
+      }
+    },
+    "schemas": {
+      "Envelope": {
+        "type": "object",
+        "description": "Standard API response envelope.",
+        "properties": {
+          "code": { "type": "integer", "example": 200 },
+          "message": { "type": "string", "example": "success" },
+          "data": {
+            "description": "Response payload (entity, array, PageData, or null)",
+            "nullable": true
+          }
+        }
+      },
+      "ServiceHealthResponse": {
+        "type": "object",
+        "properties": {
+          "status": { "type": "string", "example": "UP" },
+          "service": { "type": "string", "example": "dormitory-service-go" },
+          "database": {
+            "type": "object",
+            "properties": {
+              "status": { "type": "string", "example": "ok" },
+              "driver": { "type": "string", "example": "mysql" }
+            }
+          },
+          "redis": {
+            "type": "object",
+            "properties": {
+              "status": { "type": "string", "example": "ok" },
+              "addr": { "type": "string", "example": "127.0.0.1:6379" }
+            }
+          },
+          "kafka": {
+            "type": "object",
+            "properties": {
+              "brokers": {
+                "type": "array",
+                "items": { "type": "string" },
+                "example": ["localhost:9092"]
+              },
+              "event_topic": { "type": "string", "example": "t_dorm_event" },
+              "alert_topic": { "type": "string", "example": "t_dorm_alert" }
+            }
+          },
+          "timestamp": { "type": "string", "format": "date-time" }
+        }
+      },
+      "CameraCreateDTO": {
+        "type": "object",
+        "required": ["camera_id", "building", "name", "rtsp_url"],
+        "properties": {
+          "camera_id": {
+            "type": "string",
+            "description": "Camera identifier",
+            "example": "CAM_A_01"
+          },
+          "building": {
+            "type": "string",
+            "description": "Building code",
+            "example": "A"
+          },
+          "name": {
+            "type": "string",
+            "description": "Human-readable name",
+            "example": "Building A Cam 1"
+          },
+          "rtsp_url": {
+            "type": "string",
+            "description": "RTSP stream URL (password auto-encrypted via AES-256-GCM)"
+          },
+          "direction": {
+            "type": "string",
+            "description": "Camera direction",
+            "example": "entry"
+          },
+          "resolution": {
+            "type": "string",
+            "description": "Resolution",
+            "example": "1920x1080"
+          },
+          "remark": { "type": "string" },
+          "type": { "type": "string" },
+          "protocol": { "type": "string" },
+          "host": { "type": "string" },
+          "port": { "type": "integer", "example": 554 },
+          "path": { "type": "string" },
+          "username": { "type": "string" }
+        }
+      },
+      "CameraUpdateDTO": {
+        "type": "object",
+        "description": "All fields optional for partial update.",
+        "properties": {
+          "name": { "type": "string" },
+          "building": { "type": "string" },
+          "rtsp_url": { "type": "string" },
+          "direction": { "type": "string" },
+          "resolution": { "type": "string" },
+          "enabled": { "type": "boolean" },
+          "status": { "type": "string" },
+          "remark": { "type": "string" },
+          "type": { "type": "string" },
+          "protocol": { "type": "string" },
+          "host": { "type": "string" },
+          "port": { "type": "integer" },
+          "path": { "type": "string" },
+          "username": { "type": "string" }
+        }
+      },
+      "CameraStatusItem": {
+        "type": "object",
+        "properties": {
+          "building": { "type": "string" },
+          "camera_id": { "type": "string" },
+          "status": { "type": "string", "enum": ["online", "offline", "idle"] },
+          "last_health_check": { "type": "string", "format": "date-time" }
+        }
+      },
+      "CameraStatusSummary": {
+        "type": "object",
+        "properties": {
+          "total": { "type": "integer", "example": 4 },
+          "online": { "type": "integer", "example": 2 },
+          "offline": { "type": "integer", "example": 1 },
+          "idle": { "type": "integer", "example": 1 }
+        }
+      },
+      "FaceEventMessage": {
+        "type": "object",
+        "description": "Face event consumed from t_dorm_event Kafka topic.",
+        "required": ["camera_id", "building", "event_type", "timestamp"],
+        "properties": {
+          "camera_id": { "type": "string", "example": "CAM_A_01" },
+          "building": { "type": "string", "example": "A" },
+          "event_type": {
+            "type": "string",
+            "enum": ["entry", "exit"],
+            "example": "entry"
+          },
+          "student_id": {
+            "type": "string",
+            "nullable": true,
+            "example": "STU001"
+          },
+          "name": {
+            "type": "string",
+            "nullable": true,
+            "example": "Zhang San"
+          },
+          "confidence": {
+            "type": "number",
+            "format": "float",
+            "example": 0.92
+          },
+          "timestamp": {
+            "type": "integer",
+            "format": "int64",
+            "description": "Unix milliseconds"
+          },
+          "frame_sequence": { "type": "integer" },
+          "is_stranger": { "type": "boolean" },
+          "snapshot_path": { "type": "string" },
+          "direction_method": { "type": "string" }
+        }
+      },
+      "DormConfig": {
+        "type": "object",
+        "properties": {
+          "id": { "type": "integer", "format": "int64" },
+          "config_key": { "type": "string" },
+          "config_value": { "type": "string" },
+          "config_type": { "type": "string" },
+          "description": { "type": "string" },
+          "default_value": { "type": "string" },
+          "group_name": { "type": "string" },
+          "created_at": { "type": "string", "format": "date-time" },
+          "updated_at": { "type": "string", "format": "date-time" }
+        }
+      },
+      "FaceMatchRequest": {
+        "type": "object",
+        "description": "Face match request with 512-dim embedding.",
+        "required": ["embedding"],
+        "properties": {
+          "embedding": {
+            "type": "array",
+            "items": { "type": "number", "format": "float" },
+            "minItems": 512,
+            "maxItems": 512,
+            "description": "512-dim L2-normalized face embedding"
+          }
+        }
+      },
+      "FaceMatchResponse": {
+        "type": "object",
+        "properties": {
+          "success": { "type": "boolean" },
+          "match": {
+            "type": "object",
+            "nullable": true,
+            "properties": {
+              "name": { "type": "string" },
+              "student_id": { "type": "string" },
+              "confidence": {
+                "type": "number",
+                "format": "float",
+                "description": "Cosine similarity [0-1]"
+              }
+            }
+          },
+          "error": { "type": "string" }
+        }
+      }
+    }
+  }
+}

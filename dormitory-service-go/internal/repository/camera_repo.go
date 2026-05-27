@@ -1,6 +1,7 @@
 package repository
 
 import (
+	"context"
 	"fmt"
 
 	"github.com/jmoiron/sqlx"
@@ -20,10 +21,10 @@ func NewCameraRepository(db *sqlx.DB) *CameraRepository {
 }
 
 // FindByCameraID finds a camera by its unique camera_id.
-func (r *CameraRepository) FindByCameraID(cameraID string) (*entity.DormCamera, error) {
+func (r *CameraRepository) FindByCameraID(ctx context.Context, cameraID string) (*entity.DormCamera, error) {
 	var cam entity.DormCamera
 	query := "SELECT * FROM dorm_camera WHERE camera_id = ? LIMIT 1"
-	err := r.DB.Get(&cam, query, cameraID)
+	err := r.DB.GetContext(ctx, &cam, query, cameraID)
 	if err != nil {
 		return nil, fmt.Errorf("find camera by id %s: %w", cameraID, err)
 	}
@@ -31,10 +32,10 @@ func (r *CameraRepository) FindByCameraID(cameraID string) (*entity.DormCamera, 
 }
 
 // FindByBuilding finds all cameras in a given building.
-func (r *CameraRepository) FindByBuilding(building string) ([]entity.DormCamera, error) {
+func (r *CameraRepository) FindByBuilding(ctx context.Context, building string) ([]entity.DormCamera, error) {
 	var cams []entity.DormCamera
 	query := "SELECT * FROM dorm_camera WHERE building = ? ORDER BY camera_id"
-	err := r.DB.Select(&cams, query, building)
+	err := r.DB.SelectContext(ctx, &cams, query, building)
 	if err != nil {
 		return nil, fmt.Errorf("find cameras by building %s: %w", building, err)
 	}
@@ -42,10 +43,10 @@ func (r *CameraRepository) FindByBuilding(building string) ([]entity.DormCamera,
 }
 
 // FindByStatus finds all cameras with a given status.
-func (r *CameraRepository) FindByStatus(status string) ([]entity.DormCamera, error) {
+func (r *CameraRepository) FindByStatus(ctx context.Context, status string) ([]entity.DormCamera, error) {
 	var cams []entity.DormCamera
 	query := "SELECT * FROM dorm_camera WHERE status = ? ORDER BY camera_id"
-	err := r.DB.Select(&cams, query, status)
+	err := r.DB.SelectContext(ctx, &cams, query, status)
 	if err != nil {
 		return nil, fmt.Errorf("find cameras by status %s: %w", status, err)
 	}
@@ -53,10 +54,10 @@ func (r *CameraRepository) FindByStatus(status string) ([]entity.DormCamera, err
 }
 
 // FindEnabled finds all enabled cameras.
-func (r *CameraRepository) FindEnabled() ([]entity.DormCamera, error) {
+func (r *CameraRepository) FindEnabled(ctx context.Context) ([]entity.DormCamera, error) {
 	var cams []entity.DormCamera
 	query := "SELECT * FROM dorm_camera WHERE enabled = 1 ORDER BY camera_id"
-	err := r.DB.Select(&cams, query)
+	err := r.DB.SelectContext(ctx, &cams, query)
 	if err != nil {
 		return nil, fmt.Errorf("find enabled cameras: %w", err)
 	}
@@ -64,9 +65,9 @@ func (r *CameraRepository) FindEnabled() ([]entity.DormCamera, error) {
 }
 
 // UpdateStatus updates a camera's status and related fields.
-func (r *CameraRepository) UpdateStatus(cameraID string, status string, fps float64, totalFrames int64) error {
+func (r *CameraRepository) UpdateStatus(ctx context.Context, cameraID string, status string, fps float64, totalFrames int64) error {
 	query := `UPDATE dorm_camera SET status = ?, fps_current = ?, total_frames = ?, last_heartbeat = NOW() WHERE camera_id = ?`
-	_, err := r.DB.Exec(query, status, fps, totalFrames, cameraID)
+	_, err := r.DB.ExecContext(ctx, query, status, fps, totalFrames, cameraID)
 	if err != nil {
 		return fmt.Errorf("update camera status: %w", err)
 	}
@@ -74,9 +75,9 @@ func (r *CameraRepository) UpdateStatus(cameraID string, status string, fps floa
 }
 
 // UpdateLastEventTime updates the last_event_time for a camera.
-func (r *CameraRepository) UpdateLastEventTime(cameraID string) error {
+func (r *CameraRepository) UpdateLastEventTime(ctx context.Context, cameraID string) error {
 	query := "UPDATE dorm_camera SET last_event_time = NOW() WHERE camera_id = ?"
-	_, err := r.DB.Exec(query, cameraID)
+	_, err := r.DB.ExecContext(ctx, query, cameraID)
 	if err != nil {
 		return fmt.Errorf("update camera last event time: %w", err)
 	}
@@ -84,9 +85,9 @@ func (r *CameraRepository) UpdateLastEventTime(cameraID string) error {
 }
 
 // UpdateHealthCheck updates the last_health_check timestamp.
-func (r *CameraRepository) UpdateHealthCheck(cameraID string) error {
+func (r *CameraRepository) UpdateHealthCheck(ctx context.Context, cameraID string) error {
 	query := "UPDATE dorm_camera SET last_health_check = NOW() WHERE camera_id = ?"
-	_, err := r.DB.Exec(query, cameraID)
+	_, err := r.DB.ExecContext(ctx, query, cameraID)
 	if err != nil {
 		return fmt.Errorf("update camera health check: %w", err)
 	}
@@ -94,12 +95,12 @@ func (r *CameraRepository) UpdateHealthCheck(cameraID string) error {
 }
 
 // FindWithPagination paginates cameras, filtered by optional building.
-func (r *CameraRepository) FindWithPagination(building string, page, size int) ([]entity.DormCamera, int64, error) {
+func (r *CameraRepository) FindWithPagination(ctx context.Context, building string, page, size int) ([]entity.DormCamera, int64, error) {
 	where := ""
 	var args []interface{}
 	if building != "" {
 		where = "building = ?"
 		args = append(args, building)
 	}
-	return r.BaseRepository.FindWithPagination(where, args, "camera_id ASC", page, size)
+	return r.BaseRepository.FindWithPagination(ctx, where, args, "camera_id ASC", page, size)
 }

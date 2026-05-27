@@ -1,0 +1,331 @@
+{
+  "openapi": "3.0.3",
+  "info": {
+    "title": "CampusVision AI — Stream Gateway API",
+    "version": "1.0.0",
+    "description": "HTTP APIs for the stream-gateway Go module. Serves two separate HTTP servers: **Health API** (port 8080) for monitoring and **Management API** (port 8081) for camera lifecycle with optional X-Management-Key auth."
+  },
+  "externalDocs": {
+    "description": "Project AGENTS.md",
+    "url": "https://github.com/sims/campusvision/blob/main/AGENTS.md"
+  },
+  "servers": [
+    { "url": "http://localhost:8080", "description": "Health API" },
+    { "url": "http://localhost:8081", "description": "Management API" }
+  ],
+  "tags": [
+    {
+      "name": "health",
+      "description": "Monitoring & health checks (port 8080, no auth)"
+    },
+    {
+      "name": "management",
+      "description": "Camera lifecycle management (port 8081, optional X-Management-Key)"
+    }
+  ],
+  "paths": {
+    "/health": {
+      "get": {
+        "tags": ["health"],
+        "summary": "Aggregated camera health status",
+        "description": "Returns health status for all registered cameras including connection state, rolling FPS, frame count, and uptime.",
+        "operationId": "getHealth",
+        "responses": {
+          "200": {
+            "description": "Aggregated health status",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/HealthResponse" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/cameras/{camera_id}/health": {
+      "get": {
+        "tags": ["health"],
+        "summary": "Per-camera health status",
+        "description": "Returns health status for a single camera by ID.",
+        "operationId": "getCameraHealth",
+        "parameters": [
+          {
+            "name": "camera_id",
+            "in": "path",
+            "required": true,
+            "schema": { "type": "string" },
+            "description": "Camera identifier (e.g. cam-a)"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Camera health status",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/CameraStatus" }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid request (missing camera_id)",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/ErrorResponse" }
+              }
+            }
+          },
+          "404": {
+            "description": "Camera not found",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/ErrorResponse" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/cameras": {
+      "get": {
+        "tags": ["management"],
+        "summary": "List all cameras",
+        "description": "Returns all registered camera statuses. Requires X-Management-Key header if configured.",
+        "operationId": "listCameras",
+        "security": [{ "managementKey": [] }],
+        "responses": {
+          "200": {
+            "description": "List of camera statuses",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": { "$ref": "#/components/schemas/CameraStatus" }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized (invalid or missing X-Management-Key)",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/ErrorResponse" }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": ["management"],
+        "summary": "Register a new camera",
+        "description": "Adds a new camera to the stream gateway. Camera will begin streaming if `enabled` is true and `rtsp_url` is provided.",
+        "operationId": "addCamera",
+        "security": [{ "managementKey": [] }],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/CameraCreateRequest" }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Camera registered",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/CameraAddedResponse" }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid JSON or missing required fields",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/ErrorResponse" }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/ErrorResponse" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/cameras/{camera_id}": {
+      "get": {
+        "tags": ["management"],
+        "summary": "Get single camera status",
+        "operationId": "getCamera",
+        "security": [{ "managementKey": [] }],
+        "parameters": [
+          {
+            "name": "camera_id",
+            "in": "path",
+            "required": true,
+            "schema": { "type": "string" }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Camera status",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/CameraStatus" }
+              }
+            }
+          },
+          "404": {
+            "description": "Camera not found",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/ErrorResponse" }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": ["management"],
+        "summary": "Remove a camera",
+        "description": "Stops the camera stream and removes from registry. Idempotent — silently succeeds if camera does not exist.",
+        "operationId": "deleteCamera",
+        "security": [{ "managementKey": [] }],
+        "parameters": [
+          {
+            "name": "camera_id",
+            "in": "path",
+            "required": true,
+            "schema": { "type": "string" }
+          }
+        ],
+        "responses": {
+          "204": { "description": "Camera removed (no content)" },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/ErrorResponse" }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "securitySchemes": {
+      "managementKey": {
+        "type": "apiKey",
+        "in": "header",
+        "name": "X-Management-Key",
+        "description": "Optional management API key. If config.management.management_key is set, this header must match."
+      }
+    },
+    "schemas": {
+      "HealthResponse": {
+        "type": "object",
+        "description": "Aggregated health response for all cameras.",
+        "properties": {
+          "status": {
+            "type": "string",
+            "description": "Always \"UP\"",
+            "example": "UP"
+          },
+          "cameras": {
+            "type": "array",
+            "items": { "$ref": "#/components/schemas/CameraStatus" },
+            "description": "Health status for each registered camera"
+          }
+        }
+      },
+      "CameraStatus": {
+        "type": "object",
+        "description": "Runtime status of a single camera stream.",
+        "properties": {
+          "camera_id": {
+            "type": "string",
+            "description": "Camera identifier",
+            "example": "cam-a"
+          },
+          "building": {
+            "type": "string",
+            "description": "Building code",
+            "example": "A"
+          },
+          "connected": {
+            "type": "boolean",
+            "description": "RTSP stream connection state"
+          },
+          "fps": {
+            "type": "number",
+            "format": "float",
+            "description": "Rolling frames-per-second",
+            "example": 4.8
+          },
+          "last_frame_time": {
+            "type": "string",
+            "description": "Timestamp of most recent frame"
+          },
+          "frames_sent": {
+            "type": "integer",
+            "format": "int64",
+            "description": "Cumulative frames published to Kafka"
+          },
+          "uptime_seconds": {
+            "type": "integer",
+            "format": "int64",
+            "description": "Seconds since stream started (only when connected)"
+          }
+        }
+      },
+      "CameraCreateRequest": {
+        "type": "object",
+        "description": "Request body for registering a new camera.",
+        "required": ["id", "building"],
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "Camera identifier",
+            "example": "CAM_NEW"
+          },
+          "building": {
+            "type": "string",
+            "description": "Building code",
+            "example": "A"
+          },
+          "rtsp_url": {
+            "type": "string",
+            "description": "RTSP stream URL. If empty, camera has no stream source."
+          },
+          "enabled": {
+            "type": "boolean",
+            "description": "If true, start streaming immediately after registration.",
+            "default": true
+          }
+        }
+      },
+      "CameraAddedResponse": {
+        "type": "object",
+        "properties": {
+          "status": { "type": "string", "example": "added" },
+          "id": { "type": "string", "example": "CAM_NEW" }
+        }
+      },
+      "ErrorResponse": {
+        "type": "object",
+        "properties": {
+          "error": {
+            "type": "string",
+            "description": "Human-readable error message",
+            "example": "camera not found"
+          }
+        }
+      }
+    }
+  }
+}
