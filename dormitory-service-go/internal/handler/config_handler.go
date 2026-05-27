@@ -23,7 +23,7 @@ func NewConfigHandler(svc *service.ConfigService) *ConfigHandler {
 func (h *ConfigHandler) ListConfigs(c *gin.Context) {
 	group := c.Query("group")
 
-	configs, err := h.svc.GetAllConfigs(group)
+	configs, err := h.svc.GetAllConfigs(c.Request.Context(), group)
 	if err != nil {
 		Error(c, http.StatusInternalServerError, "Failed to list configs: "+err.Error())
 		return
@@ -36,7 +36,7 @@ func (h *ConfigHandler) ListConfigs(c *gin.Context) {
 func (h *ConfigHandler) GetConfig(c *gin.Context) {
 	key := c.Param("key")
 
-	cfg, err := h.svc.GetConfigByKey(key)
+	cfg, err := h.svc.GetConfigByKey(c.Request.Context(), key)
 	if err != nil {
 		if errors.Is(err, service.ErrNotFound) {
 			Error(c, http.StatusNotFound, "Config not found")
@@ -61,7 +61,7 @@ func (h *ConfigHandler) UpdateConfig(c *gin.Context) {
 		return
 	}
 
-	if err := h.svc.UpdateConfig(key, body.Value); err != nil {
+	if err := h.svc.UpdateConfig(c.Request.Context(), key, body.Value); err != nil {
 		if errors.Is(err, service.ErrNotFound) {
 			Error(c, http.StatusNotFound, "Config not found")
 			return
@@ -97,7 +97,7 @@ func (h *ConfigHandler) BatchUpdate(c *gin.Context) {
 		})
 	}
 
-	if err := h.svc.BatchUpdate(updates); err != nil {
+	if err := h.svc.BatchUpdate(c.Request.Context(), updates); err != nil {
 		Error(c, http.StatusInternalServerError, "Failed to batch update configs: "+err.Error())
 		return
 	}
@@ -109,7 +109,7 @@ func (h *ConfigHandler) BatchUpdate(c *gin.Context) {
 func (h *ConfigHandler) ResetConfig(c *gin.Context) {
 	key := c.Param("key")
 
-	cfg, err := h.svc.ResetConfig(key)
+	cfg, err := h.svc.ResetConfig(c.Request.Context(), key)
 	if err != nil {
 		if errors.Is(err, service.ErrNotFound) {
 			Error(c, http.StatusNotFound, "Config not found")
@@ -124,7 +124,7 @@ func (h *ConfigHandler) ResetConfig(c *gin.Context) {
 
 // ListGroups    GET /api/configs/groups
 func (h *ConfigHandler) ListGroups(c *gin.Context) {
-	groups, err := h.svc.GetGroups()
+	groups, err := h.svc.GetGroups(c.Request.Context())
 	if err != nil {
 		Error(c, http.StatusInternalServerError, "Failed to list groups: "+err.Error())
 		return

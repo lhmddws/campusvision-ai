@@ -59,8 +59,8 @@ internal/
 ### ReportService Is a Skeleton
 `service/report_service.go:26` — `GenerateNightlyReport` has a TODO, creates a placeholder report with zero aggregation.
 
-### AES Key Mismatch with stream-gateway
-`util/crypto.go:15` — dev key `"01234567890123456789012345678901"` differs from stream-gateway's dev key. Cross-module encrypt/decrypt **will fail** unless `CAMERA_ENCRYPTION_KEY` env var is set to the same value.
+### AES Key — Now Synchronized with stream-gateway
+`util/crypto.go:32` — dev key `"01234567890123456789012345678901"` matches stream-gateway's dev key. The `init()` function in `crypto.go` reads `CAMERA_ENCRYPTION_KEY` env var at startup, matching stream-gateway's pattern. Both modules share the same dev key and env-var override mechanism.
 
 ### Config Loading: CONFIG_PATH (Not CLI Flag)
 `cmd/dormitory-service/main.go:33` — uses `CONFIG_PATH` env var, not `--config` CLI flag like stream-gateway. Config also accepts Spring Boot env vars (`SPRING_DATASOURCE_URL`, `KAFKA_BOOTSTRAP_SERVERS`, etc.) via `config.go:107-144`.

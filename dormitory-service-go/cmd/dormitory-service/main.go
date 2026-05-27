@@ -95,9 +95,9 @@ func main() {
 	studentRepo := repository.NewStudentRepository(db)
 	alertRepo := repository.NewAlertRepository(db)
 	strangerRecordRepo := repository.NewStrangerRecordRepository(db)
-	nightlyReportRepo := repository.NewNightlyReportRepository(db)
 	configRepo := repository.NewConfigRepository(db)
 	cameraLogRepo := repository.NewCameraLogRepository(db)
+	buildingRepo := repository.NewBuildingRepository(db)
 
 	// Initialize push client for stream-gateway notifications
 	pushBaseURL := os.Getenv("CAMERA_MANAGEMENT_BASE_URL")
@@ -107,15 +107,19 @@ func main() {
 	pushAPIKey := os.Getenv("CAMERA_MANAGEMENT_API_KEY")
 	pushClient := client.NewPushClient(pushBaseURL, pushAPIKey)
 
+	gatewayURL := os.Getenv("STREAM_GATEWAY_URL")
+	if gatewayURL == "" {
+		gatewayURL = "http://localhost:8080"
+	}
+
 	// Initialize services
-	cameraSvc := service.NewCameraService(cameraRepo, eventLogRepo, cameraLogRepo, pushClient)
+	cameraSvc := service.NewCameraService(cameraRepo, eventLogRepo, cameraLogRepo, pushClient, gatewayURL)
 	recordSvc := service.NewRecordService(eventLogRepo, studentRepo)
 	alertSvc := service.NewAlertService(alertRepo, strangerRecordRepo)
 	configSvc := service.NewConfigService(configRepo)
-	reportSvc := service.NewReportService(nightlyReportRepo)
 
 	// Initialize handlers
-	h := handler.NewHandler(cameraSvc, recordSvc, alertSvc, configSvc, reportSvc, db)
+	h := handler.NewHandler(cameraSvc, recordSvc, alertSvc, configSvc, db)
 	cameraHandler := handler.NewCameraHandler(cameraSvc)
 	recordHandler := handler.NewRecordHandler(recordSvc)
 	alertHandler := handler.NewAlertHandler(alertSvc)
@@ -125,11 +129,11 @@ func main() {
 	eventConsumer := consumer.NewEventConsumer(
 		logger,
 		rdb,
-		db,
 		cfg.Kafka.Brokers,
 		cfg.Kafka.EventTopic,
 		cfg.Kafka.GroupID,
 		cfg.Kafka.MaxPollRecord,
+		buildingRepo,
 		eventLogRepo,
 		studentRepo,
 		alertRepo,
@@ -137,22 +141,12 @@ func main() {
 		cameraRepo,
 	)
 
-	// Initialize Kafka alert consumer
-	alertConsumer := consumer.NewAlertConsumer(
-		logger,
-		cfg.Kafka.Brokers,
-		cfg.Kafka.AlertTopic,
-		cfg.Kafka.GroupID,
-	)
-
 	// Setup consumer manager
 	consumerManager := consumer.NewManager(logger)
 	consumerManager.Register(eventConsumer)
-	consumerManager.Register(alertConsumer)
 
 	// Setup scheduler manager
 	schedulerManager := scheduler.NewManager(logger)
-	schedulerManager.AddJob("0 0 23 * * *", scheduler.NewNightlyReportJob(logger, reportSvc))
 	schedulerManager.AddJob("0 */5 * * * *", scheduler.NewHealthCheckJob(logger, cameraSvc))
 
 	// Setup Gin router
@@ -242,7 +236,6 @@ func main() {
 	records := router.Group("/sims/dorm/records")
 	records.Use(jwtMiddleware.RequireAuth())
 	{
-		records.POST("/attendance", recordHandler.HandleAttendance)
 		records.GET("/attendance/stats", recordHandler.GetAttendanceStats)
 		records.GET("/attendance/daily-summary", recordHandler.GetDailySummary)
 		records.GET("/events", recordHandler.GetEvents)
@@ -269,18 +262,15 @@ func main() {
 		configs.POST("/:key/reset", configHandler.ResetConfig)
 	}
 
-	// Face routes
-	faceRoutes := router.Group("/api/face")
-	faceRoutes.Use(jwtMiddleware.RequireAuth())
+	// Face routes — /api/face/match is internal (called by face-recognition service, no JWT)
+	faceInternal := router.Group("/api/face")
 	{
-		faceRoutes.POST("/match", h.FaceMatch)
-		faceRoutes.POST("/embed", h.FaceEmbed)
+		faceInternal.POST("/match", h.FaceMatch)
 	}
 
 	// Start Kafka consumers and schedulers
 	consumerCtx, consumerCancel := context.WithCancel(context.Background())
 	eventConsumer.Start(consumerCtx)
-	alertConsumer.Start(consumerCtx)
 	schedulerManager.Start()
 
 	logger.Info("Kafka consumers and schedulers started")

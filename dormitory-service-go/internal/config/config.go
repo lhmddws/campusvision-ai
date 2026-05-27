@@ -70,7 +70,7 @@ func Load(configPath string) (*Config, error) {
 	v := viper.New()
 
 	// --- Defaults ---
-	v.SetDefault("server.port", 8081)
+	v.SetDefault("server.port", 8083)
 	v.SetDefault("database.driver", "mysql")
 	v.SetDefault("database.max_open_conns", 25)
 	v.SetDefault("database.max_idle_conns", 10)

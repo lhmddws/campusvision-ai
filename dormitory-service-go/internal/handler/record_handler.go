@@ -20,22 +20,6 @@ func NewRecordHandler(svc *service.RecordService) *RecordHandler {
 	return &RecordHandler{svc: svc}
 }
 
-// HandleAttendance    POST /sims/dorm/records/attendance
-func (h *RecordHandler) HandleAttendance(c *gin.Context) {
-	var msg dto.FaceEventMessage
-	if err := c.ShouldBindJSON(&msg); err != nil {
-		Error(c, http.StatusBadRequest, "Invalid request body: "+err.Error())
-		return
-	}
-
-	if err := h.svc.HandleAttendance(msg); err != nil {
-		Error(c, http.StatusInternalServerError, "Failed to handle attendance: "+err.Error())
-		return
-	}
-
-	Success(c, nil)
-}
-
 // GetAttendanceStats    GET /sims/dorm/records/attendance/stats
 func (h *RecordHandler) GetAttendanceStats(c *gin.Context) {
 	buildingID, _ := strconv.ParseInt(c.Query("building_id"), 10, 64)
@@ -94,7 +78,7 @@ func (h *RecordHandler) GetEvents(c *gin.Context) {
 		Size:       size,
 	}
 
-	events, total, err := h.svc.GetEvents(query)
+	events, total, err := h.svc.GetEvents(c.Request.Context(), query)
 	if err != nil {
 		Error(c, http.StatusInternalServerError, "Failed to query events: "+err.Error())
 		return

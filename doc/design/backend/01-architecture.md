@@ -72,10 +72,10 @@
         <artifactId>mysql-connector-j</artifactId>
         <scope>runtime</scope>
     </dependency>
-    <!-- 或 PostgreSQL -->
+    <!-- MariaDB (MySQL 兼容) -->
     <dependency>
-        <groupId>org.postgresql</groupId>
-        <artifactId>postgresql</artifactId>
+        <groupId>org.mariadb.jdbc</groupId>
+        <artifactId>mariadb-java-client</artifactId>
         <scope>runtime</scope>
     </dependency>
 
@@ -369,10 +369,10 @@ spring:
 
   # 数据源 (Phase 1 独立数据库)
   datasource:
-    url: jdbc:postgresql://localhost:5432/dormitory
+    url: jdbc:mariadb://localhost:3306/dormitory
     username: dormitory
     password: ${DB_PASSWORD}
-    driver-class-name: org.postgresql.Driver
+    driver-class-name: org.mariadb.jdbc.Driver
     hikari:
       maximum-pool-size: 10
       minimum-idle: 2

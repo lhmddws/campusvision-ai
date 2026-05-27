@@ -43,30 +43,25 @@ func (r *BaseRepository[T]) FindByID(ctx context.Context, id int64) (*T, error) 
 	return &entity, nil
 }
 
-// allowedOrderBys is the whitelist of permitted ORDER BY clauses to prevent SQL injection.
-var allowedOrderBys = map[string]bool{
-	"created_at DESC": true, "created_at ASC": true,
-	"updated_at DESC": true, "updated_at ASC": true,
-	"id DESC": true, "id ASC": true,
-	"camera_id ASC": true, "camera_id DESC": true,
-	"name DESC": true, "name ASC": true,
-	"student_id ASC": true, "student_id DESC": true,
-	"config_key ASC": true, "config_key DESC": true,
-	"timestamp DESC": true, "timestamp ASC": true,
-	"occurred_at DESC": true, "occurred_at ASC": true,
-	"detected_time DESC": true, "detected_time ASC": true,
-	"report_date DESC, building ASC": true, "report_date ASC, building ASC": true,
-	"building ASC": true, "building DESC": true,
-	"created_at DESC, building ASC": true,
+var allowedOrderBy = map[string]bool{
+	"id": true, "created_at": true, "updated_at": true,
+	"student_id": true, "building": true, "room": true,
+	"camera_id": true, "event_time": true, "timestamp": true,
+	"status": true, "severity": true, "detected_time": true,
+	"config_key": true, "config_group": true, "sync_version": true,
+	"name": true, "occurred_at": true, "report_date": true,
 }
 
-// sanitizeOrderBy validates the orderBy clause against a whitelist.
-// If the clause is not permitted, it returns the default order.
 func sanitizeOrderBy(orderBy string) string {
-	if allowedOrderBys[orderBy] {
-		return orderBy
+	if orderBy == "" {
+		return "created_at DESC"
 	}
-	return "created_at DESC"
+	field := strings.TrimSuffix(strings.TrimSuffix(orderBy, " ASC"), " DESC")
+	field = strings.TrimSpace(field)
+	if !allowedOrderBy[field] {
+		return "created_at DESC"
+	}
+	return orderBy
 }
 
 // FindAll retrieves all entities with optional ordering.
@@ -194,11 +189,11 @@ func (r *BaseRepository[T]) FindWithPagination(
 	if page < 1 {
 		page = 1
 	}
+	const maxPageSize = 100
 	if size <= 0 {
-		size = 10
-	}
-	if size > 100 {
-		size = 100 // prevent unbounded queries
+		size = 20
+	} else if size > maxPageSize {
+		size = maxPageSize
 	}
 
 	// Count total matching records

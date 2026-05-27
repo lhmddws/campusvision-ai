@@ -17,7 +17,6 @@ RTSP cameras (A/B/C/D) → stream-gateway (Go) → t_dorm_frame (Kafka)
 | Stream ingest | Go | `stream-gateway` | RTSP capture → Kafka frame producer |
 | Recognition | Python | `face-recognition` | Face detection/recognition → event producer |
 | Business | Go | `dormitory-service-go` | Event processing, alerts, reports, API |
-| Test env | Go | `test-env` | Simulated 4-camera setup for dev/testing |
 
 **Infrastructure** (Docker Compose): Kafka, Redis, MariaDB, MinIO
 
@@ -28,7 +27,6 @@ RTSP cameras (A/B/C/D) → stream-gateway (Go) → t_dorm_frame (Kafka)
 | `stream-gateway/` | Go | `cmd/main.go --config config.yaml` | 8080 (health), 8081 (mgmt) |
 | `face-recognition/` | Python | `python -m app.main --config config.yaml` | — |
 | `dormitory-service-go/` | Go | `go run ./cmd/dormitory-service/ --config config.yaml` | 8083 |
-| `test-env/` | Go (Gin) + Vue 3 | `go run ./cmd/test-env/` | 8082 |
 | `infra/` | — | `docker-compose.yml` | — |
 
 ## Quick Start
@@ -46,10 +44,6 @@ cd face-recognition && python -m app.main --config config.yaml
 
 # 4. Dormitory service (Go)
 cd dormitory-service-go && go run ./cmd/dormitory-service/ --config config.yaml
-
-# 5. Test environment (Go + Vue frontend — simulates 4 cameras)
-cd test-env/frontend && npm ci && npm run build
-cd test-env && go run ./cmd/test-env/
 ```
 
 ## Kafka Topics

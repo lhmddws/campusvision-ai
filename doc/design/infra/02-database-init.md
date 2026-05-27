@@ -1,15 +1,14 @@
 # 数据库初始化设计
 
 > **版本**: v1.0 · **更新**: 2026-05-16  
-> **用途**: 定义 MariaDB 和 PostgreSQL 双版本的建表 DDL，支持按需选择数据库。
+> **用途**: 定义 MariaDB 建表 DDL。
 
 ---
 
 ## 1. 设计原则
 
-- **双版本兼容**: `infra/mariadb/init.sql` 和 `infra/postgres/init.sql` 功能等价
 - **自动初始化**: MariaDB 通过 Docker `docker-entrypoint-initdb.d` 机制自动执行
-- **生产建议**: 学管系统使用 PostgreSQL 时，CampusVision 也使用 PostgreSQL 保持统一
+- **生产建议**: 与本仓库保持一致，统一使用 MariaDB
 
 ---
 
@@ -125,20 +124,6 @@ ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 -- 时间戳字段使用 CURRENT_TIMESTAMP 默认值
 created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
 updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
-```
-
-## 5. PostgreSQL DDL 差异
-
-```sql
--- 序列自增
-id BIGSERIAL PRIMARY KEY
-
--- 时间戳
-created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-
--- 布尔类型
-is_stranger BOOLEAN DEFAULT FALSE
 ```
 
 ---

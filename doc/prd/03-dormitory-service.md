@@ -107,10 +107,10 @@
 
 | 层级 | 技术方案 | 说明 |
 |---|---|---|
-| 应用框架 | Spring Boot 3.x | 微服务开发框架 |
-| 开发语言 | Java 17 / 21 | LTS 版本 |
-| ORM | MyBatis-Plus | 数据库访问层 |
-| 业务数据库 | PostgreSQL 15+ / MySQL 8+ | 持久化业务数据 |
+| 应用框架 | Gin | HTTP 框架 |
+| 开发语言 | Go 1.26 | 编译型高性能语言 |
+| ORM | sqlx | 数据库访问层 |
+| 业务数据库 | MariaDB 10.11 | 持久化业务数据 |
 | 缓存 | Redis 7+ | 实时状态缓存、热点数据 |
 | 消息队列 | Kafka 3.x | 事件驱动，消费进出事件 |
 | API 文档 | SpringDoc OpenAPI (Swagger) | 自动生成 API 文档 |
@@ -1359,7 +1359,7 @@ Response 200:
   "timestamp": "2026-05-15T23:00:00+08:00",
   "components": {
     "redis": { "status": "UP", "latencyMs": 2 },
-    "postgresql": { "status": "UP", "latencyMs": 5 },
+    "mariadb": { "status": "UP", "latencyMs": 5 },
     "kafka": { "status": "UP", "lag": 0 },
     "simsApi": { "status": "UP", "lastSync": "2026-05-15T12:00:00+08:00" }
   },
@@ -1785,7 +1785,7 @@ Response 200:
 }
 ```
 
-**路径 B（备选）**: 若学管不提供 face/match 接口，则由 Face Recognition 服务本地管理人脸特征库（需增加 Milvus 或本地向量索引）。
+**路径 B（备选）**: 若学管不提供 face/match 接口，则由 Face Recognition 服务本地管理人脸特征库（需增加本地向量索引）。
 
 ### 9.2 学管系统调用本服务
 

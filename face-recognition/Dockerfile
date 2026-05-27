@@ -21,4 +21,4 @@ USER appuser
 HEALTHCHECK --interval=30s --timeout=10s --start-period=60s --retries=3 \
   CMD python -c "import app.main; exit(0)" 2>/dev/null || exit 1
 
-CMD ["python", "-m", "app.main"]
+CMD ["python", "-m", "app.main", "--config", "config.yaml"]

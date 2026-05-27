@@ -22,12 +22,9 @@ design/
 ├── camera/                            ← 摄像头功能实现（搭档）
 │   └── 01-camera-feature.md          ← 摄像头技术设计：健康检查、离线检测、CRUD、与感知层接口约定
 │
-├── test-env/                          ← 测试环境（感知层）
-│   └── 01-test-environment.md        ← 测试环境架构：模拟服务器、API、Web dashboard、与 Kafka 集成
-│
 └── infra/                             ← 基础架构
     ├── 01-infrastructure.md           ← Docker Compose 编排、Kafka/Redis/MariaDB/MinIO 配置
-    └── 02-database-init.md           ← 数据库初始化：DDL 双版本（MariaDB + PostgreSQL）
+    └── 02-database-init.md           ← 数据库初始化：DDL (MariaDB)
 ```
 
 ---
@@ -39,7 +36,6 @@ design/
 | **Java 后端开发** | 实现所有业务逻辑、数据库、API | `backend/01-architecture.md` + `02-database.md` + `03-api.md` |
 | **系统集成工程师** | 将 dormitory-service 接入主 SpringBoot 进程 | `integration/01-main-process.md` |
 | **摄像头功能开发者** | 实现摄像头设备管理、状态监控 | `camera/01-camera-feature.md` |
-| **测试/开发** | 使用模拟环境调试感知层管道 | `test-env/01-test-environment.md` |
 | **运维/部署** | 搭建基础架构（Kafka/Redis/DB/MinIO） | `infra/01-infrastructure.md` + `02-database-init.md` |
 
 ---
@@ -59,14 +55,9 @@ PRD-005 摄像头功能实现
     ↓ 细化
 camera/01-camera-feature.md →  健康检查 Task、离线检测、CRUD 实现
 
-测试环境
-    ↓
-test-env/01-test-environment.md  →  模拟多路摄像头（默认4路）、Kafka注入、Web面板
-
 基础架构
     ├── docker-compose.yml     →  容器编排（Kafka/Redis/MariaDB/MinIO）
-    ├── infra/postgres/        →  PostgreSQL 版本建表 DDL
-    └── infra/mariadb/         →  MariaDB 版本建表 DDL
+    └── infra/mariadb/         →  建表 DDL + 迁移脚本
 ```
 
 ---
@@ -80,5 +71,4 @@ test-env/01-test-environment.md  →  模拟多路摄像头（默认4路）、Ka
 | 对接前端 API | `backend/03-api.md` → 响应格式 + 端点 |
 | 把模块接进主进程 | `integration/01-main-process.md` → 8步迁移清单 |
 | 实现摄像头状态监控 | `camera/01-camera-feature.md` → 健康检查 + 离线检测 |
-| 本地模拟测试（无摄像头） | `test-env/01-test-environment.md` → 启动模拟服务器（默认4路） |
 | 搭建基础服务 | `docker-compose.yml` + `infra/` 下的 init SQL |

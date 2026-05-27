@@ -73,28 +73,28 @@ Go
 
 ---
 
-## 3. Java 业务系统
+## 3. 业务服务 (Go)
 
 ```text
-campusvision-platform
+dormitory-service-go
 ```
 
 职责：
 
-* 用户管理
-* 摄像头管理
+* 事件消费处理
+* 学生状态管理
+* 每晚查宿统计
 * 告警管理
-* WebSocket
-* 权限系统
-* 轨迹查询
+* 报表 API
+* 摄像头管理
 * 数据统计
 
 推荐技术：
 
 ```text
-Spring Boot
+Gin
 Vue
-PostgreSQL
+MariaDB
 Redis
 ```
 
@@ -135,9 +135,9 @@ Kafka / Redis Stream
         ↓
 AI Engine
         ↓
-Redis / PostgreSQL / Milvus
+Redis / MariaDB
         ↓
-Java Platform
+Dormitory Service (Go)
         ↓
 WebSocket / REST API
         ↓
@@ -216,16 +216,15 @@ Vue Web
 
 ---
 
-## Java Platform
+## Dormitory Service (Go)
 
-| 模块   | 技术           |
-| ---- | ------------ |
-| 后端   | Spring Boot  |
-| ORM  | MyBatis Plus |
-| 缓存   | Redis        |
-| 数据库  | PostgreQL   |
-| 向量库  | Milvus       |
-| 文件存储 | MinIO        |
+| 模块   | 技术        |
+| ---- | --------- |
+| 后端   | Gin        |
+| 数据库  | MariaDB   |
+| 缓存   | Redis      |
+| 消息   | Kafka      |
+| 文件存储 | MinIO     |
 
 ---
 
@@ -264,18 +263,14 @@ campusvision-ai-engine/
 
 ---
 
-## Java Platform
+## Dormitory Service (Go)
 
 ```text
-campusvision-platform/
-├── gateway/
-├── auth-service/
-├── camera-service/
-├── alarm-service/
-├── track-service/
-├── websocket-service/
-├── common/
-└── docker/
+dormitory-service-go/
+├── cmd/
+├── internal/
+├── pkg/
+└── config.yaml
 ```
 
 ---
@@ -296,10 +291,10 @@ campusvision-platform/
 ```text
 RTSP服务器 × 2
 GPU推理服务器 × 2
-Java业务服务器 × 2
+Go业务服务器 × 2
 Kafka集群
 Redis集群
-PostgreSQL主从
+MariaDB主从
 ```
 
 ---
@@ -314,9 +309,7 @@ services:
 
   redis:
 
-  postgres:
-
-  milvus:
+  mariadb:
 
   minio:
 
@@ -324,7 +317,7 @@ services:
 
   stream-gateway:
 
-  campus-platform:
+  dormitory-service:
 ```
 
 ---
@@ -503,8 +496,7 @@ POST /api/stream/analyze
 
 ## Java
 
-* Spring Boot 3
-* Java 21
+* Go 1.26
 * MapStruct
 * Lombok
 

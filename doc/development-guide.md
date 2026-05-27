@@ -24,7 +24,6 @@
 |------|---------|------|
 | Python | ≥ 3.11 | AI Engine |
 | Go | ≥ 1.22 | Stream Gateway |
-| JDK | ≥ 21 | Java Platform |
 | Node.js | ≥ 20 | Web 前端 |
 | Docker | ≥ 24 | 本地基础设施 |
 | NVIDIA Driver | ≥ 545 | GPU 推理 |
@@ -37,7 +36,6 @@
 # 确认各工具已安装
 python3 --version      # ≥ 3.11
 go version             # ≥ 1.22
-java -version          # ≥ 21
 node --version         # ≥ 20
 docker --version       # ≥ 24
 nvidia-smi             # GPU 驱动正常
@@ -54,13 +52,12 @@ nvcc --version         # CUDA ≥ 12.4
 git clone http://192.168.113.82/lhmddws/campusvision-ai.git
 git clone http://192.168.113.82/lhmddws/campusvision-ai-engine.git
 git clone http://192.168.113.82/lhmddws/campusvision-stream-gateway.git
-git clone http://192.168.113.82/lhmddws/campusvision-platform.git
 git clone http://192.168.113.82/lhmddws/campusvision-web.git
 ```
 
 ### 2.2 启动基础设施
 
-项目依赖 Kafka、Redis、PostgreSQL、Milvus、MinIO。使用 Docker Compose 一键启动：
+项目依赖 Kafka、Redis、MariaDB、MinIO。使用 Docker Compose 一键启动：
 
 ```bash
 # 基础服务
@@ -108,21 +105,7 @@ go install github.com/air-verse/air@latest
 air --config .air.toml
 ```
 
-### 2.5 Java Platform
-
-```bash
-cd campusvision-platform
-
-# Maven 编译
-./mvnw clean package -DskipTests
-
-# 启动（dev profile）
-java -jar target/campusvision-platform.jar --spring.profiles.active=dev
-
-# 或直接用 IDEA 打开项目，运行 Application.java
-```
-
-### 2.6 Web 前端
+### 2.5 Web 前端
 
 ```bash
 cd campusvision-web
@@ -139,8 +122,7 @@ npm run dev     # 开发服务器，默认 http://localhost:5173
 |------|------|--------|
 | `KAFKA_BROKERS` | Kafka 地址 | `localhost:9092` |
 | `REDIS_URL` | Redis 地址 | `redis://localhost:6379` |
-| `POSTGRES_DSN` | 数据库连接 | `jdbc:postgresql://localhost:5432/campusvision` |
-| `MILVUS_HOST` | Milvus 地址 | `localhost:19530` |
+| `MARIADB_DSN` | 数据库连接 | `mariadb://localhost:3306/campusvision` |
 | `MINIO_ENDPOINT` | MinIO 地址 | `http://localhost:9000` |
 | `CUDA_VISIBLE_DEVICES` | GPU 设备号 | `0` |
 
@@ -194,32 +176,7 @@ func NewGateway(cfg *Config) *Gateway {
 }
 ```
 
-### 3.3 Java (Platform)
-
-- **基础**: Spring Boot 3, Java 21
-- **Lombok**: 使用 `@Data`, `@Builder`, `@Slf4j`
-- **MapStruct**: DTO 转换使用 MapStruct
-- **分层**: Controller → Service → Mapper，禁止跨层调用
-- **异常**: 使用全局异常处理，不捕获 `Exception`
-
-```java
-// ✅ 正确示例
-@Slf4j
-@Service
-@RequiredArgsConstructor
-public class CameraServiceImpl implements CameraService {
-
-    private final CameraMapper cameraMapper;
-
-    public PageResult<CameraVO> listCameras(CameraQuery query) {
-        PageHelper.startPage(query.getPage(), query.getSize());
-        List<Camera> list = cameraMapper.selectList(query.toWrapper());
-        return PageResult.of(list.stream().map(CameraVO::from).toList());
-    }
-}
-```
-
-### 3.4 TypeScript / Vue (Web)
+### 3.3 TypeScript / Vue (Web)
 
 - **TypeScript**: 严格模式，禁止 `any`
 - **组件**: Composition API + `<script setup>`
@@ -318,7 +275,6 @@ style:     格式调整（不影响逻辑）
 |------|-----------|------|
 | AI Engine 单元测试 | ≥ 70% | pytest |
 | Stream Gateway 单元测试 | ≥ 60% | go test |
-| Platform 单元测试 | ≥ 60% | JUnit 5 |
 | Web 组件测试 | - | Vitest |
 | E2E | 核心流程 | Playwright |
 
@@ -332,10 +288,6 @@ pytest --cov=app --cov-report=term
 # Stream Gateway
 cd campusvision-stream-gateway
 go test ./... -cover
-
-# Java Platform
-cd campusvision-platform
-./mvnw test
 
 # Web
 cd campusvision-web
@@ -415,10 +367,4 @@ echo $KAFKA_BROKERS
 
 ### 7.4 数据库迁移
 
-```bash
-# Flyway (Java Platform)
-./mvnw flyway:migrate -Dflyway.url=...
-
-# 回滚（开发环境）
-./mvnw flyway:undo
-```
+参考 `infra/mariadb/migrations/` 目录下的 SQL 文件，按编号顺序手动执行。

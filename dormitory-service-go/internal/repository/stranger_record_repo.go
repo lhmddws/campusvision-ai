@@ -1,6 +1,7 @@
 package repository
 
 import (
+	"context"
 	"fmt"
 	"time"
 
@@ -21,13 +22,13 @@ func NewStrangerRecordRepository(db *sqlx.DB) *StrangerRecordRepository {
 }
 
 // FindByBuilding finds stranger records for a building.
-func (r *StrangerRecordRepository) FindByBuilding(building string, limit int) ([]entity.DormStrangerRecord, error) {
+func (r *StrangerRecordRepository) FindByBuilding(ctx context.Context, building string, limit int) ([]entity.DormStrangerRecord, error) {
 	if limit <= 0 {
 		limit = 100
 	}
 	var records []entity.DormStrangerRecord
 	query := "SELECT * FROM dorm_stranger_record WHERE building = ? ORDER BY detected_time DESC LIMIT ?"
-	err := r.DB.Select(&records, query, building, limit)
+	err := r.DB.SelectContext(ctx, &records, query, building, limit)
 	if err != nil {
 		return nil, fmt.Errorf("find stranger records by building %s: %w", building, err)
 	}
@@ -35,10 +36,10 @@ func (r *StrangerRecordRepository) FindByBuilding(building string, limit int) ([
 }
 
 // FindByStatus finds stranger records by status.
-func (r *StrangerRecordRepository) FindByStatus(status string) ([]entity.DormStrangerRecord, error) {
+func (r *StrangerRecordRepository) FindByStatus(ctx context.Context, status string) ([]entity.DormStrangerRecord, error) {
 	var records []entity.DormStrangerRecord
 	query := "SELECT * FROM dorm_stranger_record WHERE status = ? ORDER BY detected_time DESC"
-	err := r.DB.Select(&records, query, status)
+	err := r.DB.SelectContext(ctx, &records, query, status)
 	if err != nil {
 		return nil, fmt.Errorf("find stranger records by status %s: %w", status, err)
 	}
@@ -46,10 +47,10 @@ func (r *StrangerRecordRepository) FindByStatus(status string) ([]entity.DormStr
 }
 
 // FindByTimeRange finds stranger records within a time range.
-func (r *StrangerRecordRepository) FindByTimeRange(start, end time.Time) ([]entity.DormStrangerRecord, error) {
+func (r *StrangerRecordRepository) FindByTimeRange(ctx context.Context, start, end time.Time) ([]entity.DormStrangerRecord, error) {
 	var records []entity.DormStrangerRecord
 	query := "SELECT * FROM dorm_stranger_record WHERE detected_time >= ? AND detected_time <= ? ORDER BY detected_time DESC"
-	err := r.DB.Select(&records, query, start, end)
+	err := r.DB.SelectContext(ctx, &records, query, start, end)
 	if err != nil {
 		return nil, fmt.Errorf("find stranger records by time range: %w", err)
 	}
@@ -58,6 +59,7 @@ func (r *StrangerRecordRepository) FindByTimeRange(start, end time.Time) ([]enti
 
 // FindWithPagination paginates stranger records.
 func (r *StrangerRecordRepository) FindWithPagination(
+	ctx context.Context,
 	building string,
 	status string,
 	startDate, endDate *time.Time,
@@ -91,5 +93,5 @@ func (r *StrangerRecordRepository) FindWithPagination(
 		}
 	}
 
-	return r.BaseRepository.FindWithPagination(where, args, "detected_time DESC", page, size)
+	return r.BaseRepository.FindWithPagination(ctx, where, args, "detected_time DESC", page, size)
 }

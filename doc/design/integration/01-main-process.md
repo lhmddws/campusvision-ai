@@ -293,7 +293,7 @@ public class SecurityConfig {
 # dormitory-service application.yml
 spring:
   datasource:
-    url: jdbc:postgresql://localhost:5432/dormitory
+    url: jdbc:mariadb://localhost:3306/dormitory
     username: dormitory
     password: ${DB_PASSWORD}
 ```
@@ -305,7 +305,7 @@ spring:
 spring:
   datasource:
     # 共用学管主数据源
-    url: jdbc:postgresql://localhost:5432/sims
+    url: jdbc:mariadb://localhost:3306/sims
     username: sims
     password: ${DB_PASSWORD}
 

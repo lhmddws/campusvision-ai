@@ -150,7 +150,7 @@ CREATE TABLE dorm_student_assignment (
 ### 3.2 人员在校状态表 `dorm_student_status`
 
 ```sql
--- Redis 为主存储，PostgreSQL 做持久化备份
+-- Redis 为主存储，MariaDB 做持久化备份
 CREATE TABLE dorm_student_status (
     id                BIGINT        AUTO_INCREMENT PRIMARY KEY,
     student_id        VARCHAR(32)   NOT NULL UNIQUE          COMMENT '学号',

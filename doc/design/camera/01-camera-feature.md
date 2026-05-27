@@ -53,8 +53,8 @@
 │  └──────────┬───────────────────┘    │
 │             │                          │
 │  ┌──────────▼───────────────────┐    │
-│  │  PostgreSQL: dorm_camera      │    │
-│  │  PostgreSQL: dorm_camera_log  │    │
+│  │  MariaDB: dorm_camera         │    │
+│  │  MariaDB: dorm_camera_log     │    │
 │  └──────────────────────────────┘    │
 │                                       │
 │  ┌──────────────────────────────┐    │

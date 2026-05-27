@@ -7,34 +7,6 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-// EmbedRequest is the JSON body for POST /api/face/embed.
-type EmbedRequest struct {
-	ImagePath string `json:"image_path"`
-}
-
-// EmbedResponse is the JSON response for the face embed endpoint.
-type EmbedResponse struct {
-	Success   bool      `json:"success"`
-	Embedding []float32 `json:"embedding"`
-	Error     string    `json:"error,omitempty"`
-}
-
-// FaceEmbed computes a face embedding from an image.
-// POST /api/face/embed
-func (h *Handler) FaceEmbed(c *gin.Context) {
-	var req EmbedRequest
-	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, EmbedResponse{
-			Success: false,
-			Error:   "invalid request body",
-		})
-		return
-	}
-	// Stub implementation — returns success without embedding for now.
-	// Full implementation would call ONNX model to compute 512-dim embedding from image.
-	c.JSON(http.StatusOK, EmbedResponse{Success: true, Embedding: nil})
-}
-
 // FaceMatchRequest is the JSON body for POST /api/face/match.
 type FaceMatchRequest struct {
 	Embedding []float32 `json:"embedding"`
@@ -75,7 +47,7 @@ func (h *Handler) FaceMatch(c *gin.Context) {
 		return
 	}
 
-	rows, err := h.DB.Query("SELECT id, name, student_id, embedding FROM face_embedding")
+	rows, err := h.DB.QueryContext(c.Request.Context(), "SELECT id, name, student_id, embedding FROM face_embedding")
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, FaceMatchResponse{
 			Success: false,

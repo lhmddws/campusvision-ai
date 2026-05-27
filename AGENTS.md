@@ -15,7 +15,6 @@ RTSP cameras (A/B/C/D) → stream-gateway (Go) → t_dorm_frame (Kafka)
 | `stream-gateway/` | Go (1.26) | `go run cmd/main.go --config config.yaml` | 8080 (health), 8081 (mgmt) |
 | `face-recognition/` | Python (3.11) | `python -m app.main --config config.yaml` | — |
 | `dormitory-service-go/` | Go (1.26) | `CONFIG_PATH=config.yaml go run ./cmd/dormitory-service/` | 8083 |
-| `test-env/` | Go (1.26) Gin + Vue 3 | `go run ./cmd/test-env/` | 8082 |
 
 Infra (`docker compose up -d`): Zookeeper (2181), Kafka (9092), Redis (6379), MariaDB (3306), MinIO (9000/9001).
 
@@ -35,32 +34,10 @@ cd face-recognition && python -m app.main --config config.yaml
 # Dormitory Service (Go) — on :8083
 cd dormitory-service-go && CONFIG_PATH=config.yaml go run ./cmd/dormitory-service/
 
-# Test Environment (Go + Vue frontend)
-cd test-env/frontend && npm ci && npm run build  # first time / after frontend changes
-cd test-env && go run ./cmd/test-env/             # serves :8082
-
 # Kafka management
 docker compose exec kafka kafka-topics --bootstrap-server localhost:9092 --list
 docker compose exec kafka kafka-console-consumer --bootstrap-server localhost:9092 --topic t_dorm_event --from-beginning
 ```
-
-## test-env (Demo Environment)
-
-Go/Gin backend + Vue 3 Vite frontend.
-
-**Run:**
-```bash
-# Option A: Docker (recommended)
-docker compose up -d --build test-env
-
-# Option B: Native dev mode
-cd test-env && go run ./cmd/test-env/
-# Frontend dev server with HMR (separate terminal):
-cd test-env/frontend && npm run dev
-```
-
-**Web UI**: `http://localhost:8082/` — 4 simulated cameras, event log, stats, face enrollment, behavior panel.
-**Keyboard shortcuts**: Ctrl+R (random events), Ctrl+T (rush hour), F (toggle stats panel).
 
 ## Docker Compose Services
 
@@ -75,7 +52,6 @@ cd test-env/frontend && npm run dev
 | `stream-gateway` | kafka, kafka-init, mariadb | Docker override via `config.docker.yaml` |
 | `face-recognition` | kafka, redis, stream-gateway | Docker CMD lacks `--config` — relies on bind-mounted `config.docker.yaml` |
 | `dormitory-service-go` | kafka, mariadb, redis | Go, port 8083 |
-| `test-env` | kafka, redis | Go+Vue, port 8082 |
 
 ## Kafka Topics
 
@@ -141,13 +117,11 @@ Two main sources of truth that can **disagree**:
 - **stream-gateway**: 4 test files (health handler, mgmt handler, camera config, crypto).
 - **face-recognition**: 6 tests under `tests/` — use Haar Cascade fallback (no ONNX needed).
 - **dormitory-service-go**: 1 test file (`repository/base_test.go` — generic CRUD with go-sqlmock). All other packages untested.
-- **test-env**: no tests.
 
 ### Cross-Cutting Patterns
 - **Dual config**: Every module ships `config.yaml` (local dev) + `config.docker.yaml` (Docker override). Docker Compose bind-mounts the docker variant.
-- **Config loading inconsistency**: stream-gateway uses CLI `--config` flag, dormitory-service-go uses `CONFIG_PATH` env var, face-recognition uses argparse `--config`, test-env uses pure env vars with no config file.
-- **Go module path inconsistency**: `test-env` uses bare `campusvision/test-env` vs `github.com/sims/campusvision/` prefix for the other two Go modules.
-- **Entrypoint nesting**: stream-gateway uses flat `cmd/main.go`, others use `cmd/<name>/main.go`.
+- **Config loading inconsistency**: stream-gateway uses CLI `--config` flag, dormitory-service-go uses `CONFIG_PATH` env var, face-recognition uses argparse `--config`.
+- **Entrypoint nesting**: stream-gateway uses flat `cmd/main.go`, dormitory-service-go uses `cmd/<name>/main.go`.
 - **AES key mismatch**: Dev AES keys in `stream-gateway/internal/crypto/` differ from `dormitory-service-go/internal/util/crypto.go` — cross-module encrypt/decrypt will fail in dev.
 - **DB migrations**: `infra/mariadb/migrations/` uses manual serial numbering (`001_*.sql`, `002_*.sql`). No Flyway, no golang-migrate. Apply manually.
 - **Kafka topic naming**: `t_dorm_<entity>` convention. `t_dorm_frame` (4p, hash by building, Snappy), `t_dorm_event` (2p), `t_dorm_alert` (1p).
@@ -169,7 +143,6 @@ Kafka topic `t_dorm_event` is the only coupling point. Both sides develop indepe
 
 ## Go Modules
 - `stream-gateway`: `github.com/sims/campusvision/stream-gateway`, deps `kafka-go`, `go-sql-driver/mysql`, `yaml.v3`
-- `test-env`: `campusvision/test-env`, deps `gin`, `kafka-go`, `golang.org/x/image`
 - `dormitory-service-go`: `github.com/sims/campusvision/dormitory-service-go`, deps `gin`, `sqlx`, `kafka-go`, `go-redis`, `viper`, `zap`, `jwt`, `cron`
 
 ## API Documentation (OpenAPI 3.0.3)

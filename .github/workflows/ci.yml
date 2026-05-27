@@ -18,8 +18,6 @@ jobs:
             module-path: github.com/sims/campusvision/stream-gateway
           - path: dormitory-service-go
             module-path: github.com/sims/campusvision/dormitory-service-go
-          - path: test-env
-            module-path: campusvision/test-env
 
     defaults:
       run:

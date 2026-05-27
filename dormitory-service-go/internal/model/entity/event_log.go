@@ -5,20 +5,22 @@ import (
 	"time"
 )
 
-// DormEventLog maps to the dorm_event_log table.
+// DormEventLog maps to the dorm_entry_exit_event table.
 // This is the core event stream recording entry/exit events from face recognition.
-// Note: init.sql names this table dorm_entry_exit_event; the Go service uses
-// dorm_event_log for compatibility with the existing Java entity convention.
+// All 13 columns align with infra/mariadb/init.sql's dorm_entry_exit_event table.
 // Building is stored as a string code (A/B/C/D) matching init.sql's building VARCHAR(8).
 type DormEventLog struct {
-	ID           int64          `db:"id" json:"id"`
-	CameraID     sql.NullString `db:"camera_id" json:"camera_id"`
-	Building     string         `db:"building" json:"building"`
-	EventType    string         `db:"event_type" json:"event_type"`
-	StudentID    sql.NullString `db:"student_id" json:"student_id"`
-	IsStranger   bool           `db:"is_stranger" json:"is_stranger"`
-	Confidence   sql.NullFloat64 `db:"confidence" json:"confidence"`
-	SnapshotPath sql.NullString `db:"snapshot_path" json:"snapshot_path"`
-	Timestamp    time.Time      `db:"timestamp" json:"timestamp"`
-	CreatedAt    time.Time      `db:"created_at" json:"created_at"`
+	ID             int64          `db:"id" json:"id"`
+	EventID        string         `db:"event_id" json:"event_id"`
+	CameraID       sql.NullString `db:"camera_id" json:"camera_id"`
+	Building       string         `db:"building" json:"building"`
+	EventType      string         `db:"event_type" json:"event_type"`
+	StudentID      sql.NullString `db:"student_id" json:"student_id"`
+	StudentName    sql.NullString `db:"student_name" json:"student_name"`
+	IsStranger     bool           `db:"is_stranger" json:"is_stranger"`
+	IsProcessed    bool           `db:"is_processed" json:"is_processed"`
+	Confidence     sql.NullFloat64 `db:"confidence" json:"confidence"`
+	FaceSnapshotURL sql.NullString `db:"face_snapshot_url" json:"face_snapshot_url"`
+	Timestamp      time.Time      `db:"timestamp" json:"timestamp"`
+	CreatedAt      time.Time      `db:"created_at" json:"created_at"`
 }

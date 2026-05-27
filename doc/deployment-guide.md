@@ -24,9 +24,9 @@
 ┌───────────────────┐   ┌────────────────────┐
 │   GPU 服务器       │   │   业务服务器         │
 │                   │   │                    │
-│  Stream Gateway   │   │  PostgreSQL        │
+│  Stream Gateway   │   │  MariaDB           │
 │  AI Engine        │   │  Redis             │
-│  Platform         │   │  MinIO             │
+│  Face Recognition │   │  MinIO             │
 │  Nginx            │   │  Kafka (单节点)     │
 │                   │   │  Web 静态资源       │
 └───────────────────┘   └────────────────────┘
@@ -54,14 +54,13 @@
           └────────┬─────────────────────┘
                    ▼
           ┌──────────────────────────────┐
-          │    Java 业务服务器 × 2         │
-          │    (负载均衡)                  │
-          └────────┬─────────────────────┘
-                   ▼
-          ┌──────────────────────────────┐
-          │  PostgreSQL 主从              │
-          │  Redis 集群                   │
-          │  Milvus                       │
+│    Go 业务服务器 × 2           │
+│    (负载均衡)                  │
+└────────┬─────────────────────┘
+         ▼
+┌──────────────────────────────┐
+│  MariaDB 主从                 │
+│  Redis 集群                   │
           │  MinIO (多节点)               │
           └──────────────────────────────┘
 ```
@@ -142,38 +141,19 @@ services:
     command: redis-server --appendonly yes
     restart: always
 
-  postgres:
-    image: postgres:16-alpine
+  mariadb:
+    image: mariadb:10.11
     ports:
-      - "5432:5432"
+      - "3306:3306"
     environment:
-      POSTGRES_DB: campusvision
-      POSTGRES_USER: campusvision
-      POSTGRES_PASSWORD: ${DB_PASSWORD}
+      MYSQL_ROOT_PASSWORD: ${DB_PASSWORD}
+      MYSQL_DATABASE: campusvision
+      MYSQL_USER: campusvision
+      MYSQL_PASSWORD: ${DB_PASSWORD}
     volumes:
-      - postgres-data:/var/lib/postgresql/data
+      - mariadb-data:/var/lib/mysql
+      - ../infra/mariadb/init.sql:/docker-entrypoint-initdb.d/init.sql
     restart: always
-
-  milvus:
-    image: milvusdb/milvus:v2.4
-    ports:
-      - "19530:19530"
-    environment:
-      ETCD_ENDPOINTS: etcd:2379
-      MINIO_ADDRESS: minio:9000
-    depends_on:
-      - etcd
-      - minio
-    volumes:
-      - milvus-data:/var/lib/milvus
-    restart: always
-
-  etcd:
-    image: bitnami/etcd:3.5
-    environment:
-      ALLOW_NONE_AUTHENTICATION: "yes"
-    volumes:
-      - etcd-data:/bitnami/etcd
 
   minio:
     image: minio/minio:latest
@@ -191,9 +171,7 @@ services:
 volumes:
   kafka-data:
   redis-data:
-  postgres-data:
-  milvus-data:
-  etcd-data:
+  mariadb-data:
   minio-data:
   web-static:
 ```
@@ -212,7 +190,6 @@ services:
     environment:
       - KAFKA_BROKERS=kafka:9092
       - REDIS_URL=redis://redis:6379
-      - MILVUS_HOST=milvus
       - CUDA_VISIBLE_DEVICES=0
       - LOG_LEVEL=info
     deploy:
@@ -228,7 +205,6 @@ services:
     depends_on:
       - kafka
       - redis
-      - milvus
     restart: unless-stopped
 ```
 
@@ -251,32 +227,26 @@ services:
     restart: unless-stopped
 ```
 
-### 3.4 Java Platform
+### 3.4 Dormitory Service (Go)
 
 ```yaml
 services:
-  campus-platform:
+  dormitory-service:
     build:
-      context: ./campusvision-platform
+      context: ./dormitory-service-go
       dockerfile: Dockerfile
-    image: campusvision/platform:latest
+    image: campusvision/dormitory-service:latest
     ports:
-      - "8080:8080"
+      - "8083:8083"
     environment:
-      - SPRING_PROFILES_ACTIVE=prod
-      - SPRING_DATASOURCE_URL=jdbc:postgresql://postgres:5432/campusvision
-      - SPRING_DATASOURCE_USERNAME=campusvision
-      - SPRING_DATASOURCE_PASSWORD=${DB_PASSWORD}
-      - SPRING_REDIS_HOST=redis
-      - KAFKA_BOOTSTRAP_SERVERS=kafka:9092
-      - MINIO_ENDPOINT=http://minio:9000
-      - MINIO_ACCESS_KEY=${MINIO_ROOT_USER}
-      - MINIO_SECRET_KEY=${MINIO_ROOT_PASSWORD}
+      - CONFIG_PATH=/app/config.yaml
+      - DB_DSN=campusvision:${DB_PASSWORD}@tcp(mariadb:3306)/campusvision
+      - REDIS_ADDR=redis:6379
+      - KAFKA_BROKERS=kafka:9092
     depends_on:
-      - postgres
+      - mariadb
       - redis
       - kafka
-      - minio
     restart: unless-stopped
 ```
 
@@ -293,7 +263,7 @@ services:
       - VITE_API_BASE_URL=/api
       - VITE_WS_URL=wss://${DOMAIN}/ws
     depends_on:
-      - campus-platform
+      - dormitory-service
     restart: unless-stopped
 ```
 
@@ -323,8 +293,8 @@ KAFKA_CFG_AUTO_CREATE_TOPICS_ENABLE=true
 ### 4.2 Nginx 配置
 
 ```nginx
-upstream platform {
-    server campus-platform:8080;
+upstream dormitory {
+    server dormitory-service:8083;
 }
 
 server {
@@ -343,14 +313,14 @@ server {
 
     # API 代理
     location /api/ {
-        proxy_pass http://platform;
+        proxy_pass http://dormitory;
         proxy_set_header Host $host;
         proxy_set_header X-Real-IP $remote_addr;
     }
 
     # WebSocket
     location /ws/ {
-        proxy_pass http://platform;
+        proxy_pass http://dormitory;
         proxy_http_version 1.1;
         proxy_set_header Upgrade $http_upgrade;
         proxy_set_header Connection "upgrade";
@@ -382,7 +352,7 @@ weights/
 docker compose --profile all up -d
 
 # 启动特定服务组
-docker compose up -d kafka redis postgres
+docker compose up -d kafka redis mariadb
 docker compose up -d ai-engine stream-gateway
 ```
 
@@ -405,8 +375,8 @@ docker compose logs -t > deployment_logs.txt
 # Engine API
 curl http://localhost:8000/health
 
-# Platform API
-curl http://localhost:8080/actuator/health
+# Dormitory Service API
+curl http://localhost:8083/health
 
 # Kafka
 kcat -b localhost:9092 -L
@@ -429,9 +399,7 @@ docker compose up -d --scale ai-engine=2 --no-deps --no-recreate ai-engine
 ### 5.5 数据库迁移
 
 ```bash
-# Platform 自动执行 Flyway 迁移
-# 手动触发：
-docker compose exec campus-platform java -jar app.jar --spring.flyway.enabled=true
+参考 `infra/mariadb/migrations/` 下的 SQL 文件，按编号顺序手动执行。
 ```
 
 ---
@@ -478,18 +446,18 @@ docker run -d --gpus all --rm \
 ### 7.1 数据备份
 
 ```bash
-# PostgreSQL
-pg_dump -h localhost -U campusvision campusvision > backup_$(date +%Y%m%d).sql
+# MariaDB
+mariadb-dump -h localhost -u campusvision -p campusvision > backup_$(date +%Y%m%d).sql
 
 # 定期备份（crontab）
-0 3 * * * pg_dump -h localhost -U campusvision campusvision > /backup/db/$(date +\%Y\%m\%d).sql
+0 3 * * * mariadb-dump -h localhost -u campusvision -p campusvision > /backup/db/$(date +\%Y\%m\%d).sql
 ```
 
 ### 7.2 恢复
 
 ```bash
 # 数据库恢复
-psql -h localhost -U campusvision -d campusvision < backup_20260515.sql
+mariadb -h localhost -u campusvision -p campusvision < backup_20260515.sql
 
 # Docker 回滚
 docker compose up -d ai-engine=previous
@@ -499,11 +467,11 @@ docker compose up -d ai-engine=previous
 
 | 组件 | 策略 |
 |------|------|
-| PostgreSQL | 主从复制 + WAL 归档 |
+| MariaDB | 主从复制 |
 | Redis | 哨兵模式 / 集群 |
 | Kafka | 多 broker + 副本因子 ≥ 2 |
 | AI Engine | 多实例 + 摄像头分片 |
-| Platform | 多实例 + Nginx 负载均衡 |
+| Dormitory Service | 多实例 + Nginx 负载均衡 |
 | MinIO | 多节点纠删码 |
 
 ---
@@ -515,18 +483,15 @@ docker compose up -d ai-engine=previous
 | Nginx | 80/443 | HTTP/HTTPS |
 | Kafka | 9092 | TCP |
 | Redis | 6379 | TCP |
-| PostgreSQL | 5432 | TCP |
-| Milvus | 19530 | gRPC |
+| MariaDB | 3306 | TCP |
 | MinIO API | 9000 | HTTP |
 | MinIO Console | 9001 | HTTP |
-| AI Engine API | 8000 | HTTP |
-| Platform API | 8080 | HTTP |
+| Dormitory Service | 8083 | HTTP |
 
 ## 附录：Docker 镜像列表
 
 ```text
-campusvision/ai-engine:latest
 campusvision/stream-gateway:latest
-campusvision/platform:latest
-campusvision/web:latest
+campusvision/face-recognition:latest
+campusvision/dormitory-service:latest
 ```

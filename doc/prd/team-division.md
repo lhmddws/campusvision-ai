@@ -659,8 +659,7 @@ def main():
    1. 确定 Kafka / Redis / DB 地址 (dev 环境)
    2. 确认 RTSP 地址 (4路)
    3. 确认学管 API 地址 + Token
-   4. 测试环境: test-env/server/main.py (模拟4路摄像头+事件注入)
-   → 先跑通单路 → 再 4 路并行
+    → 先跑通单路 → 再 4 路并行
 
 你验证通过:
    Stream Gateway 输出 t_dorm_frame ✓
@@ -675,7 +674,7 @@ def main():
 
 联调:
    你推真实事件 → 搭档消费 → 前端展示
-   使用 test-env Web 面板 http://localhost:8082/ 手动模拟事件
+    使用 Kafka console-consumer 手动验证事件
 ```
 
 ---
@@ -686,7 +685,7 @@ def main():
 |------|------|------|
 | ✅ | **基础架构** | Kafka + Redis + MariaDB + MinIO Docker Compose 编排 |
 | ✅ | **基础架构** | Kafka topic 初始化 (t_dorm_frame / t_dorm_event / t_dorm_alert) |
-| ✅ | **基础架构** | 数据库初始化 DDL (MariaDB + PostgreSQL 双版本) |
+| ✅ | **基础架构** | 数据库初始化 DDL (MariaDB) |
 | ✅ | **Stream Gateway** | Go 项目骨架 (cobra 入口 + YAML 配置) |
 | ✅ | **Stream Gateway** | CameraManager: 4 路摄像机配置管理与 goroutine 生命周期 |
 | ✅ | **Stream Gateway** | CameraStream: 单路 RTSP 拉流 + FFmpeg 解码 |
@@ -703,8 +702,6 @@ def main():
 | ✅ | **Face Recognition** | 夜间 CLAHE 增强 (NightModeEnhancer) |
 | ✅ | **Face Recognition** | Kafka 消费 t_dorm_frame + 推送 t_dorm_event |
 | ✅ | **Face Recognition** | 优雅关闭 (SIGINT/SIGTERM) + 60s 统计日志 |
-| ✅ | **测试环境** | FastAPI 模拟服务器: 4 路摄像头仿真 + Kafka 注入 |
-| ✅ | **测试环境** | Web 测试面板 + 随机场景生成 |
 | ✅ | **Dormitory Service** | Spring Boot 完整项目: 11 entity → 9 repository → 5 service → 3 controller |
 | ✅ | **Dormitory Service** | Kafka 事件消费 → Redis 实时状态 |
 | ✅ | **Dormitory Service** | 每晚 23:00 查宿统计 + 数据清理定时任务 |
@@ -727,7 +724,7 @@ def main():
 | 消息格式 | JSON (frame → base64, event → JSON) | 调试友好，量级够用 |
 | 配置管理 | YAML 文件 + dataclass 类型校验 | 静态类型安全，可扩展 |
 | 日志 | structlog | 结构化日志，适合生产排查 |
-| 数据库 | MariaDB (MySQL 兼容) + PostgreSQL 双版本 | `infra/` 提供两套 init SQL，按需选择 |
+| 数据库 | MariaDB (MySQL 兼容) | `infra/mariadb/` 提供 init SQL |
 | 抓拍图存储 | MinIO 对象存储 | 不通过 Kafka 传输大图 |
 
 ---

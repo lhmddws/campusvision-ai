@@ -11,7 +11,6 @@ type Handler struct {
 	RecordService *service.RecordService
 	AlertService  *service.AlertService
 	ConfigService *service.ConfigService
-	ReportService *service.ReportService
 	DB            *sqlx.DB
 }
 
@@ -21,7 +20,6 @@ func NewHandler(
 	recordService *service.RecordService,
 	alertService *service.AlertService,
 	configService *service.ConfigService,
-	reportService *service.ReportService,
 	db *sqlx.DB,
 ) *Handler {
 	return &Handler{
@@ -29,7 +27,6 @@ func NewHandler(
 		RecordService: recordService,
 		AlertService:  alertService,
 		ConfigService: configService,
-		ReportService: reportService,
 		DB:            db,
 	}
 }

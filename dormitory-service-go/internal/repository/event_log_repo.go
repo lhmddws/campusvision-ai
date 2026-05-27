@@ -1,6 +1,7 @@
 package repository
 
 import (
+	"context"
 	"fmt"
 	"time"
 
@@ -8,7 +9,7 @@ import (
 	"github.com/sims/campusvision/dormitory-service-go/internal/model/entity"
 )
 
-// EventLogRepository handles dorm_event_log table operations.
+// EventLogRepository handles dorm_entry_exit_event table operations.
 type EventLogRepository struct {
 	*BaseRepository[entity.DormEventLog]
 }
@@ -16,18 +17,18 @@ type EventLogRepository struct {
 // NewEventLogRepository creates a new EventLogRepository.
 func NewEventLogRepository(db *sqlx.DB) *EventLogRepository {
 	return &EventLogRepository{
-		BaseRepository: NewBaseRepository[entity.DormEventLog](db, "dorm_event_log"),
+		BaseRepository: NewBaseRepository[entity.DormEventLog](db, "dorm_entry_exit_event"),
 	}
 }
 
 // FindByCameraID finds events for a specific camera.
-func (r *EventLogRepository) FindByCameraID(cameraID string, limit int) ([]entity.DormEventLog, error) {
+func (r *EventLogRepository) FindByCameraID(ctx context.Context, cameraID string, limit int) ([]entity.DormEventLog, error) {
 	if limit <= 0 {
 		limit = 100
 	}
 	var events []entity.DormEventLog
-	query := "SELECT * FROM dorm_event_log WHERE camera_id = ? ORDER BY timestamp DESC LIMIT ?"
-	err := r.DB.Select(&events, query, cameraID, limit)
+	query := "SELECT * FROM dorm_entry_exit_event WHERE camera_id = ? ORDER BY timestamp DESC LIMIT ?"
+	err := r.DB.SelectContext(ctx, &events, query, cameraID, limit)
 	if err != nil {
 		return nil, fmt.Errorf("find events by camera %s: %w", cameraID, err)
 	}
@@ -35,13 +36,13 @@ func (r *EventLogRepository) FindByCameraID(cameraID string, limit int) ([]entit
 }
 
 // FindByStudentID finds events for a specific student.
-func (r *EventLogRepository) FindByStudentID(studentID string, limit int) ([]entity.DormEventLog, error) {
+func (r *EventLogRepository) FindByStudentID(ctx context.Context, studentID string, limit int) ([]entity.DormEventLog, error) {
 	if limit <= 0 {
 		limit = 100
 	}
 	var events []entity.DormEventLog
-	query := "SELECT * FROM dorm_event_log WHERE student_id = ? ORDER BY timestamp DESC LIMIT ?"
-	err := r.DB.Select(&events, query, studentID, limit)
+	query := "SELECT * FROM dorm_entry_exit_event WHERE student_id = ? ORDER BY timestamp DESC LIMIT ?"
+	err := r.DB.SelectContext(ctx, &events, query, studentID, limit)
 	if err != nil {
 		return nil, fmt.Errorf("find events by student %s: %w", studentID, err)
 	}
@@ -49,13 +50,13 @@ func (r *EventLogRepository) FindByStudentID(studentID string, limit int) ([]ent
 }
 
 // FindByEventType finds events by type (entry/exit).
-func (r *EventLogRepository) FindByEventType(eventType string, limit int) ([]entity.DormEventLog, error) {
+func (r *EventLogRepository) FindByEventType(ctx context.Context, eventType string, limit int) ([]entity.DormEventLog, error) {
 	if limit <= 0 {
 		limit = 100
 	}
 	var events []entity.DormEventLog
-	query := "SELECT * FROM dorm_event_log WHERE event_type = ? ORDER BY timestamp DESC LIMIT ?"
-	err := r.DB.Select(&events, query, eventType, limit)
+	query := "SELECT * FROM dorm_entry_exit_event WHERE event_type = ? ORDER BY timestamp DESC LIMIT ?"
+	err := r.DB.SelectContext(ctx, &events, query, eventType, limit)
 	if err != nil {
 		return nil, fmt.Errorf("find events by type %s: %w", eventType, err)
 	}
@@ -63,13 +64,13 @@ func (r *EventLogRepository) FindByEventType(eventType string, limit int) ([]ent
 }
 
 // FindByTimeRange finds events within a time range.
-func (r *EventLogRepository) FindByTimeRange(start, end time.Time, limit int) ([]entity.DormEventLog, error) {
+func (r *EventLogRepository) FindByTimeRange(ctx context.Context, start, end time.Time, limit int) ([]entity.DormEventLog, error) {
 	if limit <= 0 {
 		limit = 1000
 	}
 	var events []entity.DormEventLog
-	query := "SELECT * FROM dorm_event_log WHERE timestamp >= ? AND timestamp <= ? ORDER BY timestamp DESC LIMIT ?"
-	err := r.DB.Select(&events, query, start, end, limit)
+	query := "SELECT * FROM dorm_entry_exit_event WHERE timestamp >= ? AND timestamp <= ? ORDER BY timestamp DESC LIMIT ?"
+	err := r.DB.SelectContext(ctx, &events, query, start, end, limit)
 	if err != nil {
 		return nil, fmt.Errorf("find events by time range: %w", err)
 	}
@@ -77,13 +78,13 @@ func (r *EventLogRepository) FindByTimeRange(start, end time.Time, limit int) ([
 }
 
 // FindByBuilding finds events for a given building.
-func (r *EventLogRepository) FindByBuilding(building string, limit int) ([]entity.DormEventLog, error) {
+func (r *EventLogRepository) FindByBuilding(ctx context.Context, building string, limit int) ([]entity.DormEventLog, error) {
 	if limit <= 0 {
 		limit = 100
 	}
 	var events []entity.DormEventLog
-	query := "SELECT * FROM dorm_event_log WHERE building = ? ORDER BY timestamp DESC LIMIT ?"
-	err := r.DB.Select(&events, query, building, limit)
+	query := "SELECT * FROM dorm_entry_exit_event WHERE building = ? ORDER BY timestamp DESC LIMIT ?"
+	err := r.DB.SelectContext(ctx, &events, query, building, limit)
 	if err != nil {
 		return nil, fmt.Errorf("find events by building '%s': %w", building, err)
 	}
@@ -92,6 +93,7 @@ func (r *EventLogRepository) FindByBuilding(building string, limit int) ([]entit
 
 // FindWithPagination paginates events with filters.
 func (r *EventLogRepository) FindWithPagination(
+	ctx context.Context,
 	building string,
 	cameraID string,
 	eventType string,
@@ -135,5 +137,5 @@ func (r *EventLogRepository) FindWithPagination(
 		}
 	}
 
-	return r.BaseRepository.FindWithPagination(where, args, "timestamp DESC", page, size)
+	return r.BaseRepository.FindWithPagination(ctx, where, args, "timestamp DESC", page, size)
 }

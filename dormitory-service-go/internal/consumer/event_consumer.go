@@ -9,7 +9,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/jmoiron/sqlx"
 	"github.com/segmentio/kafka-go"
 	"go.uber.org/zap"
 
@@ -31,9 +30,9 @@ const buildingCacheKeyPrefix = "dorm:building:code:"
 type EventConsumer struct {
 	logger       *zap.Logger
 	rdb          *redisclient.Client
-	db           *sqlx.DB
 	reader       *kafka.Reader
 
+	buildingRepo  *repository.BuildingRepository
 	eventLogRepo  *repository.EventLogRepository
 	studentRepo   *repository.StudentRepository
 	alertRepo     *repository.AlertRepository
@@ -48,11 +47,11 @@ type EventConsumer struct {
 func NewEventConsumer(
 	logger *zap.Logger,
 	rdb *redisclient.Client,
-	db *sqlx.DB,
 	brokers []string,
 	topic string,
 	groupID string,
 	maxPollRecords int,
+	buildingRepo *repository.BuildingRepository,
 	eventLogRepo *repository.EventLogRepository,
 	studentRepo *repository.StudentRepository,
 	alertRepo *repository.AlertRepository,
@@ -76,8 +75,8 @@ func NewEventConsumer(
 	return &EventConsumer{
 		logger:         logger,
 		rdb:            rdb,
-		db:             db,
 		reader:         reader,
+		buildingRepo:   buildingRepo,
 		eventLogRepo:   eventLogRepo,
 		studentRepo:    studentRepo,
 		alertRepo:      alertRepo,
@@ -185,27 +184,22 @@ func (c *EventConsumer) processMessage(ctx context.Context, msg kafka.Message) e
 		return nil
 	}
 
-	// 5. Update student status (if student_id present)
-	if event.StudentID != "" {
-		c.updateStudentStatus(ctx, event.StudentID, event.EventType, event.Timestamp)
-	}
-
-	// 6. Persist event log
+	// 5. Persist event log
 	eventLog := c.buildEventLog(event, event.Building)
-	if _, err := c.eventLogRepo.Create(eventLog); err != nil {
+	if _, err := c.eventLogRepo.Create(ctx, eventLog); err != nil {
 		c.logger.Error("Failed to persist event log",
 			zap.Error(err),
 			zap.String("camera_id", event.CameraID),
 		)
 	}
 
-	// 7. Stranger detection
+	// 6. Stranger detection
 	if event.IsStranger {
 		c.handleStrangerEvent(ctx, event)
 	}
 
-	// 8. Update camera last_event_time
-	if err := c.cameraRepo.UpdateLastEventTime(event.CameraID); err != nil {
+	// 7. Update camera last_event_time
+	if err := c.cameraRepo.UpdateLastEventTime(ctx, event.CameraID); err != nil {
 		c.logger.Warn("Failed to update camera last_event_time",
 			zap.Error(err),
 			zap.String("camera_id", event.CameraID),
@@ -234,10 +228,8 @@ func (c *EventConsumer) resolveBuildingID(ctx context.Context, buildingCode stri
 		}
 	}
 
-	// Cache miss — query dorm_building table
-	var id int64
-	query := "SELECT id FROM dorm_building WHERE code = ? LIMIT 1"
-	err = c.db.Get(&id, query, code)
+	// Cache miss — query dorm_building table via repository
+	building, err := c.buildingRepo.FindByCode(ctx, code)
 	if err != nil {
 		c.logger.Warn("Building code not found in database",
 			zap.String("code", code),
@@ -247,83 +239,46 @@ func (c *EventConsumer) resolveBuildingID(ctx context.Context, buildingCode stri
 	}
 
 	// Cache for 1 hour
-	if cacheErr := c.rdb.Set(ctx, cacheKey, strconv.FormatInt(id, 10), buildingCacheTTL); cacheErr != nil {
+	if cacheErr := c.rdb.Set(ctx, cacheKey, strconv.FormatInt(building.ID, 10), buildingCacheTTL); cacheErr != nil {
 		c.logger.Warn("Failed to cache building ID",
 			zap.Error(cacheErr),
 			zap.String("code", code),
 		)
 	}
 
-	return id
-}
-
-// updateStudentStatus updates a student's in/out status based on event type.
-func (c *EventConsumer) updateStudentStatus(ctx context.Context, studentID string, eventType string, timestampMillis int64) {
-	student, err := c.studentRepo.FindByStudentID(studentID)
-	if err != nil {
-		c.logger.Warn("Student not found for status update",
-			zap.String("student_id", studentID),
-			zap.Error(err),
-		)
-		return
-	}
-
-	var newStatus string
-	switch eventType {
-	case string(enums.EventTypeEntry):
-		newStatus = string(enums.StudentStatusIn)
-	case string(enums.EventTypeExit):
-		newStatus = string(enums.StudentStatusOut)
-	default:
-		c.logger.Debug("Unknown event type, skipping student status update",
-			zap.String("event_type", eventType),
-		)
-		return
-	}
-
-	student.Status = sql.NullString{String: newStatus, Valid: true}
-	if timestampMillis > 0 {
-		student.LastEventTime = sql.NullTime{
-			Time:  time.UnixMilli(timestampMillis),
-			Valid: true,
-		}
-	} else {
-		student.LastEventTime = sql.NullTime{
-			Time:  time.Now(),
-			Valid: true,
-		}
-	}
-
-	if err := c.studentRepo.Update(student); err != nil {
-		c.logger.Error("Failed to update student status",
-			zap.Error(err),
-			zap.String("student_id", studentID),
-			zap.String("new_status", newStatus),
-		)
-	}
+	return building.ID
 }
 
 // buildEventLog creates a DormEventLog entity from the incoming event message.
 func (c *EventConsumer) buildEventLog(event dto.FaceEventMessage, buildingCode string) *entity.DormEventLog {
 	eventLog := &entity.DormEventLog{
+		EventID:    fmt.Sprintf("evt-%s-%d", event.CameraID, event.FrameSequence),
 		EventType:  event.EventType,
 		IsStranger: event.IsStranger,
+		IsProcessed: true,
 		Building:   buildingCode,
-		Timestamp:  time.UnixMilli(event.Timestamp),
 		CreatedAt:  time.Now(),
 	}
 
+	if event.Timestamp > 0 {
+		eventLog.Timestamp = time.UnixMilli(event.Timestamp)
+	} else {
+		eventLog.Timestamp = time.Now()
+	}
 	if event.CameraID != "" {
 		eventLog.CameraID = sql.NullString{String: event.CameraID, Valid: true}
 	}
 	if event.StudentID != "" {
 		eventLog.StudentID = sql.NullString{String: event.StudentID, Valid: true}
 	}
+	if event.Name != "" {
+		eventLog.StudentName = sql.NullString{String: event.Name, Valid: true}
+	}
 	if event.Confidence > 0 {
 		eventLog.Confidence = sql.NullFloat64{Float64: event.Confidence, Valid: true}
 	}
 	if event.SnapshotPath != "" {
-		eventLog.SnapshotPath = sql.NullString{String: event.SnapshotPath, Valid: true}
+		eventLog.FaceSnapshotURL = sql.NullString{String: event.SnapshotPath, Valid: true}
 	}
 
 	return eventLog
@@ -354,7 +309,7 @@ func (c *EventConsumer) handleStrangerEvent(ctx context.Context, event dto.FaceE
 		alert.FaceSnapshotURL = sql.NullString{String: event.SnapshotPath, Valid: true}
 	}
 
-	if _, err := c.alertRepo.Create(alert); err != nil {
+	if _, err := c.alertRepo.Create(ctx, alert); err != nil {
 		c.logger.Error("Failed to create stranger alert",
 			zap.Error(err),
 			zap.String("camera_id", event.CameraID),
@@ -382,7 +337,7 @@ func (c *EventConsumer) handleStrangerEvent(ctx context.Context, event dto.FaceE
 		}
 	}
 
-	if _, err := c.strangerRepo.Create(strangerRecord); err != nil {
+	if _, err := c.strangerRepo.Create(ctx, strangerRecord); err != nil {
 		c.logger.Error("Failed to create stranger record",
 			zap.Error(err),
 			zap.String("camera_id", event.CameraID),

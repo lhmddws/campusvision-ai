@@ -237,6 +237,14 @@ CREATE TABLE IF NOT EXISTS face_embedding (
     INDEX idx_fe_student_id (student_id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='人脸特征向量表';
 
+-- 13. 宿舍楼宇表
+CREATE TABLE IF NOT EXISTS dorm_building (
+    id              BIGINT AUTO_INCREMENT PRIMARY KEY,
+    code            VARCHAR(8) NOT NULL UNIQUE COMMENT '楼宇编号 A/B/C/D',
+    name            VARCHAR(64) NOT NULL COMMENT '楼宇名称',
+    created_at      DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='宿舍楼宇';
+
 -- ==================== 默认配置 ====================
 INSERT IGNORE INTO dorm_config (config_key, config_value, config_type, description, group_name) VALUES
     ('nightly_report.trigger_time', '23:00', 'string', '自动查宿每日触发时间', 'nightly'),

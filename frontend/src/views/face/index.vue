@@ -96,122 +96,8 @@
         </el-card>
       </el-col>
 
-      <!-- 右栏：人脸匹配测试 -->
+      <!-- 右栏：摄像头状态 -->
       <el-col :span="10">
-        <el-card shadow="hover">
-          <template #header>
-            <span>人脸匹配测试</span>
-          </template>
-
-          <el-alert
-            title="注意：人脸嵌入功能当前为测试模式，embed 接口尚未完全实现"
-            type="warning"
-            :closable="false"
-            show-icon
-            class="mb-4"
-          />
-
-          <!-- 图片路径输入 -->
-          <el-form label-position="top">
-            <el-form-item label="图片路径">
-              <el-input
-                v-model="imagePath"
-                placeholder="输入服务器端图片路径，如 /data/snapshots/face_001.jpg"
-                clearable
-              />
-            </el-form-item>
-
-            <el-form-item>
-              <el-button
-                type="primary"
-                :loading="embedLoading"
-                @click="handleEmbed"
-              >
-                计算嵌入
-              </el-button>
-            </el-form-item>
-          </el-form>
-
-          <!-- 嵌入结果 -->
-          <template v-if="embedResult !== null">
-            <el-divider />
-
-            <div v-if="embedResult.embedding" class="embed-success">
-              <el-alert
-                title="嵌入向量计算成功"
-                type="success"
-                :closable="false"
-                show-icon
-                class="mb-4"
-              />
-              <div class="embed-meta">
-                <span>维度：{{ embedResult.embedding.length }}</span>
-              </div>
-              <el-button
-                type="success"
-                :loading="matchLoading"
-                class="mt-4"
-                @click="handleMatch"
-              >
-                匹配
-              </el-button>
-            </div>
-
-            <div v-else class="embed-unavailable">
-              <el-alert
-                title="嵌入向量计算不可用，请确保 face-recognition 服务已启动"
-                type="error"
-                :closable="false"
-                show-icon
-              />
-            </div>
-          </template>
-
-          <!-- 匹配结果 -->
-          <template v-if="matchResult !== null">
-            <el-divider />
-
-            <h4 class="result-title">匹配结果</h4>
-
-            <template v-if="matchResult.success && matchResult.match">
-              <el-descriptions :column="1" border size="default">
-                <el-descriptions-item label="姓名">
-                  {{ matchResult.match.name }}
-                </el-descriptions-item>
-                <el-descriptions-item label="学号">
-                  {{ matchResult.match.student_id }}
-                </el-descriptions-item>
-                <el-descriptions-item label="置信度">
-                  <el-tag
-                    :type="confidenceTagType(matchResult.match.confidence)"
-                    size="large"
-                  >
-                    {{ (matchResult.match.confidence * 100).toFixed(1) }}%
-                  </el-tag>
-                </el-descriptions-item>
-              </el-descriptions>
-            </template>
-
-            <template v-else-if="matchResult.success && !matchResult.match">
-              <el-alert
-                title="未找到匹配的人脸记录"
-                type="info"
-                :closable="false"
-                show-icon
-              />
-            </template>
-
-            <template v-else>
-              <el-alert
-                :title="matchResult.error || '匹配请求失败'"
-                type="error"
-                :closable="false"
-                show-icon
-              />
-            </template>
-          </template>
-        </el-card>
-
         <!-- 摄像头状态卡片 -->
         <el-card v-if="cameraList.length > 0" shadow="hover" class="mt-4">
           <template #header>
@@ -241,7 +127,7 @@
 <script setup lang="ts">
 import { ref, onMounted } from 'vue';
 import { Picture } from '@element-plus/icons-vue';
-import { faceMatch, faceEmbed, getSnapshots, listCameras } from '@/api/face';
+import { getSnapshots, listCameras } from '@/api/face';
 
 // ── 类型定义 ──────────────────────────────────────────
 
@@ -259,24 +145,6 @@ interface Snapshot {
   student_id: string;
   confidence: number;
   event_time: string;
-}
-
-interface EmbedResponse {
-  success: boolean;
-  embedding: number[] | null;
-  error?: string;
-}
-
-interface MatchResult {
-  name: string;
-  student_id: string;
-  confidence: number;
-}
-
-interface MatchResponse {
-  success: boolean;
-  match: MatchResult | null;
-  error?: string;
 }
 
 // ── 摄像头列表 ────────────────────────────────────────
@@ -333,62 +201,6 @@ async function fetchSnapshots() {
 function handleSizeChange() {
   snapshotsPage.value = 1;
   fetchSnapshots();
-}
-
-// ── 人脸嵌入 ───────────────────────────────────────────
-
-const imagePath = ref('');
-const embedLoading = ref(false);
-const embedResult = ref<EmbedResponse | null>(null);
-
-async function handleEmbed() {
-  if (!imagePath.value.trim()) {
-    return;
-  }
-  embedLoading.value = true;
-  matchResult.value = null;
-  try {
-    const res: any = await faceEmbed(imagePath.value.trim());
-    embedResult.value = {
-      success: res.data?.success ?? res.success ?? false,
-      embedding: res.data?.embedding ?? res.embedding ?? null,
-      error: res.data?.error ?? res.error,
-    };
-  } catch (e: any) {
-    embedResult.value = {
-      success: false,
-      embedding: null,
-      error: e.message || '请求失败',
-    };
-  } finally {
-    embedLoading.value = false;
-  }
-}
-
-// ── 人脸匹配 ───────────────────────────────────────────
-
-const matchLoading = ref(false);
-const matchResult = ref<MatchResponse | null>(null);
-
-async function handleMatch() {
-  if (!embedResult.value?.embedding) return;
-  matchLoading.value = true;
-  try {
-    const res: any = await faceMatch(embedResult.value.embedding);
-    matchResult.value = {
-      success: res.data?.success ?? res.success ?? false,
-      match: res.data?.match ?? res.match ?? null,
-      error: res.data?.error ?? res.error,
-    };
-  } catch (e: any) {
-    matchResult.value = {
-      success: false,
-      match: null,
-      error: e.message || '匹配请求失败',
-    };
-  } finally {
-    matchLoading.value = false;
-  }
 }
 
 // ── 工具函数 ───────────────────────────────────────────
@@ -480,22 +292,6 @@ onMounted(() => {
   display: flex;
   justify-content: flex-end;
   margin-top: 16px;
-}
-
-.embed-success {
-  text-align: left;
-}
-
-.embed-meta {
-  color: var(--el-text-color-secondary);
-  font-size: 13px;
-}
-
-.result-title {
-  margin: 0 0 12px;
-  font-size: 15px;
-  font-weight: 600;
-  color: var(--el-text-color-primary);
 }
 
 .mt-4 {

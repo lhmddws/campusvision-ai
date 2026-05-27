@@ -1,8 +1,8 @@
 package service
 
 import (
+	"context"
 	"database/sql"
-	"fmt"
 	"log"
 	"time"
 
@@ -26,36 +26,6 @@ func NewRecordService(
 		eventLogRepo: eventLogRepo,
 		studentRepo:  studentRepo,
 	}
-}
-
-// HandleAttendance processes an attendance event (entry/exit).
-// This is a skeleton implementation matching the Java stub.
-// TODO: Implement full attendance handling with status updates and alerts.
-func (s *RecordService) HandleAttendance(record dto.FaceEventMessage) error {
-	log.Printf("[RecordService] Handling attendance for studentId=%s, eventType=%s",
-		record.StudentID, record.EventType)
-
-	// Build event log entity
-	event := &entity.DormEventLog{
-		EventType:  record.EventType,
-		StudentID:  toNullString(record.StudentID),
-		IsStranger: record.IsStranger,
-		Confidence: toNullFloat64(&record.Confidence),
-		Timestamp:  time.UnixMilli(record.Timestamp),
-		CreatedAt:  time.Now(),
-	}
-	if record.CameraID != "" {
-		event.CameraID = toNullString(record.CameraID)
-	}
-	if record.SnapshotPath != "" {
-		event.SnapshotPath = toNullString(record.SnapshotPath)
-	}
-
-	if _, err := s.eventLogRepo.Create(event); err != nil {
-		return fmt.Errorf("create event log: %w", err)
-	}
-
-	return nil
 }
 
 // GetAttendanceStats returns aggregated attendance statistics.
@@ -83,8 +53,9 @@ func (s *RecordService) GetDailySummary(buildingId int64, startDate, endDate tim
 
 // GetEvents returns paginated event logs with optional filters.
 // This is a skeleton matching the Java stub that used getEvents(EventQueryDTO, Pageable).
-func (s *RecordService) GetEvents(query dto.EventQueryDTO) ([]entity.DormEventLog, int64, error) {
+func (s *RecordService) GetEvents(ctx context.Context, query dto.EventQueryDTO) ([]entity.DormEventLog, int64, error) {
 	return s.eventLogRepo.FindWithPagination(
+		ctx,
 		query.Building,
 		query.CameraID,
 		query.EventType,

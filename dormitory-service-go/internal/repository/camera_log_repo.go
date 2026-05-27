@@ -1,6 +1,7 @@
 package repository
 
 import (
+	"context"
 	"fmt"
 	"time"
 
@@ -21,13 +22,13 @@ func NewCameraLogRepository(db *sqlx.DB) *CameraLogRepository {
 }
 
 // FindByCameraID finds camera logs for a specific camera.
-func (r *CameraLogRepository) FindByCameraID(cameraID string, limit int) ([]entity.DormCameraLog, error) {
+func (r *CameraLogRepository) FindByCameraID(ctx context.Context, cameraID string, limit int) ([]entity.DormCameraLog, error) {
 	if limit <= 0 {
 		limit = 100
 	}
 	var logs []entity.DormCameraLog
 	query := "SELECT * FROM dorm_camera_log WHERE camera_id = ? ORDER BY created_at DESC LIMIT ?"
-	err := r.DB.Select(&logs, query, cameraID, limit)
+	err := r.DB.SelectContext(ctx, &logs, query, cameraID, limit)
 	if err != nil {
 		return nil, fmt.Errorf("find camera logs by camera %s: %w", cameraID, err)
 	}
@@ -35,13 +36,13 @@ func (r *CameraLogRepository) FindByCameraID(cameraID string, limit int) ([]enti
 }
 
 // FindByBuilding finds camera logs for a building.
-func (r *CameraLogRepository) FindByBuilding(building string, limit int) ([]entity.DormCameraLog, error) {
+func (r *CameraLogRepository) FindByBuilding(ctx context.Context, building string, limit int) ([]entity.DormCameraLog, error) {
 	if limit <= 0 {
 		limit = 100
 	}
 	var logs []entity.DormCameraLog
 	query := "SELECT * FROM dorm_camera_log WHERE building = ? ORDER BY created_at DESC LIMIT ?"
-	err := r.DB.Select(&logs, query, building, limit)
+	err := r.DB.SelectContext(ctx, &logs, query, building, limit)
 	if err != nil {
 		return nil, fmt.Errorf("find camera logs by building %s: %w", building, err)
 	}
@@ -49,13 +50,13 @@ func (r *CameraLogRepository) FindByBuilding(building string, limit int) ([]enti
 }
 
 // FindByTimeRange finds camera logs within a time range.
-func (r *CameraLogRepository) FindByTimeRange(start, end time.Time, limit int) ([]entity.DormCameraLog, error) {
+func (r *CameraLogRepository) FindByTimeRange(ctx context.Context, start, end time.Time, limit int) ([]entity.DormCameraLog, error) {
 	if limit <= 0 {
 		limit = 1000
 	}
 	var logs []entity.DormCameraLog
 	query := "SELECT * FROM dorm_camera_log WHERE created_at >= ? AND created_at <= ? ORDER BY created_at DESC LIMIT ?"
-	err := r.DB.Select(&logs, query, start, end, limit)
+	err := r.DB.SelectContext(ctx, &logs, query, start, end, limit)
 	if err != nil {
 		return nil, fmt.Errorf("find camera logs by time range: %w", err)
 	}
@@ -64,6 +65,7 @@ func (r *CameraLogRepository) FindByTimeRange(start, end time.Time, limit int) (
 
 // FindWithPagination paginates camera logs.
 func (r *CameraLogRepository) FindWithPagination(
+	ctx context.Context,
 	cameraID, building string,
 	page, size int,
 ) ([]entity.DormCameraLog, int64, error) {
@@ -87,5 +89,5 @@ func (r *CameraLogRepository) FindWithPagination(
 		}
 	}
 
-	return r.BaseRepository.FindWithPagination(where, args, "created_at DESC", page, size)
+	return r.BaseRepository.FindWithPagination(ctx, where, args, "created_at DESC", page, size)
 }

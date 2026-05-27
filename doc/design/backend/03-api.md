@@ -864,7 +864,7 @@ Response 200:
     "timestamp": "2026-05-15T23:00:00+08:00",
     "components": {
       "redis": { "status": "UP", "latencyMs": 2 },
-      "postgresql": { "status": "UP", "latencyMs": 5 },
+      "mariadb": { "status": "UP", "latencyMs": 5 },
       "kafka": {
         "status": "UP",
         "lag": 0,

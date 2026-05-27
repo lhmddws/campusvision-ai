@@ -18,7 +18,7 @@
 | PRD-005 | **摄像头功能实现** | [05-camera-management.md](05-camera-management.md) | 618 | 摄像头设备管理、状态监控、配置管理、抓拍查看 | **搭档** |
 | **合计** | | | **5,455** | | |
 
-> **附加**: 另有技术设计文档 3,754 行（架构/数据库/API/集成/摄像头），测试环境 352 行（模拟服务器 + 启动脚本 + 前端）。
+> **附加**: 另有技术设计文档 3,754 行（架构/数据库/API/集成/摄像头）。
 
 ---
 
@@ -115,7 +115,7 @@ Face Recognition (Python)
 Dormitory Service (Java JAR)
   │ 消费事件 → 更新 Redis 实时状态
   │ 每日 23:00 触发查宿统计
-  │ 按楼栋/房间汇总 → 存 PostgreSQL
+  │ 按楼栋/房间汇总 → 存 MariaDB
   │ 提供 REST API 供前端/学管调用
   ▼
 前端页面 (不存本仓库)
@@ -135,7 +135,7 @@ Dormitory Service (Java JAR)
 | 身份匹配 | **学管 API 按需查询** | 学管维护人脸库，本服务不做存储 |
 | 模块间通信 | **Kafka** | 异步解耦，独立扩缩容，语言无关 |
 | 实时状态 | **Redis** | 进出事件频繁，Redis 适合实时状态 |
-| 查宿数据持久化 | **MariaDB/PostgreSQL** | 与学管数据库一致，统一管理；`infra/` 提供双版本 init SQL |
+| 查宿数据持久化 | **MariaDB** | 与学管数据库一致，统一管理；`infra/` 提供 init SQL |
 | Java JAR 部署 | **独立 jar → 接入主进程** | 先独立运行稳定再集成 |
 | 配置管理 | **全部可动态调整** | 查宿时间、阈值等无需重启即可修改 |
 | 面部抓拍存储 | **MinIO** | 人脸抓拍图存对象存储，不在 Kafka 中传输大图 |
@@ -185,14 +185,13 @@ Dormitory Service (Java JAR)
 
 ### 学管 API 调用
 
-> ⚠️ **实际情况核查**：以下接口在学管 OpenAPI 中**不存在**，需在学管同步开发中新增。  
-> 开发/测试阶段可使用 `test-env` 模拟服务器。
+> ⚠️ **实际情况核查**：以下接口在学管 OpenAPI 中**不存在**，需在学管同步开发中新增。
 
 ```
 Face Recognition ──POST /sims/face/match (待新增)──→ 学管系统
   Request:  { embedding: float[512] }
   Response: { match: bool, student_id, name, confidence }
-  ↑ 测试替代: test-env 未实现此端点，需配合本地 Redis 缓存降级
+  ↑ 测试替代: 需配合本地 Redis 缓存降级
 
 Dormitory Service ──GET /sims/students/dormitory (待新增)──→ 学管系统
   Response: [{ student_id, student_name, building, room, class }]
@@ -230,17 +229,6 @@ Dormitory Service ──GET /sims/students/dormitory (待新增)──→ 学管
 
 ---
 
-## 测试环境
-
-| 组件 | 说明 |
-|------|------|
-| **Simulation Server** (`test-env/server/main.py`) | FastAPI 服务，模拟多路摄像头画面（默认4路）注入 Kafka，提供 Web 测试面板 |
-| **启动脚本** (`test-env/start.sh`) | 自动检测基础设施 → 安装依赖 → 启动测试服务器 |
-| **Web Dashboard** | `http://localhost:8082/` 可视化控制台，可手动模拟进出事件 |
-| **模拟 API** | `POST /api/cameras/{id}/simulate` 注入事件，`GET /api/events` 查看日志 |
-
-详见 [测试环境技术设计](../design/test-env/01-test-environment.md)。
-
 ## 基础架构部署
 
 | 服务 | 用途 | 端口 |
@@ -260,5 +248,5 @@ Dormitory Service ──GET /sims/students/dormitory (待新增)──→ 学管
 | 架构设计 | 系统架构、模块划分、技术选型 | [doc/main.md](../main.md) |
 | 开发指南 | 环境搭建、编码规范、Git 工作流 | [doc/development-guide.md](../development-guide.md) |
 | 部署指南 | 硬件要求、Docker Compose、配置说明 | [doc/deployment-guide.md](../deployment-guide.md) |
-| 技术设计文档 | 后端架构/数据库/API/集成/摄像头/测试环境 | [doc/design/README.md](../design/README.md) |
+| 技术设计文档 | 后端架构/数据库/API/集成/摄像头 | [doc/design/README.md](../design/README.md) |
 | **双人分工指南** | 感知层 vs 业务层详细分工、接口契约、AI 实现指示 | [team-division.md](team-division.md) |

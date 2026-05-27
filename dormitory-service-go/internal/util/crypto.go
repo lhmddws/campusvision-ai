@@ -7,7 +7,24 @@ import (
 	"encoding/base64"
 	"fmt"
 	"io"
+	"log"
+	"os"
 )
+
+func init() {
+	// Auto-read CAMERA_ENCRYPTION_KEY from env, matching stream-gateway's pattern.
+	if keyStr := os.Getenv("CAMERA_ENCRYPTION_KEY"); keyStr != "" {
+		key := []byte(keyStr)
+		if len(key) == 32 {
+			encryptionKey = key
+			log.Printf("[INFO] crypto: loaded AES-256 key from CAMERA_ENCRYPTION_KEY")
+		} else {
+			log.Printf("[WARN] crypto: CAMERA_ENCRYPTION_KEY is not 32 bytes (got %d), using dev key", len(key))
+		}
+	} else {
+		log.Printf("[WARN] crypto: CAMERA_ENCRYPTION_KEY not set, using DEV key (INSECURE — for development only)")
+	}
+}
 
 // Default encryption key (32 bytes for AES-256).
 // DEV KEY: Must match stream-gateway's dev key so passwords can be decrypted across modules.

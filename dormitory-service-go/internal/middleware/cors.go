@@ -10,12 +10,12 @@ import (
 
 // CORSMiddleware handles Cross-Origin Resource Sharing (CORS).
 // Allowed origins are read from CORS_ALLOWED_ORIGINS env var (comma-separated).
-// Defaults to http://localhost:3000,http://localhost:8083 for development.
+// Defaults to http://localhost:8082,http://localhost:8083 for development.
 // In production, set CORS_ALLOWED_ORIGINS to the actual frontend domain.
 func CORSMiddleware() gin.HandlerFunc {
 	allowedOrigins := os.Getenv("CORS_ALLOWED_ORIGINS")
 	if allowedOrigins == "" {
-		allowedOrigins = "http://localhost:3000,http://localhost:8083"
+		allowedOrigins = "http://localhost:8082,http://localhost:8083"
 	}
 	originList := strings.Split(allowedOrigins, ",")
 

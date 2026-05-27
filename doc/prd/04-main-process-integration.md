@@ -93,10 +93,10 @@
 
 | 层级 | 技术方案 | 说明 |
 |------|---------|------|
-| 应用框架 | Spring Boot 3.x | 最终会作为模块嵌入主进程 |
-| 开发语言 | Java 17 / 21 | LTS |
-| ORM | MyBatis-Plus | 数据库访问 |
-| 业务数据库 | PostgreSQL 15+ / MySQL 8+ | 持久化 |
+| 应用框架 | Gin | HTTP 框架 |
+| 开发语言 | Go 1.26 | 编译型高性能语言 |
+| ORM | sqlx | 数据库访问 |
+| 业务数据库 | MariaDB 10.11 | 持久化 |
 | 缓存 | Redis 7+ | 实时状态 |
 | 消息队列 | Kafka 3.x | 事件驱动 |
 | 任务调度 | Spring Scheduler | 定时查宿/同步 |
@@ -517,7 +517,7 @@ A-301 (4人间):
   "timestamp": "2026-05-15T23:00:00+08:00",
   "components": {
     "redis": { "status": "UP", "latencyMs": 2 },
-    "postgresql": { "status": "UP", "latencyMs": 5 },
+    "mariadb": { "status": "UP", "latencyMs": 5 },
     "kafka": { "status": "UP", "lag": 0, "lastEventTime": "2026-05-15T22:59:00+08:00" },
     "simsApi": { "status": "UP", "lastSync": "2026-05-15T12:00:00+08:00" }
   }
