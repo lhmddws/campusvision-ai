@@ -1,0 +1,2 @@
+# Exclude base64-encoded font file from GitHub language stats
+frontend/src/assets/styles/font.scss linguist-generated=true
