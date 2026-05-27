@@ -32,8 +32,8 @@
 </template>
 
 <script setup lang="ts">
-import Logo from './Logo.vue';
-import SidebarItem from './SidebarItem.vue';
+import Logo from './logo.vue';
+import SidebarItem from './sidebarItem.vue';
 import variables from '@/assets/styles/variables.module.scss';
 import useAppStore from '@/store/modules/app';
 import useSettingsStore from '@/store/modules/settings';

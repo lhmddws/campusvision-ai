@@ -7,5 +7,4 @@ Dockerfile
 __pycache__/
 *.pyc
 config.yaml
-config.docker.yaml
 tests/

@@ -3,7 +3,4 @@
 *.md
 Dockerfile
 .dockerignore
-*.yaml
-config.yaml
-config.docker.yaml
 test-env/

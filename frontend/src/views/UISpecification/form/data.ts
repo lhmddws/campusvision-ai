@@ -1,4 +1,4 @@
-import { FormSchema } from '@/components/ZFrom/src/types/form';
+import { FormSchema } from '@/types/form';
 import { departmentDictionary } from '@/api/system/dept';
 
 export const schemas: FormSchema[] = [

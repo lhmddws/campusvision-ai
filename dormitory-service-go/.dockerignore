@@ -3,5 +3,4 @@
 *.md
 Dockerfile
 .dockerignore
-config.yaml
-config.docker.yaml
+
