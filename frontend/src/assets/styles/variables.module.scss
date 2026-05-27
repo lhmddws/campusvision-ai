@@ -1,0 +1,81 @@
+// base color
+$blue: #3a71a8;
+$light-blue: #4487ca;
+$red: #c03639;
+$pink: #e65d6e;
+$green: #30b08f;
+$tiffany: #4ab7bd;
+$yellow: #fec171;
+$panGreen: #30b08f;
+$orange: #ff9d2b;
+
+// 默认菜单主题风格
+
+$base-menu-color: #1f2329;
+$base-sub-menu-color: #63656a;
+$base-menu-color-active: #63656a;
+$base-sub-menu-color-active: #1f2329;
+$base-menu-background: #fafafa;
+$base-logo-title-color: #1f2329;
+$base-menu-bg-active: rgba(0, 0, 0, 0.05);
+
+$base-menu-light-color: rgba(0, 0, 0, 0.7);
+$base-menu-light-background: #fafafa;
+$base-logo-light-title-color: #001529;
+
+$base-sub-menu-background: #fafafa;
+$base-sub-menu-hover: rgba(0, 0, 0, 0.03);
+
+$base-text-color: #1F2329;
+$base-text-second-color: #63656A;
+$base-text-three-color: #A5A7A9;
+
+// 自定义暗色菜单风格
+/**
+$base-menu-color:hsla(0,0%,100%,.65);
+$base-menu-color-active:#fff;
+$base-menu-background:#001529;
+$base-logo-title-color: #ffffff;
+
+$base-menu-light-color:rgba(0,0,0,.70);
+$base-menu-light-background:#ffffff;
+$base-logo-light-title-color: #001529;
+
+$base-sub-menu-background:#000c17;
+$base-sub-menu-hover:#001528;
+*/
+
+$--color-primary: #02A797;
+$--color-success: #67C23A;
+$--color-warning: #E6A23C;
+$--color-danger: #F56C6C;
+$--color-info: #909399;
+
+$base-sidebar-width: 224px;
+
+// 命名空间
+$namespace: z;
+// el命名空间
+$elNamespace: el;
+
+// the :export directive is the magic sauce for webpack
+// https://www.bluematador.com/blog/how-to-share-variables-between-js-and-sass
+:export {
+  menuColor: $base-menu-color;
+  menuLightColor: $base-menu-light-color;
+  menuColorActive: $base-menu-color-active;
+  menuBackground: $base-menu-background;
+  menuLightBackground: $base-menu-light-background;
+  subMenuBackground: $base-sub-menu-background;
+  subMenuHover: $base-sub-menu-hover;
+  sideBarWidth: $base-sidebar-width;
+  logoTitleColor: $base-logo-title-color;
+  logoLightTitleColor: $base-logo-light-title-color;
+  primaryColor: $--color-primary;
+  successColor: $--color-success;
+  dangerColor: $--color-danger;
+  infoColor: $--color-info;
+  warningColor: $--color-warning;
+  namespace: $namespace;
+  elNamespace: $elNamespace;
+}

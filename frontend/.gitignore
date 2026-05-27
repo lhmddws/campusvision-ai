@@ -1,0 +1,17 @@
+.DS_Store
+node_modules/
+dist/
+.vite/
+*.tsbuildinfo
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.pnpm-debug.log*
+tests/**/coverage/
+/coverage
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+components.d.ts
+auto-imports.d.ts
