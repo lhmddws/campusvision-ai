@@ -1,13 +1,22 @@
 <template>
-  <div class="app-container">
-    <!-- 搜索栏 -->
-    <el-form v-show="showSearch" :inline="true" :model="queryParams">
-      <el-form-item label="楼栋" prop="building">
+  <div class="cv-camera-page">
+    <!-- Filter Bar -->
+    <div class="cv-filter-bar">
+      <div class="cv-filter-bar__left">
+        <el-input
+          v-model="searchKeyword"
+          placeholder="搜索摄像头名称 / ID"
+          clearable
+          prefix-icon="Search"
+          class="cv-filter-bar__input"
+          @clear="handleQuery"
+          @keyup.enter="handleQuery"
+        />
         <el-select
           v-model="queryParams.building"
-          placeholder="全部楼栋"
+          placeholder="全部区域"
           clearable
-          style="width: 200px"
+          class="cv-filter-bar__select"
           @change="handleQuery"
         >
           <el-option
@@ -17,75 +26,131 @@
             :value="b"
           />
         </el-select>
-      </el-form-item>
-      <el-form-item>
-        <el-button type="primary" icon="Search" @click="handleQuery">搜索</el-button>
+        <el-select
+          v-model="statusFilter"
+          placeholder="全部状态"
+          clearable
+          class="cv-filter-bar__select"
+          @change="handleQuery"
+        >
+          <el-option label="在线" value="online" />
+          <el-option label="离线" value="offline" />
+          <el-option label="异常" value="error" />
+        </el-select>
+      </div>
+      <div class="cv-filter-bar__right">
         <el-button icon="Refresh" @click="resetQuery">重置</el-button>
-      </el-form-item>
-      <el-form-item>
-        <el-button type="primary" icon="Plus" @click="handleAdd">新增摄像头</el-button>
-      </el-form-item>
-    </el-form>
+        <el-button type="primary" icon="Plus" @click="handleAdd">添加摄像头</el-button>
+      </div>
+    </div>
 
-    <!-- 摄像头列表 -->
-    <el-table v-loading="loading" :data="cameraList" stripe>
-      <el-table-column label="摄像头ID" align="center" prop="camera_id" min-width="120" />
-      <el-table-column label="名称" align="center" prop="name" min-width="120" />
-      <el-table-column label="楼栋" align="center" prop="building" min-width="100" />
-      <el-table-column label="方向" align="center" prop="direction" min-width="80">
-        <template #default="{ row }">
-          <el-tag :type="directionTagType(row.direction)" effect="plain">
-            {{ directionLabel(row.direction) }}
-          </el-tag>
-        </template>
-      </el-table-column>
-      <el-table-column label="分辨率" align="center" prop="resolution" min-width="100" />
-      <el-table-column label="状态" align="center" prop="status" min-width="80">
-        <template #default="{ row }">
-          <el-tag :type="statusTagType(row.status)" effect="dark">
-            {{ statusLabel(row.status) }}
-          </el-tag>
-        </template>
-      </el-table-column>
-      <el-table-column label="帧率" align="center" prop="fps_current" min-width="80">
-        <template #default="{ row }">
-          <span>{{ row.fps_current != null ? row.fps_current : '-' }}</span>
-        </template>
-      </el-table-column>
-      <el-table-column label="最后心跳" align="center" prop="last_heartbeat" min-width="160">
-        <template #default="{ row }">
-          <span>{{ row.last_heartbeat || '-' }}</span>
-        </template>
-      </el-table-column>
-      <el-table-column label="启用" align="center" prop="enabled" min-width="80">
-        <template #default="{ row }">
-          <el-switch
-            :model-value="row.enabled"
-            @change="(val: boolean) => handleToggleEnabled(row, val)"
-          />
-        </template>
-      </el-table-column>
-      <el-table-column label="操作" align="center" class-name="small-padding fixed-width" min-width="180">
-        <template #default="{ row }">
-          <el-button text type="primary" @click="handleEdit(row)">编辑</el-button>
-          <el-button
-            text
-            type="primary"
-            :loading="healthCheckLoading[row.camera_id]"
-            @click="handleHealthCheck(row)"
-          >
-            健康检查
-          </el-button>
-          <el-button text type="danger" @click="handleDelete(row)">删除</el-button>
-        </template>
-      </el-table-column>
-    </el-table>
+    <!-- Table Card -->
+    <div class="cv-table-card">
+      <el-table
+        v-loading="loading"
+        :data="filteredCameraList"
+        class="cv-table"
+        :header-cell-style="{ background: '#FAFAFA', color: '#262626', fontWeight: 600 }"
+        row-class-name="cv-table__row"
+      >
+        <el-table-column label="名称" prop="name" min-width="140">
+          <template #default="{ row }">
+            <div class="cv-camera-name">
+              <span class="cv-camera-name__text">{{ row.name }}</span>
+              <span class="cv-camera-name__id">{{ row.camera_id }}</span>
+            </div>
+          </template>
+        </el-table-column>
+        <el-table-column label="区域" prop="building" min-width="100" align="center">
+          <template #default="{ row }">
+            <span class="cv-cell-text">{{ row.building }}</span>
+          </template>
+        </el-table-column>
+        <el-table-column label="IP地址" min-width="140" align="center">
+          <template #default="{ row }">
+            <span class="cv-cell-text cv-cell-text--mono">{{ extractIp(row.rtsp_url) }}</span>
+          </template>
+        </el-table-column>
+        <el-table-column label="状态" prop="status" min-width="100" align="center">
+          <template #default="{ row }">
+            <span :class="['cv-status', `cv-status--${row.status}`]">
+              <span class="cv-status__dot"></span>
+              {{ statusLabel(row.status) }}
+            </span>
+          </template>
+        </el-table-column>
+        <el-table-column label="方向" prop="direction" min-width="80" align="center">
+          <template #default="{ row }">
+            <el-tag
+              :type="directionTagType(row.direction)"
+              effect="plain"
+              size="small"
+              class="cv-direction-tag"
+            >
+              {{ directionLabel(row.direction) }}
+            </el-tag>
+          </template>
+        </el-table-column>
+        <el-table-column label="帧率" prop="fps_current" min-width="70" align="center">
+          <template #default="{ row }">
+            <span class="cv-cell-text">{{ row.fps_current != null ? row.fps_current : '-' }}</span>
+          </template>
+        </el-table-column>
+        <el-table-column label="最后在线时间" min-width="160" align="center">
+          <template #default="{ row }">
+            <span class="cv-cell-text cv-cell-text--secondary">{{ row.last_heartbeat || '-' }}</span>
+          </template>
+        </el-table-column>
+        <el-table-column label="启用" prop="enabled" min-width="80" align="center">
+          <template #default="{ row }">
+            <el-switch
+              :model-value="row.enabled"
+              :active-color="$primaryColor"
+              @change="(val: boolean) => handleToggleEnabled(row, val)"
+            />
+          </template>
+        </el-table-column>
+        <el-table-column label="操作" min-width="200" align="center" fixed="right">
+          <template #default="{ row }">
+            <div class="cv-actions">
+              <el-button text type="primary" size="small" @click="handleEdit(row)">编辑</el-button>
+              <el-button
+                text
+                type="primary"
+                size="small"
+                :loading="healthCheckLoading[row.camera_id]"
+                @click="handleHealthCheck(row)"
+              >
+                健康检查
+              </el-button>
+              <el-button text type="danger" size="small" @click="handleDelete(row)">删除</el-button>
+            </div>
+          </template>
+        </el-table-column>
+      </el-table>
 
-    <!-- 空状态 -->
-    <el-empty v-if="!loading && cameraList.length === 0" description="暂无摄像头数据" />
+      <!-- Empty State -->
+      <el-empty
+        v-if="!loading && filteredCameraList.length === 0"
+        description="暂无摄像头数据"
+        class="cv-empty"
+      />
 
-    <!-- 新增/编辑对话框 -->
-    <el-dialog v-model="dialogVisible" :title="dialogTitle" width="560px" append-to-body>
+      <!-- Pagination -->
+      <div class="cv-pagination">
+        <el-pagination
+          v-model:current-page="pagination.current"
+          v-model:page-size="pagination.size"
+          :page-sizes="[10, 20, 50, 100]"
+          :total="filteredCameraList.length"
+          layout="total, sizes, prev, pager, next, jumper"
+          background
+        />
+      </div>
+    </div>
+
+    <!-- 新增/编辑对话框 (preserved) -->
+    <el-dialog v-model="dialogVisible" :title="dialogTitle" width="560px" append-to-body class="cv-dialog">
       <el-form ref="formRef" :model="form" :rules="rules" label-width="100px">
         <el-form-item label="摄像头ID" prop="camera_id">
           <el-input
@@ -123,9 +188,9 @@
         </el-form-item>
       </el-form>
       <template #footer>
-        <div class="dialog-footer">
-          <el-button type="primary" @click="submitForm">确 定</el-button>
+        <div class="cv-dialog-footer">
           <el-button @click="cancelForm">取 消</el-button>
+          <el-button type="primary" @click="submitForm">确 定</el-button>
         </div>
       </template>
     </el-dialog>
@@ -186,7 +251,45 @@ function handleQuery() {
 /** 重置搜索 */
 function resetQuery() {
   queryParams.building = undefined;
+  statusFilter.value = '';
+  searchKeyword.value = '';
   getList();
+}
+
+// ==================== 前端过滤 & 分页 ====================
+const searchKeyword = ref('');
+const statusFilter = ref('');
+
+const $primaryColor = '#1890FF';
+
+/** 前端过滤列表 */
+const filteredCameraList = computed(() => {
+  let list = cameraList.value;
+  if (searchKeyword.value) {
+    const kw = searchKeyword.value.toLowerCase();
+    list = list.filter(
+      (c) =>
+        c.name.toLowerCase().includes(kw) ||
+        c.camera_id.toLowerCase().includes(kw),
+    );
+  }
+  if (statusFilter.value) {
+    list = list.filter((c) => c.status === statusFilter.value);
+  }
+  return list;
+});
+
+/** 分页 */
+const pagination = reactive({
+  current: 1,
+  size: 20,
+});
+
+/** 从 RTSP URL 提取 IP */
+function extractIp(rtspUrl: string): string {
+  if (!rtspUrl) return '-';
+  const match = rtspUrl.match(/@([^:/]+)/);
+  return match ? match[1] : rtspUrl.replace(/^rtsp:\/\//, '').split(/[:/]/)[0] || '-';
 }
 
 // ==================== 状态/方向标签 ====================
@@ -388,8 +491,240 @@ onMounted(() => {
 });
 </script>
 
-<style scoped>
-.app-container {
+<style lang="scss" scoped>
+// Theme variables
+$primary-color: #1890FF;
+$success-color: #52C41A;
+$danger-color: #FF4D4F;
+$warning-color: #FAAD14;
+$page-bg: #F0F2F5;
+$card-bg: #FFFFFF;
+$text-primary: #262626;
+$text-secondary: #8C8C8C;
+$border-color: #F0F0F0;
+
+.cv-camera-page {
   padding: 20px;
+  min-height: 100%;
+  background: $page-bg;
+}
+
+// ─── Filter Bar ───
+.cv-filter-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 20px;
+  background: $card-bg;
+  border-radius: 8px;
+  margin-bottom: 16px;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.04);
+
+  &__left {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+
+  &__right {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  &__input {
+    width: 240px;
+  }
+
+  &__select {
+    width: 140px;
+  }
+}
+
+// ─── Table Card ───
+.cv-table-card {
+  background: $card-bg;
+  border-radius: 8px;
+  padding: 0;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.04);
+  overflow: hidden;
+}
+
+.cv-table {
+  width: 100%;
+
+  // Row hover
+  :deep(.cv-table__row) {
+    transition: background-color 0.2s ease;
+
+    &:hover > td {
+      background-color: #E6F7FF !important;
+    }
+  }
+
+  // Remove inner borders for clean look
+  :deep(.el-table__inner-wrapper::before) {
+    display: none;
+  }
+
+  :deep(th.el-table__cell) {
+    border-bottom: 1px solid $border-color;
+    font-size: 13px;
+    letter-spacing: 0.02em;
+  }
+
+  :deep(td.el-table__cell) {
+    border-bottom: 1px solid $border-color;
+  }
+}
+
+// ─── Camera Name Cell ───
+.cv-camera-name {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+
+  &__text {
+    font-weight: 500;
+    color: $text-primary;
+    font-size: 14px;
+    line-height: 1.4;
+  }
+
+  &__id {
+    font-size: 12px;
+    color: $text-secondary;
+    font-family: 'SF Mono', 'Fira Code', 'Consolas', monospace;
+  }
+}
+
+// ─── Cell Text ───
+.cv-cell-text {
+  color: $text-primary;
+  font-size: 13px;
+
+  &--mono {
+    font-family: 'SF Mono', 'Fira Code', 'Consolas', monospace;
+    font-size: 12px;
+    color: $text-secondary;
+  }
+
+  &--secondary {
+    color: $text-secondary;
+    font-size: 12px;
+  }
+}
+
+// ─── Status Indicator ───
+.cv-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  font-weight: 500;
+
+  &__dot {
+    display: inline-block;
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    flex-shrink: 0;
+  }
+
+  &--online {
+    color: $success-color;
+
+    .cv-status__dot {
+      background-color: $success-color;
+      box-shadow: 0 0 0 3px rgba($success-color, 0.2);
+    }
+  }
+
+  &--offline {
+    color: $text-secondary;
+
+    .cv-status__dot {
+      background-color: #BFBFBF;
+      box-shadow: 0 0 0 3px rgba(#BFBFBF, 0.15);
+    }
+  }
+
+  &--error {
+    color: $danger-color;
+
+    .cv-status__dot {
+      background-color: $danger-color;
+      box-shadow: 0 0 0 3px rgba($danger-color, 0.2);
+    }
+  }
+}
+
+// ─── Direction Tag ───
+.cv-direction-tag {
+  font-size: 12px;
+}
+
+// ─── Actions ───
+.cv-actions {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+}
+
+// ─── Empty State ───
+.cv-empty {
+  padding: 48px 0;
+}
+
+// ─── Pagination ───
+.cv-pagination {
+  display: flex;
+  justify-content: flex-end;
+  padding: 16px 20px;
+  border-top: 1px solid $border-color;
+}
+
+// ─── Dialog ───
+.cv-dialog {
+  :deep(.el-dialog__header) {
+    border-bottom: 1px solid $border-color;
+    padding-bottom: 16px;
+  }
+
+  :deep(.el-dialog__body) {
+    padding: 24px 20px;
+  }
+}
+
+.cv-dialog-footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+// ─── Responsive ───
+@media (max-width: 768px) {
+  .cv-filter-bar {
+    flex-direction: column;
+    gap: 12px;
+    align-items: stretch;
+
+    &__left {
+      flex-wrap: wrap;
+    }
+
+    &__input {
+      width: 100%;
+    }
+
+    &__select {
+      width: 100%;
+    }
+
+    &__right {
+      justify-content: flex-end;
+    }
+  }
 }
 </style>

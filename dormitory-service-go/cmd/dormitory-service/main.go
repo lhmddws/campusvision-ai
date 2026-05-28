@@ -114,7 +114,7 @@ func main() {
 
 	// Initialize services
 	cameraSvc := service.NewCameraService(cameraRepo, eventLogRepo, cameraLogRepo, pushClient, gatewayURL)
-	recordSvc := service.NewRecordService(eventLogRepo, studentRepo)
+	recordSvc := service.NewRecordService(eventLogRepo, studentRepo, buildingRepo)
 	alertSvc := service.NewAlertService(alertRepo, strangerRecordRepo)
 	configSvc := service.NewConfigService(configRepo)
 
@@ -239,6 +239,7 @@ func main() {
 		records.GET("/attendance/stats", recordHandler.GetAttendanceStats)
 		records.GET("/attendance/daily-summary", recordHandler.GetDailySummary)
 		records.GET("/events", recordHandler.GetEvents)
+		records.GET("/attendance/inspection-list", recordHandler.GetInspectionList)
 	}
 
 	// Alert routes

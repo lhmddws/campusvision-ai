@@ -86,3 +86,16 @@ func (h *RecordHandler) GetEvents(c *gin.Context) {
 
 	PageResult(c, events, total, page, size)
 }
+
+// GetInspectionList    GET /sims/dorm/records/attendance/inspection-list
+func (h *RecordHandler) GetInspectionList(c *gin.Context) {
+	building := c.Query("building")
+
+	result, err := h.svc.GetInspectionList(c.Request.Context(), building)
+	if err != nil {
+		Error(c, http.StatusInternalServerError, "Failed to query inspection list: "+err.Error())
+		return
+	}
+
+	Success(c, result)
+}
