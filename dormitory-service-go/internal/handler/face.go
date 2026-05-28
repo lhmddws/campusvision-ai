@@ -5,6 +5,8 @@ import (
 	"net/http"
 
 	"github.com/gin-gonic/gin"
+
+	"github.com/sims/campusvision/dormitory-service-go/internal/model/entity"
 )
 
 // FaceMatchRequest is the JSON body for POST /api/face/match.
@@ -24,13 +26,6 @@ type FaceMatch struct {
 	Name       string  `json:"name"`
 	StudentID  string  `json:"student_id"`
 	Confidence float64 `json:"confidence"`
-}
-
-type faceEmbeddingRow struct {
-	ID        int64
-	Name      string
-	StudentID string
-	Embedding []byte
 }
 
 const matchThreshold = 0.65
@@ -61,7 +56,7 @@ func (h *Handler) FaceMatch(c *gin.Context) {
 	var bestScore float64
 
 	for rows.Next() {
-		var row faceEmbeddingRow
+		var row entity.FaceEmbedding
 		if err := rows.Scan(&row.ID, &row.Name, &row.StudentID, &row.Embedding); err != nil {
 			continue
 		}

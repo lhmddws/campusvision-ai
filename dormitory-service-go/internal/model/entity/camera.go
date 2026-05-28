@@ -26,6 +26,13 @@ type DormCamera struct {
 	LastHealthCheck sql.NullTime   `db:"last_health_check" json:"last_health_check"`
 	PasswordEnc     sql.NullString `db:"password_enc" json:"password_enc"`
 	Nonce           sql.NullString `db:"nonce" json:"nonce"`
+	Type            string         `db:"type" json:"type"`
+	Protocol        string         `db:"protocol" json:"protocol"`
+	Host            sql.NullString `db:"host" json:"host"`
+	Port            sql.NullInt64  `db:"port" json:"port"`
+	Path            sql.NullString `db:"path" json:"path"`
+	Username        sql.NullString `db:"username" json:"username"`
+	KeyID           sql.NullString `db:"key_id" json:"key_id"`
 	CreatedAt       time.Time      `db:"created_at" json:"created_at"`
 	UpdatedAt       time.Time      `db:"updated_at" json:"updated_at"`
 }
