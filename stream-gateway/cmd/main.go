@@ -26,6 +26,11 @@ func main() {
 	configPath := flag.String("config", "config.yaml", "path to config file")
 	flag.Parse()
 
+	// CONFIG_PATH env var as fallback (matching dormitory-service-go convention)
+	if envPath := os.Getenv("CONFIG_PATH"); envPath != "" {
+		configPath = &envPath
+	}
+
 	cfg, err := config.Load(*configPath)
 	if err != nil {
 		log.Fatalf("load config: %v", err)
