@@ -1,6 +1,9 @@
 package crypto
 
 import (
+	"crypto/aes"
+	"crypto/cipher"
+	"crypto/rand"
 	"encoding/base64"
 	"os"
 	"strings"
@@ -175,12 +178,12 @@ func TestInvalidBase64(t *testing.T) {
 		{
 			name:   "invalid ciphertext base64",
 			ct:     "!!!not-base64!!!",
-			nonce:  base64.RawStdEncoding.EncodeToString(make([]byte, NonceSize)),
+			nonce:  	base64.StdEncoding.EncodeToString(make([]byte, NonceSize)),
 			errMsg: "invalid base64",
 		},
 		{
 			name:   "invalid nonce base64",
-			ct:     base64.RawStdEncoding.EncodeToString([]byte("ciphertext")),
+			ct:     	base64.StdEncoding.EncodeToString([]byte("ciphertext")),
 			nonce:  "!!!not-base64!!!",
 			errMsg: "invalid base64",
 		},
@@ -207,7 +210,7 @@ func TestDecrypt_EmptyCiphertext(t *testing.T) {
 
 	// Empty string is valid base64 (decodes to empty bytes), so it bypasses
 	// the base64 check and hits GCM authentication, which fails.
-	nonce := base64.RawStdEncoding.EncodeToString(make([]byte, NonceSize))
+	nonce := 	base64.StdEncoding.EncodeToString(make([]byte, NonceSize))
 	_, err = s.Decrypt("", nonce)
 	if err == nil {
 		t.Fatal("decrypt empty ciphertext should error")
@@ -223,9 +226,9 @@ func TestInvalidNonceLength(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	shortNonce := base64.RawStdEncoding.EncodeToString(make([]byte, 4))  // 4 bytes, not 12
-	longNonce := base64.RawStdEncoding.EncodeToString(make([]byte, 16))  // 16 bytes, not 12
-	ct := base64.RawStdEncoding.EncodeToString([]byte("some-ciphertext"))
+	shortNonce := 	base64.StdEncoding.EncodeToString(make([]byte, 4))  // 4 bytes, not 12
+	longNonce := 	base64.StdEncoding.EncodeToString(make([]byte, 16))  // 16 bytes, not 12
+	ct := 	base64.StdEncoding.EncodeToString([]byte("some-ciphertext"))
 
 	tests := []struct {
 		name  string
@@ -303,15 +306,15 @@ func TestEncryptOutputFormat(t *testing.T) {
 		t.Fatalf("Encrypt failed: %v", err)
 	}
 
-	// Verify base64 can decode (ensures RawStdEncoding was used, not StdEncoding with padding)
-	ctBytes, err := base64.RawStdEncoding.DecodeString(ct)
+	// Verify base64 can decode (ensures StdEncoding was used)
+	ctBytes, err := base64.StdEncoding.DecodeString(ct)
 	if err != nil {
-		t.Fatalf("ciphertext not valid RawStdEncoding: %v", err)
+		t.Fatalf("ciphertext not valid StdEncoding: %v", err)
 	}
 
-	nonceBytes, err := base64.RawStdEncoding.DecodeString(nonce)
+	nonceBytes, err := base64.StdEncoding.DecodeString(nonce)
 	if err != nil {
-		t.Fatalf("nonce not valid RawStdEncoding: %v", err)
+		t.Fatalf("nonce not valid StdEncoding: %v", err)
 	}
 
 	// Verify nonce size
@@ -324,8 +327,55 @@ func TestEncryptOutputFormat(t *testing.T) {
 		t.Fatal("ciphertext too short, missing GCM tag?")
 	}
 
-	// Verify StdEncoding would fail (no padding characters)
-	if strings.Contains(ct, "=") || strings.Contains(nonce, "=") {
-		t.Fatal("base64 padding detected - expected RawStdEncoding")
+	// Verify StdEncoding includes padding characters
+	if !strings.Contains(ct, "=") && !strings.Contains(nonce, "=") {
+		t.Fatal("StdEncoding padding expected but not found")
+	}
+}
+
+func TestDecryptBackwardCompatibility(t *testing.T) {
+	// Test that data encrypted with RawStdEncoding can still be decrypted
+	// after the migration to StdEncoding.
+	key := [32]byte{}
+	plaintext := []byte("backward-compat-test-data")
+
+	// Encrypt with RawStdEncoding (legacy format)
+	nonce := make([]byte, 12)
+	if _, err := rand.Read(nonce); err != nil {
+		t.Fatal(err)
+	}
+	block, err := aes.NewCipher(key[:])
+	if err != nil {
+		t.Fatal(err)
+	}
+	aead, err := cipher.NewGCM(block)
+	if err != nil {
+		t.Fatal(err)
+	}
+	ciphertext := aead.Seal(nil, nonce, plaintext, nil)
+
+	// Encode with RawStdEncoding (legacy)
+	encodedNonce := base64.RawStdEncoding.EncodeToString(nonce)
+	encodedCipher := base64.RawStdEncoding.EncodeToString(ciphertext)
+
+	// Decrypt using decodeBase64 (should handle legacy format)
+	decNonce, err := decodeBase64(encodedNonce)
+	if err != nil {
+		t.Fatalf("decodeBase64 failed for legacy nonce: %v", err)
+	}
+	decCipher, err := decodeBase64(encodedCipher)
+	if err != nil {
+		t.Fatalf("decodeBase64 failed for legacy ciphertext: %v", err)
+	}
+
+	// Verify decryption succeeds
+	decBlock, _ := aes.NewCipher(key[:])
+	decAead, _ := cipher.NewGCM(decBlock)
+	result, err := decAead.Open(nil, decNonce, decCipher, nil)
+	if err != nil {
+		t.Fatalf("decryption of legacy-encoded data failed: %v", err)
+	}
+	if string(result) != string(plaintext) {
+		t.Fatalf("decryption result mismatch: got %q, want %q", result, plaintext)
 	}
 }
