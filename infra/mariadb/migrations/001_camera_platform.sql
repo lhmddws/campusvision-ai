@@ -56,8 +56,4 @@ ALTER TABLE dorm_camera
 
   ADD COLUMN key_id            VARCHAR(16)  DEFAULT 'v1'
     COMMENT '密钥版本'
-    AFTER nonce,
-
-  ADD COLUMN last_health_check DATETIME
-    COMMENT '上次健康检查时间'
-    AFTER last_event_time;
+    AFTER nonce;
