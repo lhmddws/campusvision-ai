@@ -9,22 +9,22 @@ $yellow: #fec171;
 $panGreen: #30b08f;
 $orange: #ff9d2b;
 
-// 默认菜单主题风格
+// 默认菜单主题风格 (dark sidebar theme)
 
-$base-menu-color: #1f2329;
-$base-sub-menu-color: #63656a;
-$base-menu-color-active: #63656a;
-$base-sub-menu-color-active: #1f2329;
-$base-menu-background: #fafafa;
-$base-logo-title-color: #1f2329;
-$base-menu-bg-active: rgba(0, 0, 0, 0.05);
+$base-menu-color: rgba(255, 255, 255, 0.80);
+$base-sub-menu-color: rgba(255, 255, 255, 0.65);
+$base-menu-color-active: #ffffff;
+$base-sub-menu-color-active: #ffffff;
+$base-menu-background: #001529;
+$base-logo-title-color: #ffffff;
+$base-menu-bg-active: rgba(255, 255, 255, 0.08);
 
 $base-menu-light-color: rgba(0, 0, 0, 0.7);
 $base-menu-light-background: #fafafa;
 $base-logo-light-title-color: #001529;
 
-$base-sub-menu-background: #fafafa;
-$base-sub-menu-hover: rgba(0, 0, 0, 0.03);
+$base-sub-menu-background: #000c17;
+$base-sub-menu-hover: rgba(255, 255, 255, 0.05);
 
 $base-text-color: #1F2329;
 $base-text-second-color: #63656A;
@@ -64,7 +64,7 @@ $card-bg: #FFFFFF;
 $text-primary: #262626;
 $text-secondary: #8C8C8C;
 
-$base-sidebar-width: 224px;
+$base-sidebar-width: 220px;
 
 // 命名空间
 $namespace: z;
@@ -97,6 +97,7 @@ $elNamespace: el;
   cvWarning: $warning-color;
   cvDanger: $danger-color;
   cvSidebarBg: $sidebar-bg;
+  cvSidebarActive: $sidebar-active;
   cvPageBg: $page-bg;
   cvCardBg: $card-bg;
   cvTextPrimary: $text-primary;

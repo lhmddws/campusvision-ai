@@ -21,6 +21,13 @@
       <template v-if="appStore.device !== 'mobile'">
         <!-- <header-search id="header-search" class="right-menu-item" /> -->
         <screenfull id="screenfull" class="right-menu-item hover-effect" />
+        <el-tooltip content="通知" placement="bottom">
+          <div class="right-menu-item hover-effect notification-bell">
+            <el-badge :value="0" :hidden="true" class="notification-badge">
+              <el-icon :size="18"><bell /></el-icon>
+            </el-badge>
+          </div>
+        </el-tooltip>
       </template>
       <div class="avatar-container">
         <el-dropdown
@@ -53,6 +60,7 @@
 
 <script setup lang="ts">
 import { ElMessageBox } from "element-plus";
+import { Bell } from "@element-plus/icons-vue";
 import Breadcrumb from "@/components/Breadcrumb/index.vue";
 import TopNav from "@/components/TopNav/index.vue";
 import Hamburger from "@/components/Hamburger/index.vue";
@@ -107,9 +115,9 @@ function setLayout() {
   height: 50px;
   overflow: hidden;
   position: relative;
-  background: #fff;
-  // box-shadow: 0 1px 4px rgba(0, 21, 41, 0.08);
-  border-bottom: 1px solid #e4e4e4;
+  background: #ffffff;
+  border-bottom: 1px solid #e8e8e8;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.04);
 
   .hamburger-container {
     line-height: 46px;
@@ -143,18 +151,21 @@ function setLayout() {
     height: 100%;
     line-height: 50px;
     display: flex;
+    align-items: center;
 
     &:focus {
       outline: none;
     }
 
     .right-menu-item {
-      display: inline-block;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
       padding: 0 8px;
       height: 100%;
       font-size: 18px;
       color: #5a5e66;
-      vertical-align: text-bottom;
+      vertical-align: middle;
 
       &.hover-effect {
         cursor: pointer;
@@ -166,25 +177,34 @@ function setLayout() {
       }
     }
 
+    .notification-bell {
+      .notification-badge {
+        display: inline-flex;
+        align-items: center;
+      }
+    }
+
     .avatar-container {
-      margin-right: 40px;
+      margin-right: 30px;
 
       .avatar-wrapper {
         margin-top: 5px;
         position: relative;
+        display: inline-flex;
+        align-items: center;
 
         .user-avatar {
           cursor: pointer;
-          width: 40px;
-          height: 40px;
-          border-radius: 10px;
+          width: 36px;
+          height: 36px;
+          border-radius: 50%;
+          object-fit: cover;
         }
 
         i {
           cursor: pointer;
-          position: absolute;
-          right: -20px;
-          top: 25px;
+          position: relative;
+          margin-left: 4px;
           font-size: 12px;
         }
       }

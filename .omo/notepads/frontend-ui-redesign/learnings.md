@@ -24,3 +24,46 @@
   - Did NOT remove existing RuoYi SCSS variables — only appended new ones (backward compatible)
 - **Verification**: `pnpm run build:prod` → 2719 modules transformed, compiled CSS contains `--el-color-primary: #1890FF`
 - **Blocks**: Tasks 5 (Login), 6 (Layout), 7 (Dashboard), 8 (Camera), 9 (Events)
+
+## 2026-05-28: Phase 2 Task 5 — Login Page Redesign (60/40 Split Layout)
+
+- **Goal**: Rewrite login.vue with enterprise split layout (60% brand / 40% form), preserve ALL auth logic
+- **Files modified**:
+  - `frontend/src/views/login.vue` — Full template + style rewrite, script logic preserved verbatim
+  - `frontend/src/__tests__/login.spec.ts` — New test file (7 test cases)
+- **Layout design**:
+  - Left (60%): Dark gradient (#001529 → #1890FF) with geometric patterns, logo, title, tagline, 3 feature icons
+  - Right (40%): White card with box-shadow, centered form (username, password, remember-me, login button)
+  - Responsive: stacks vertically at ≤1024px, hides brand features at ≤480px
+  - CSS animations: logo-entrance, title-entrance, feature-entrance, card-entrance, float-pattern for decorative circles
+  - SCSS variables used: `$primary-color`, `$sidebar-bg`, `$card-bg`, `$page-bg`, `$text-primary`, `$text-secondary`
+- **Auth logic preserved**: Cookie-based remember-me, JWT token management, validation rules, jsencrypt password encryption — all `<script>` code unchanged
+- **Test approach**:
+  - Mock `js-cookie`, `@/utils/jsencrypt`, `@/api/login`, `@/utils/auth` to avoid network calls and Pinia circular deps
+  - Use real Pinia + real router (MemoryHistory) + real ElementPlus — only mock external dependencies
+  - 7 tests: brand section, inputs, login button, remember-me, form panel, logo, footer
+- **Key learning**: `vi.mock('@/store/modules/user')` with `defineStore` inside the factory causes Pinia "no active pinia" errors because the mock factory runs before Pinia is set up. Instead, mock the underlying API layer (`@/api/login`, `@/utils/auth`) and let the real Pinia store work with `setActivePinia()`.
+- **Key learning**: `import.meta.env.VITE_APP_TITLE` is undefined in jsdom test environment — test for DOM element existence rather than specific env-driven text content.
+- **Verification**: `npx vitest run` → 8 passed (1 smoke + 7 login), `pnpm run build:prod` → success (login.dc412bbc.css generated)
+
+## 2026-05-28: Phase 2 Task 6 — Layout Components Restyle (Dark Sidebar, White Navbar, TagsView)
+
+- **Goal**: Restyle sidebar (#001529 dark bg), navbar (white bg), TagsView (blue active tags) — NO logic changes
+- **Files modified**:
+  - `frontend/src/assets/styles/variables.module.scss` — Changed `$base-menu-background: #001529`, `$base-menu-color: rgba(255,255,255,0.80)`, `$base-menu-color-active: #ffffff`, `$base-logo-title-color: #ffffff`, `$base-menu-bg-active: rgba(255,255,255,0.08)`, `$base-sub-menu-background: #000c17`, `$base-sub-menu-hover: rgba(255,255,255,0.05)`, `$base-sidebar-width: 220px` (was 224px). Added `cvSidebarActive` to `:export`.
+  - `frontend/src/assets/styles/sidebar.scss` — Full rewrite: dark theme hover states (`rgba(255,255,255,0.08)`), active menu `#1890FF` bg, white text colors, collapsed width 64px (was 54px), removed `border-right` on scrollbar-wrapper, `background-color: $page-bg` on main-container
+  - `frontend/src/layout/components/Sidebar/logo.vue` — Hardcoded `backgroundColor: '#001529'`, white title color, removed `sideTheme` conditional (always dark now), removed `variables` import and `useSettingsStore`
+  - `frontend/src/layout/components/Sidebar/index.vue` — Simplified: always uses `variables.menuBackground` for bg, `variables.menuColor` for text, `variables.cvSidebarActive` for active color (no more theme-dark/theme-light conditional)
+  - `frontend/src/layout/components/Navbar.vue` — Added `Bell` icon import from `@element-plus/icons-vue`, notification bell with `el-badge` + `el-tooltip`, changed avatar to `border-radius: 50%`, white bg, subtle shadow
+  - `frontend/src/layout/components/TagsView/index.vue` — Active tag: white bg, `#1890FF` text, `border-bottom: 2px solid #1890FF`, blue dot indicator. Hover: `#1890FF` text. Close icon hover: `#1890FF` bg. Context menu hover: `#e6f7ff` bg + `#1890FF` text
+  - `frontend/src/layout/components/AppMain.vue` — Added `background-color: #F0F2F5` to `.app-main`
+  - `frontend/src/layout/index.vue` — Changed collapsed header width from `54px` to `64px`
+  - `frontend/src/__tests__/layout.spec.ts` — New test file (8 test cases, file-based assertions)
+- **Key decisions**:
+  - Sidebar always dark — removed `sideTheme` conditional in logo.vue, simplified sidebar index.vue to always use dark theme variables
+  - Active menu highlight uses `$sidebar-active` (#1890FF) via SCSS variable in sidebar.scss
+  - TagsView active state changed from green (#42b983) to blue (#1890FF) with border-bottom instead of filled background
+  - Navbar avatar changed from rounded square (10px radius) to circle (50% radius)
+  - Test approach: file-based string assertions (readFileSync) instead of component mounting — avoids Pinia/vue-router/Element Plus mocking complexity
+- **SCSS module exports in vitest**: `css: false` in vitest.config.ts means SCSS module `:export` values are hashed class names, not actual values. Use file-based assertions for SCSS content verification instead.
+- **Verification**: `npx vitest run` → 9 passed (1 smoke + 8 layout), `pnpm run build:prod` → success

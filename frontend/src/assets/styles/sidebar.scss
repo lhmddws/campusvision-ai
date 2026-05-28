@@ -4,8 +4,7 @@
     transition: margin-left 0.28s;
     margin-left: $base-sidebar-width;
     position: relative;
-    // padding-top: 56px;
-    background-color: #ffffff;
+    background-color: $page-bg;
   }
 
   .sidebarHide {
@@ -25,10 +24,6 @@
     left: 0;
     z-index: 1001;
     overflow: hidden;
-    // -webkit-box-shadow: 2px 0 6px rgba(0,21,41,.35);
-    // box-shadow: 2px 0 6px rgba(0,21,41,.35);
-    // margin-top: 56px;
-    // padding-top: 16px;
 
     // reset element-ui css
     .horizontal-collapse-transition {
@@ -37,7 +32,6 @@
 
     .scrollbar-wrapper {
       overflow-x: hidden !important;
-      border-right: 1px solid #e4e4e4;
     }
 
     .el-scrollbar__bar.is-vertical {
@@ -85,6 +79,7 @@
       width: 100% !important;
     }
 
+    // Dark sidebar menu items
     .el-menu-item,
     .menu-title {
       overflow: hidden !important;
@@ -92,9 +87,9 @@
       white-space: nowrap !important;
       padding-left: 24px;
       font-weight: 400;
-      font-size: 16px;
+      font-size: 14px;
       line-height: 40px;
-      color: #1f2329;
+      color: rgba(255, 255, 255, 0.80);
     }
 
     .el-menu-item .el-menu-tooltip__trigger {
@@ -102,7 +97,7 @@
       padding: 0;
     }
 
-    // menu hover
+    // menu hover — dark sidebar hover
     .nest-menu .el-menu-item,
     .sub-menu-title-noDropdown,
     .el-sub-menu__title {
@@ -112,15 +107,16 @@
       position: relative;
 
       &:hover {
-        background-color: rgba(0, 0, 0, 0.06) !important;
+        background-color: rgba(255, 255, 255, 0.08) !important;
       }
     }
 
+    // Active state for dark sidebar
     & .theme-dark .is-active > .el-sub-menu__title {
-      color: $base-menu-color-active !important;
+      color: #ffffff !important;
     }
     & .theme-dark .is-active.menu-active > .el-sub-menu__title {
-      background-color: rgba(0, 0, 0, 0.05) !important;
+      background-color: rgba(255, 255, 255, 0.08) !important;
     }
 
     & .el-sub-menu .nest-menu .el-menu-item {
@@ -132,20 +128,21 @@
       font-weight: 400;
       font-size: 14px;
       line-height: 21px;
-      color: #63656a;
+      color: rgba(255, 255, 255, 0.65);
     }
     & .el-sub-menu .nest-menu .el-menu-item.is-active {
-      color: $base-menu-color-active !important;
-      background-color: $base-menu-bg-active !important;
+      color: #ffffff !important;
+      background-color: $sidebar-active !important;
     }
     & .el-sub-menu .el-menu-item {
       min-width: $base-sidebar-width !important;
 
       &:hover {
-        background-color: rgba(0, 0, 0, 0.06) !important;
+        background-color: rgba(255, 255, 255, 0.08) !important;
       }
     }
 
+    // Dark theme sub-menu backgrounds
     & .theme-dark .nest-menu .el-sub-menu > .el-sub-menu__title,
     & .theme-dark .el-sub-menu .el-menu-item {
       background-color: $base-sub-menu-background !important;
@@ -154,18 +151,24 @@
         background-color: $base-sub-menu-hover !important;
       }
     }
+
+    // Active menu item highlight for dark sidebar
+    .el-menu-item.is-active {
+      color: #ffffff !important;
+      background-color: $sidebar-active !important;
+    }
   }
 
   .hideSidebar {
     .logo {
-      width: 54px;
+      width: 64px;
     }
     .sidebar-container {
-      width: 54px !important;
+      width: 64px !important;
     }
 
     .main-container {
-      margin-left: 54px;
+      margin-left: 64px;
     }
 
     .sub-menu-title-noDropdown {
@@ -258,8 +261,7 @@
   .nest-menu .el-sub-menu > .el-sub-menu__title,
   .el-menu-item {
     &:hover {
-      // you can use $sub-menuHover
-      background-color: rgba(0, 0, 0, 0.06) !important;
+      background-color: rgba(255, 255, 255, 0.08) !important;
     }
   }
 

@@ -1,52 +1,105 @@
 <template>
-    <div class="login">
-        <div class="circle-box">
-            <div class="circle circle1"></div>
-            <div class="circle circle2"></div>
-            <div class="circle circle3"></div>
+  <div class="login-container">
+    <!-- Left Panel: Brand & Visual (60%) -->
+    <div class="login-brand">
+      <div class="brand-pattern brand-pattern--1"></div>
+      <div class="brand-pattern brand-pattern--2"></div>
+      <div class="brand-pattern brand-pattern--3"></div>
+      <div class="brand-content">
+        <div class="brand-logo">
+          <img :src="LogoImg" alt="CampusVision AI" />
         </div>
-        <div class="backbox">
-            <div class="back-left"></div>
-            <div class="back-right"></div>
+        <h1 class="brand-title">{{ title }}</h1>
+        <p class="brand-tagline">{{ subtitle }}</p>
+        <div class="brand-features">
+          <div class="brand-feature">
+            <svg class="brand-feature__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
+            </svg>
+            <span>智能安防监控</span>
+          </div>
+          <div class="brand-feature">
+            <svg class="brand-feature__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
+              <circle cx="9" cy="7" r="4" />
+              <path d="M23 21v-2a4 4 0 0 0-3-3.87" />
+              <path d="M16 3.13a4 4 0 0 1 0 7.75" />
+            </svg>
+            <span>人脸识别考勤</span>
+          </div>
+          <div class="brand-feature">
+            <svg class="brand-feature__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M22 12h-4l-3 9L9 3l-3 9H2" />
+            </svg>
+            <span>实时异常预警</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Right Panel: Login Form (40%) -->
+    <div class="login-form-panel">
+      <div class="login-card">
+        <div class="login-card__header">
+          <h2 class="login-card__title">欢迎登录</h2>
+          <p class="login-card__subtitle">请输入您的账号信息</p>
         </div>
 
-        <div class="login-box">
-            <div class="system-infos">
-                <div class="system-logo">
-                    <img :src="LogoImg" alt="" />
-                </div>
-                <div class="system-title">{{ title }}</div>
-                <div class="system-subtitle">{{ subtitle }}</div>
-            </div>
-            <el-form ref="loginRef" :model="loginForm" :rules="loginRules" class="login-form">
-                <h3 class="title">欢迎登录</h3>
-                <el-form-item prop="username" class="username">
-                    <el-input
- v-model="loginForm.username" type="text" size="large" auto-complete="off" placeholder="账号"
-                        style="font-size: 16px">
-                        <template #prefix><svg-icon icon-class="user" class="el-input__icon input-icon" /></template>
-                    </el-input>
-                </el-form-item>
-                <el-form-item prop="password" class="password">
-                    <el-input
- v-model="loginForm.password" type="password" size="large" auto-complete="new-password"
-                        placeholder="密码" style="font-size: 16px; letter-spacing: 4px" clearable show-password
-                        @keyup.enter="handleLogin">
-                        <template #prefix><svg-icon icon-class="password" class="el-input__icon input-icon" /></template>
-                    </el-input>
-                </el-form-item>
-                <el-checkbox v-model="loginForm.rememberMe" style="margin: 0px 0px 40px 0px">记住密码</el-checkbox>
-                <el-form-item style="width: 100%">
-                    <el-button
- :loading="loading" size="large" type="primary" style="width: 100%; height: 44px !important"
-                        @click.prevent="handleLogin">
-                        <span v-if="!loading">登 录</span>
-                        <span v-else>登 录 中...</span>
-                    </el-button>
-                </el-form-item>
-            </el-form>
+        <el-form ref="loginRef" :model="loginForm" :rules="loginRules" class="login-form">
+          <el-form-item prop="username">
+            <el-input
+              v-model="loginForm.username"
+              type="text"
+              size="large"
+              auto-complete="off"
+              placeholder="请输入账号"
+            >
+              <template #prefix>
+                <svg-icon icon-class="user" class="el-input__icon input-icon" />
+              </template>
+            </el-input>
+          </el-form-item>
+
+          <el-form-item prop="password">
+            <el-input
+              v-model="loginForm.password"
+              type="password"
+              size="large"
+              auto-complete="new-password"
+              placeholder="请输入密码"
+              show-password
+              @keyup.enter="handleLogin"
+            >
+              <template #prefix>
+                <svg-icon icon-class="password" class="el-input__icon input-icon" />
+              </template>
+            </el-input>
+          </el-form-item>
+
+          <div class="login-options">
+            <el-checkbox v-model="loginForm.rememberMe">记住密码</el-checkbox>
+          </div>
+
+          <el-form-item>
+            <el-button
+              :loading="loading"
+              size="large"
+              type="primary"
+              class="login-btn"
+              @click.prevent="handleLogin"
+            >
+              <span v-if="!loading">登 录</span>
+              <span v-else>登 录 中...</span>
+            </el-button>
+          </el-form-item>
+        </el-form>
+
+        <div class="login-footer">
+          <span>Copyright &copy; {{ new Date().getFullYear() }} CampusVision AI</span>
         </div>
+      </div>
     </div>
+  </div>
 </template>
 
 <script setup lang="ts">
@@ -120,259 +173,375 @@ getCookie();
 </script>
 
 <style lang="scss" scoped>
-.login {
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    height: 100%;
-    background-color: var(--el-color-primary);
+@import '@/assets/styles/variables.module.scss';
 
-    input:-internal-autofill-selected {
-        background-color: #ffffff !important;
-    }
+// ── Design Tokens ──────────────────────────────────────────
+$brand-gradient-start: #001529;
+$brand-gradient-end: #1890FF;
+$brand-accent: #40a9ff;
+$form-bg: $card-bg;
+$form-shadow: 0 20px 60px rgba(0, 0, 0, 0.08);
+$input-height: 44px;
+$transition-smooth: 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 
-    .backbox {
-        position: absolute;
-        top: 0;
-        left: 0;
-        display: flex;
-        width: 100%;
-        height: 100%;
-
-        .back-left {
-            width: 70.3125%;
-            height: 100%;
-            background-color: #ffffff;
-        }
-
-        .back-right {
-            width: 29.6875%;
-            height: 100%;
-            background: rgba(2, 167, 151, 0.05);
-            backdrop-filter: blur(95px);
-        }
-    }
-
-    .login-box {
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-
-        .system-infos {
-            min-width: 1220px;
-            z-index: 11;
-
-            .system-logo {
-                margin-top: 48px;
-            }
-
-            .system-title {
-                margin-top: 16px;
-                font-weight: 700;
-                font-size: 60px;
-                line-height: 90px;
-                color: #1f2329;
-            }
-
-            .system-subtitle {
-                font-weight: 400;
-                font-size: 24px;
-                line-height: 36px;
-                color: #63656a;
-            }
-
-            .system-empower {
-                display: flex;
-                align-items: center;
-                margin-top: 75px;
-                font-weight: 400;
-                font-size: 14px;
-                line-height: 20px;
-                color: #63656a;
-
-                .empower-box {
-                    margin-right: 8px;
-                    padding: 7px 12px;
-                    border-radius: 4px;
-                    border: 1px solid #e4e4e5;
-
-                    .clock-class {
-                        color: #ff6060;
-                        margin-right: 4px;
-                    }
-
-                    .empower-day {
-                        margin-left: 8px;
-                        color: #ff6060;
-                    }
-                }
-            }
-        }
-
-        .login-form {
-            padding: 64px 40px;
-            position: absolute;
-            width: 420px;
-            height: 449px;
-            right: 19%;
-            background: rgba(250, 250, 250, 0.9);
-            border: 1px solid #e4e4e5;
-            backdrop-filter: blur(25px);
-            border-radius: 8px;
-            font-size: 16px;
-            z-index: 20;
-
-            :deep(.el-input__inner) {
-                background: rgba(255, 255, 255, 0.1);
-                color: #1f2329;
-
-                &:autofill {
-                    box-shadow: 0px 0px 1000px rgba(250, 250, 250, 0.9) inset;
-                }
-
-                &:-webkit-autofill {
-                    box-shadow: 0px 0px 1000px rgba(250, 250, 250, 0.9) inset;
-                }
-            }
-            :deep(.el-input__wrapper) {
-                background: rgba(255, 255, 255, 0.4);
-            }
-
-            .title {
-                font-weight: 700;
-                font-size: 32px;
-                line-height: 48px;
-                color: #1f2329;
-            }
-
-            .username {
-                margin-top: 40px;
-                font-size: 16px;
-            }
-
-            .password {
-                margin-top: 24px;
-
-
-            }
-
-            .el-input {
-                height: 44px;
-
-                input {
-                    height: 44px;
-                }
-            }
-
-            .input-icon {
-                height: 20px;
-                width: 20px;
-                margin-left: 0px;
-                color: #63656a;
-            }
-        }
-
-        .login-tip {
-            font-size: 13px;
-            text-align: center;
-            color: #bfbfbf;
-        }
-
-        .login-code {
-            width: 33%;
-            height: 40px;
-            float: right;
-
-            img {
-                cursor: pointer;
-                vertical-align: middle;
-            }
-        }
-    }
-
-    .circle-box {
-        overflow: hidden;
-        position: absolute;
-        top: 0;
-        right: 0;
-        width: 500px;
-        height: 100%;
-
-        .circle {
-            position: absolute;
-            border-radius: 50%;
-            box-sizing: border-box;
-            animation: cc 3s infinite alternate ease-in-out;
-        }
-
-        .circle1 {
-            width: 372px;
-            height: 380px;
-            top: 26px;
-            background: #59afff;
-            animation: bb 3s infinite linear;
-        }
-
-        .circle2 {
-            width: 255px;
-            height: 260px;
-            top: 40%;
-            right: 10%;
-            background: #86ff7b;
-            animation: bb 4s infinite linear;
-        }
-
-        .circle3 {
-            width: 225px;
-            height: 230px;
-            top: 580px;
-            background: #5dbdf3;
-            animation: bb 2s infinite linear;
-        }
-    }
-
-    @keyframes cc {
-        to {
-            transform: translateY(100px);
-        }
-    }
-
-    @keyframes bb {
-        0% {
-            transform: translate(0px, 0px);
-        }
-
-        25% {
-            transform: translate(20px, 30px);
-        }
-
-        50% {
-            transform: translate(50px, 0px);
-        }
-
-        75% {
-            transform: translate(-20px, -30px);
-        }
-
-        100% {
-            transform: translate(0px, 0px);
-        }
-    }
+// ── Layout ─────────────────────────────────────────────────
+.login-container {
+  display: flex;
+  width: 100%;
+  height: 100vh;
+  overflow: hidden;
+  background-color: $page-bg;
 }
 
-.el-login-footer {
-    height: 40px;
-    line-height: 40px;
-    position: fixed;
-    bottom: 0;
-    width: 100%;
+// ── Left Brand Panel (60%) ────────────────────────────────
+.login-brand {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 60%;
+  height: 100%;
+  overflow: hidden;
+  background: linear-gradient(135deg, $brand-gradient-start 0%, darken($brand-gradient-end, 15%) 50%, $brand-gradient-end 100%);
+
+  // Decorative geometric patterns
+  .brand-pattern {
+    position: absolute;
+    border-radius: 50%;
+    opacity: 0.08;
+
+    &--1 {
+      width: 600px;
+      height: 600px;
+      top: -120px;
+      left: -160px;
+      background: radial-gradient(circle, rgba(255, 255, 255, 0.3) 0%, transparent 70%);
+      animation: float-pattern 18s ease-in-out infinite alternate;
+    }
+
+    &--2 {
+      width: 400px;
+      height: 400px;
+      bottom: -80px;
+      right: -60px;
+      background: radial-gradient(circle, rgba(64, 169, 255, 0.4) 0%, transparent 70%);
+      animation: float-pattern 14s ease-in-out infinite alternate-reverse;
+    }
+
+    &--3 {
+      width: 250px;
+      height: 250px;
+      top: 50%;
+      left: 65%;
+      background: radial-gradient(circle, rgba(255, 255, 255, 0.15) 0%, transparent 70%);
+      animation: float-pattern 22s ease-in-out infinite alternate;
+    }
+  }
+
+  // Subtle grid overlay
+  &::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background-image:
+      linear-gradient(rgba(255, 255, 255, 0.03) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(255, 255, 255, 0.03) 1px, transparent 1px);
+    background-size: 60px 60px;
+    pointer-events: none;
+  }
+}
+
+.brand-content {
+  position: relative;
+  z-index: 2;
+  text-align: center;
+  color: #ffffff;
+  padding: 0 48px;
+}
+
+.brand-logo {
+  display: flex;
+  justify-content: center;
+  margin-bottom: 32px;
+
+  img {
+    width: 88px;
+    height: 88px;
+    filter: drop-shadow(0 4px 12px rgba(0, 0, 0, 0.2));
+    animation: logo-entrance 0.8s cubic-bezier(0.34, 1.56, 0.64, 1) both;
+  }
+}
+
+.brand-title {
+  font-size: 40px;
+  font-weight: 700;
+  letter-spacing: 2px;
+  line-height: 1.3;
+  margin: 0 0 12px;
+  text-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+  animation: title-entrance 0.6s 0.2s cubic-bezier(0.34, 1.56, 0.64, 1) both;
+}
+
+.brand-tagline {
+  font-size: 18px;
+  font-weight: 400;
+  opacity: 0.85;
+  margin: 0 0 48px;
+  letter-spacing: 4px;
+  animation: title-entrance 0.6s 0.35s cubic-bezier(0.34, 1.56, 0.64, 1) both;
+}
+
+.brand-features {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  align-items: flex-start;
+  max-width: 280px;
+  margin: 0 auto;
+}
+
+.brand-feature {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  font-size: 15px;
+  font-weight: 400;
+  opacity: 0.9;
+  animation: feature-entrance 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) both;
+
+  &:nth-child(1) { animation-delay: 0.5s; }
+  &:nth-child(2) { animation-delay: 0.65s; }
+  &:nth-child(3) { animation-delay: 0.8s; }
+
+  &__icon {
+    width: 22px;
+    height: 22px;
+    flex-shrink: 0;
+    opacity: 0.8;
+  }
+}
+
+// ── Right Form Panel (40%) ────────────────────────────────
+.login-form-panel {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 40%;
+  height: 100%;
+  background-color: $page-bg;
+  padding: 24px;
+}
+
+.login-card {
+  width: 100%;
+  max-width: 400px;
+  background: $form-bg;
+  border-radius: 12px;
+  box-shadow: $form-shadow;
+  padding: 48px 40px 32px;
+  animation: card-entrance 0.6s 0.15s cubic-bezier(0.34, 1.56, 0.64, 1) both;
+
+  &__header {
+    margin-bottom: 36px;
     text-align: center;
-    color: #fff;
-    font-size: 12px;
-    letter-spacing: 1px;
+  }
+
+  &__title {
+    font-size: 26px;
+    font-weight: 700;
+    color: $text-primary;
+    margin: 0 0 8px;
+  }
+
+  &__subtitle {
+    font-size: 14px;
+    color: $text-secondary;
+    margin: 0;
+  }
 }
 
-.login-code-img {
-    height: 40px;
-    padding-left: 12px;
-}</style>
+// ── Form Styles ────────────────────────────────────────────
+.login-form {
+  :deep(.el-form-item) {
+    margin-bottom: 22px;
+  }
+
+  :deep(.el-input__wrapper) {
+    height: $input-height;
+    border-radius: 8px;
+    transition: box-shadow $transition-smooth;
+  }
+
+  :deep(.el-input__wrapper.is-focus) {
+    box-shadow: 0 0 0 2px rgba($primary-color, 0.2);
+  }
+
+  :deep(.el-input__inner) {
+    font-size: 15px;
+
+    &:autofill {
+      box-shadow: 0 0 0 1000px #fff inset;
+    }
+
+    &:-webkit-autofill {
+      box-shadow: 0 0 0 1000px #fff inset;
+    }
+  }
+
+  .input-icon {
+    width: 18px;
+    height: 18px;
+    color: $text-secondary;
+  }
+}
+
+.login-options {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 24px;
+
+  :deep(.el-checkbox__label) {
+    color: $text-secondary;
+    font-size: 14px;
+  }
+}
+
+.login-btn {
+  width: 100%;
+  height: $input-height !important;
+  border-radius: 8px !important;
+  font-size: 16px !important;
+  font-weight: 600 !important;
+  letter-spacing: 2px;
+  transition: all $transition-smooth;
+
+  &:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 16px rgba($primary-color, 0.4);
+  }
+
+  &:active {
+    transform: translateY(0);
+  }
+}
+
+// ── Footer ─────────────────────────────────────────────────
+.login-footer {
+  margin-top: 24px;
+  text-align: center;
+  font-size: 12px;
+  color: $text-secondary;
+  letter-spacing: 0.5px;
+}
+
+// ── Animations ─────────────────────────────────────────────
+@keyframes float-pattern {
+  0% {
+    transform: translate(0, 0) scale(1);
+  }
+  50% {
+    transform: translate(30px, -20px) scale(1.05);
+  }
+  100% {
+    transform: translate(-15px, 15px) scale(0.98);
+  }
+}
+
+@keyframes logo-entrance {
+  from {
+    opacity: 0;
+    transform: scale(0.6) translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}
+
+@keyframes title-entrance {
+  from {
+    opacity: 0;
+    transform: translateY(16px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes feature-entrance {
+  from {
+    opacity: 0;
+    transform: translateX(-20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@keyframes card-entrance {
+  from {
+    opacity: 0;
+    transform: translateY(24px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+// ── Responsive ─────────────────────────────────────────────
+@media screen and (max-width: 1024px) {
+  .login-container {
+    flex-direction: column;
+  }
+
+  .login-brand {
+    width: 100%;
+    height: 40%;
+    min-height: 260px;
+  }
+
+  .brand-title {
+    font-size: 28px;
+  }
+
+  .brand-tagline {
+    font-size: 15px;
+    margin-bottom: 0;
+  }
+
+  .brand-features {
+    display: none;
+  }
+
+  .login-form-panel {
+    width: 100%;
+    height: 60%;
+    padding: 16px;
+  }
+
+  .login-card {
+    padding: 32px 24px 24px;
+    box-shadow: 0 -4px 24px rgba(0, 0, 0, 0.06);
+    border-radius: 16px 16px 0 0;
+  }
+}
+
+@media screen and (max-width: 480px) {
+  .login-card {
+    padding: 24px 20px 20px;
+  }
+
+  .brand-logo img {
+    width: 64px;
+    height: 64px;
+  }
+
+  .brand-title {
+    font-size: 22px;
+  }
+}
+</style>

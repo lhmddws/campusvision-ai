@@ -2,8 +2,7 @@
     <div
         :class="{ 'has-logo': showLogo }"
         :style="{
-            backgroundColor:
-                sideTheme === 'theme-dark' ? variables.menuBackground : variables.menuLightBackground,
+            backgroundColor: variables.menuBackground,
         }"
     >
         <logo v-if="showLogo" :collapse="isCollapse" />
@@ -11,12 +10,10 @@
             <el-menu
                 :default-active="activeMenu"
                 :collapse="isCollapse"
-                :background-color="
-                    sideTheme === 'theme-dark' ? variables.menuBackground : variables.menuLightBackground
-                "
-                :text-color="sideTheme === 'theme-dark' ? variables.menuColor : variables.menuLightColor"
+                :background-color="variables.menuBackground"
+                :text-color="variables.menuColor"
                 :unique-opened="true"
-                :active-text-color="theme"
+                :active-text-color="variables.cvSidebarActive"
                 :collapse-transition="false"
                 mode="vertical"
             >
@@ -49,7 +46,6 @@ const permissionStore = usePermissionStore();
 const sidebarRouters = computed(() => permissionStore.sidebarRouters);
 const showLogo = computed(() => settingsStore.sidebarLogo);
 const sideTheme = computed(() => settingsStore.sideTheme);
-const theme = computed(() => settingsStore.theme);
 const isCollapse = computed(() => !appStore.sidebar.opened);
 
 const activeMenu = computed(() => {

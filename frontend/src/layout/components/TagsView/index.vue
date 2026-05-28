@@ -8,7 +8,6 @@
                 :class="isActive(tag) ? 'active' : ''"
                 :to="{ path: tag.path, query: tag.query, fullPath: tag.fullPath } as any"
                 class="tags-view-item"
-                :style="activeStyle(tag)"
                 @click.middle="!isAffix(tag) ? closeSelectedTag(tag) : ''"
                 @contextmenu.prevent="openMenu(tag, $event)"
             >
@@ -256,9 +255,8 @@ function handleScroll() {
 .tags-view-container {
     height: 34px;
     width: 100%;
-    background: #fff;
-    border-bottom: 1px solid #e4e4e4;
-    // box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.12), 0 0 3px 0 rgba(0, 0, 0, 0.04);
+    background: #ffffff;
+    border-bottom: 1px solid #e8e8e8;
 
     .tags-view-wrapper {
         .tags-view-item {
@@ -267,39 +265,46 @@ function handleScroll() {
             cursor: pointer;
             height: 26px;
             line-height: 26px;
-            border: 1px solid #d8dce5;
-            color: #495060;
-            background: #fff;
+            border: 1px solid #e8e8e8;
+            color: #595959;
+            background: #ffffff;
             padding: 0 8px;
             font-size: 12px;
             margin-left: 5px;
             margin-top: 4px;
+            border-radius: 3px 3px 0 0;
             &:first-of-type {
                 margin-left: 15px;
             }
             &:last-of-type {
                 margin-right: 15px;
             }
+            &:hover {
+                color: #1890FF;
+            }
             &.active {
-                background-color: #42b983;
-                color: #fff;
-                border-color: #42b983;
+                background-color: #ffffff;
+                color: #1890FF;
+                border-color: #e8e8e8;
+                border-bottom: 2px solid #1890FF;
+                font-weight: 500;
                 &::before {
                     content: '';
-                    background: #fff;
+                    background: #1890FF;
                     display: inline-block;
                     width: 8px;
                     height: 8px;
                     border-radius: 50%;
                     position: relative;
-                    margin-right: 2px;
+                    margin-right: 4px;
+                    vertical-align: middle;
                 }
             }
         }
     }
     .contextmenu {
         margin: 0;
-        background: #fff;
+        background: #ffffff;
         z-index: 3000;
         position: absolute;
         list-style-type: none;
@@ -314,7 +319,8 @@ function handleScroll() {
             padding: 7px 16px;
             cursor: pointer;
             &:hover {
-                background: #eee;
+                background: #e6f7ff;
+                color: #1890FF;
             }
         }
     }
@@ -339,7 +345,7 @@ function handleScroll() {
                 vertical-align: -3px;
             }
             &:hover {
-                background-color: #b4bccc;
+                background-color: #1890FF;
                 color: #fff;
                 width: 12px !important;
                 height: 12px !important;
