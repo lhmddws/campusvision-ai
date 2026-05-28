@@ -138,9 +138,5 @@ cd frontend && npx vitest run
 
 ### Known Gotchas
 
-- **DB schema fragmentation**: `infra/mariadb/init.sql` and Go entities can diverge — always verify table names before writing sqlx queries.
-- **AES key mismatch**: Dev keys in `stream-gateway/internal/crypto/` differ from `dormitory-service-go/internal/util/crypto.go` — cross-module encrypt/decrypt will fail in dev.
-- **Haar Cascade path**: Hardcoded macOS path at `face-recognition/app/detector/detector.py:255-256` — fails on non-macOS or different OpenCV versions.
-- **Config loading**: Each module uses a different mechanism (CLI `--config`, `CONFIG_PATH` env var, argparse). See AGENTS.md for details.
 - **ONNX models**: Model files are gitignored (`*.onnx`). Download via `python -m app.download_models` or Docker build.
-- **The `POST /api/face/embed` endpoint is a stub** (returns null embedding).
+- **Haar Cascade path**: Fixed in f6a24e0 — uses `cv2.data.haarcascades` (portable) in detector.py.

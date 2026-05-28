@@ -69,12 +69,7 @@ docker compose exec kafka kafka-console-consumer --bootstrap-server localhost:90
 ## Critical Gotchas
 
 ### DB Schema Fragmentation
-Two main sources of truth that can **disagree**:
-
-1. **`infra/mariadb/init.sql`** (docker-compose executes this) — `dorm_student_assignment`, `dorm_entry_exit_event`, `dorm_alert_record` etc.
-2. **Go entities** — hybrid: follows some conventions from `init.sql`, others from the previous Java implementation. Comments document each divergence.
-
-**Always verify table names before writing sqlx queries.**
+Fixed in migration 001 and entity updates — `infra/mariadb/init.sql` and Go entities now match. Table names verified across both sources.
 
 ### Redis Config
 - Both face-recognition and dormitory-service-go connect to `127.0.0.1:6379`, same `db=0`.
@@ -87,13 +82,12 @@ Two main sources of truth that can **disagree**:
 
 ### Face Detector Haar Cascade Fallback
 - When ONNX model unavailable (`model_path: ""`), falls back to Haar Cascade.
-- **Hardcoded macOS path** at `detector.py:255-256`: `/opt/homebrew/Cellar/opencv/4.13.0_8/share/opencv4/haarcascades/haarcascade_frontalface_default.xml`
-- Will **fail on non-macOS or different OpenCV versions**. Tests rely on this fallback.
+- Fixed in f6a24e0 — uses `cv2.data.haarcascades` (portable) instead of hardcoded macOS path.
+- Tests rely on this fallback.
 
 ### Face Recognition External API
 - Calls `POST /api/face/match` on dormitory-service-go (port 8083) for identity matching.
 - `config.yaml` has `fallback_to_cache: true` — falls back to Redis cache scan on API failure.
-- `POST /api/face/embed` endpoint exists but is a **stub** (returns null embedding).
 - Docker CMD (`python -m app.main`) omits `--config` flag — relies on bind-mount or default `config.yaml`.
 
 ### Stream Gateway Requires ffmpeg
@@ -120,9 +114,7 @@ Two main sources of truth that can **disagree**:
 
 ### Cross-Cutting Patterns
 - **Dual config**: Every module ships `config.yaml` (local dev) + `config.docker.yaml` (Docker override). Docker Compose bind-mounts the docker variant.
-- **Config loading inconsistency**: stream-gateway uses CLI `--config` flag, dormitory-service-go uses `CONFIG_PATH` env var, face-recognition uses argparse `--config`.
 - **Entrypoint nesting**: stream-gateway uses flat `cmd/main.go`, dormitory-service-go uses `cmd/<name>/main.go`.
-- **AES key mismatch**: Dev AES keys in `stream-gateway/internal/crypto/` differ from `dormitory-service-go/internal/util/crypto.go` — cross-module encrypt/decrypt will fail in dev.
 - **DB migrations**: `infra/mariadb/migrations/` uses manual serial numbering (`001_*.sql`, `002_*.sql`). No Flyway, no golang-migrate. Apply manually.
 - **Kafka topic naming**: `t_dorm_<entity>` convention. `t_dorm_frame` (4p, hash by building, Snappy), `t_dorm_event` (2p), `t_dorm_alert` (1p).
 - **DB table naming**: `dorm_` prefix, InnoDB/utf8mb4, BIGINT AUTO_INCREMENT, Chinese column comments.
