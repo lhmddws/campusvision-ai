@@ -11,3 +11,16 @@
 - **File structure**: `src/__tests__/setup.ts`, `src/__tests__/smoke.spec.ts`, `src/__tests__/fixtures/HelloWorld.vue`
 - **Verification**: `npx vitest run` → 1 passed, `pnpm run build:prod` → 2719 modules transformed
 - **Scripts added**: `"test": "vitest run"`, `"test:watch": "vitest"`
+
+## 2026-05-28: Phase 2 Task 1 — Theme Variables & Element Plus Overrides
+
+- **Goal**: Add CampusVision AI color palette SCSS variables + Element Plus CSS custom property overrides
+- **Files modified**:
+  - `frontend/src/assets/styles/variables.module.scss` — Added 11 new color variables (`$primary-color: #1890FF`, `$success-color`, `$warning-color`, `$danger-color`, `$sidebar-bg`, `$sidebar-text`, `$sidebar-active`, `$page-bg`, `$card-bg`, `$text-primary`, `$text-secondary`) plus `:export` entries for JS access
+  - `frontend/src/assets/styles/index.scss` — Added `:root { ... }` block with `--el-color-primary: #1890FF` and related light/dark variants, plus `--el-color-success/warning/danger/info`, `--el-bg-color`, `--el-text-color-primary/secondary`, `--el-fill-color`, `--el-border-color` overrides
+- **Key decisions**:
+  - CSS custom properties approach (not SCSS variable replacement) to avoid Element Plus rebuild
+  - Added override variants (`--el-color-primary-light-3`, `--el-color-primary-dark-2`, etc.) for proper component color scales
+  - Did NOT remove existing RuoYi SCSS variables — only appended new ones (backward compatible)
+- **Verification**: `pnpm run build:prod` → 2719 modules transformed, compiled CSS contains `--el-color-primary: #1890FF`
+- **Blocks**: Tasks 5 (Login), 6 (Layout), 7 (Dashboard), 8 (Camera), 9 (Events)

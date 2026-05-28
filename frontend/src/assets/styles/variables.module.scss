@@ -51,6 +51,19 @@ $--color-warning: #E6A23C;
 $--color-danger: #F56C6C;
 $--color-info: #909399;
 
+// CampusVision AI theme colors
+$primary-color: #1890FF;
+$success-color: #52C41A;
+$warning-color: #FAAD14;
+$danger-color: #FF4D4F;
+$sidebar-bg: #001529;
+$sidebar-text: rgba(255, 255, 255, 0.80);
+$sidebar-active: #1890FF;
+$page-bg: #F0F2F5;
+$card-bg: #FFFFFF;
+$text-primary: #262626;
+$text-secondary: #8C8C8C;
+
 $base-sidebar-width: 224px;
 
 // 命名空间
@@ -78,4 +91,14 @@ $elNamespace: el;
   warningColor: $--color-warning;
   namespace: $namespace;
   elNamespace: $elNamespace;
+  // CampusVision AI theme
+  cvPrimary: $primary-color;
+  cvSuccess: $success-color;
+  cvWarning: $warning-color;
+  cvDanger: $danger-color;
+  cvSidebarBg: $sidebar-bg;
+  cvPageBg: $page-bg;
+  cvCardBg: $card-bg;
+  cvTextPrimary: $text-primary;
+  cvTextSecondary: $text-secondary;
 }

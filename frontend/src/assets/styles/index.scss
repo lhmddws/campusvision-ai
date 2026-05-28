@@ -197,3 +197,24 @@ aside {
 .multiselect--active {
     z-index: 1000 !important;
 }
+
+// Element Plus CSS custom property overrides
+// These override Element Plus default theme without requiring SCSS variable rebuild
+:root {
+    --el-color-primary: #1890FF;
+    --el-color-primary-light-3: #40a9ff;
+    --el-color-primary-light-5: #69c0ff;
+    --el-color-primary-light-7: #91d5ff;
+    --el-color-primary-dark-2: #096dd9;
+    --el-color-success: #52C41A;
+    --el-color-warning: #FAAD14;
+    --el-color-danger: #FF4D4F;
+    --el-color-info: #8C8C8C;
+    --el-bg-color: #F0F2F5;
+    --el-text-color-primary: #262626;
+    --el-text-color-secondary: #8C8C8C;
+    --el-fill-color: #F0F2F5;
+    --el-fill-color-light: #FAFAFA;
+    --el-border-color: #E8E8E8;
+    --el-border-color-light: #F0F0F0;
+}
