@@ -1,23 +1,5 @@
 import request from '@/utils/request';
 
-/** 人脸匹配 — 将 512 维嵌入向量与已注册人脸进行比对 */
-export function faceMatch(embedding: number[]) {
-  return request({
-    url: '/api/face/match',
-    method: 'post',
-    data: { embedding },
-  });
-}
-
-/** 人脸嵌入 — 从图片计算嵌入向量（当前为桩实现，返回 null） */
-export function faceEmbed(imagePath: string) {
-  return request({
-    url: '/api/face/embed',
-    method: 'post',
-    data: { image_path: imagePath },
-  });
-}
-
 /** 查询摄像头快照列表 */
 export function getSnapshots(cameraId: string, page = 1, size = 20) {
   return request({
