@@ -1,166 +1,161 @@
 <template>
-  <div class="app-container config-page">
-    <el-row :gutter="16">
-      <!-- 左侧分组导航 -->
-      <el-col :span="5">
-        <el-card shadow="never" class="group-card">
-          <template #header>
-            <span class="group-card__title">配置分组</span>
-          </template>
-          <el-menu
-            :default-active="activeGroup"
-            class="group-menu"
-            @select="handleGroupSelect"
-          >
-            <el-menu-item index="">
-              <el-icon><Collection /></el-icon>
-              <span>全部</span>
-            </el-menu-item>
-            <el-menu-item
-              v-for="group in groups"
-              :key="group"
-              :index="group"
-            >
-              <el-icon><Folder /></el-icon>
-              <span>{{ group }}</span>
-            </el-menu-item>
-          </el-menu>
-        </el-card>
-      </el-col>
+  <div class="cv-config">
+    <!-- Left sidebar: group navigation -->
+    <aside class="cv-config__sidebar">
+      <div class="cv-config__sidebar-header">
+        <el-icon :size="18"><Setting /></el-icon>
+        <span>配置分组</span>
+      </div>
+      <nav class="cv-config__nav">
+        <button
+          class="cv-config__nav-item"
+          :class="{ 'cv-config__nav-item--active': activeGroup === '' }"
+          @click="handleGroupSelect('')"
+        >
+          <el-icon><Collection /></el-icon>
+          <span>全部配置</span>
+          <span class="cv-config__nav-count">{{ configs.length }}</span>
+        </button>
+        <button
+          v-for="group in groups"
+          :key="group"
+          class="cv-config__nav-item"
+          :class="{ 'cv-config__nav-item--active': activeGroup === group }"
+          @click="handleGroupSelect(group)"
+        >
+          <el-icon><Folder /></el-icon>
+          <span>{{ group }}</span>
+          <span class="cv-config__nav-count">{{ groupCount(group) }}</span>
+        </button>
+      </nav>
+    </aside>
 
-      <!-- 右侧配置列表 -->
-      <el-col :span="19">
-        <!-- 工具栏 -->
-        <div class="toolbar">
-          <div class="toolbar__left">
-            <el-tag v-if="dirtyCount > 0" type="warning" effect="dark" class="dirty-tag">
+    <!-- Right panel: config items -->
+    <main class="cv-config__main">
+      <!-- Toolbar -->
+      <div class="cv-config__toolbar">
+        <div class="cv-config__toolbar-left">
+          <h2 class="cv-config__title">
+            {{ activeGroup || '全部配置' }}
+          </h2>
+          <transition name="cv-fade">
+            <span v-if="dirtyCount > 0" class="cv-config__dirty-badge">
               {{ dirtyCount }} 项未保存
-            </el-tag>
-          </div>
-          <div class="toolbar__right">
-            <el-button
-              type="primary"
-              :disabled="dirtyCount === 0"
-              :loading="saveLoading"
-              @click="handleBatchSave"
-            >
-              保存修改
-            </el-button>
-            <el-button type="warning" plain @click="handleBatchReset">
-              全部重置
-            </el-button>
-          </div>
+            </span>
+          </transition>
         </div>
-
-        <!-- 配置卡片列表 -->
-        <div v-loading="loading" class="config-list">
-          <template v-if="filteredConfigs.length > 0">
-            <el-card
-              v-for="cfg in filteredConfigs"
-              :key="cfg.config_key"
-              shadow="hover"
-              class="config-card"
-              :class="{ 'config-card--dirty': isDirty(cfg.config_key) }"
-            >
-              <!-- 卡片头部：配置键 + 类型标签 -->
-              <template #header>
-                <div class="config-card__header">
-                  <code class="config-card__key">{{ cfg.config_key }}</code>
-                  <el-tag
-                    v-if="cfg.config_type"
-                    size="small"
-                    :type="typeTagColor(cfg.config_type)"
-                    effect="plain"
-                    class="config-card__type"
-                  >
-                    {{ cfg.config_type }}
-                  </el-tag>
-                </div>
-              </template>
-
-              <!-- 卡片内容 -->
-              <div class="config-card__body">
-                <!-- 描述 -->
-                <p v-if="cfg.description" class="config-card__desc">
-                  {{ cfg.description }}
-                </p>
-
-                <!-- 值编辑器 -->
-                <div class="config-card__editor">
-                  <label class="config-card__label">当前值</label>
-
-                  <!-- boolean → el-switch -->
-                  <el-switch
-                    v-if="cfg.config_type === 'boolean'"
-                    v-model="editValues[cfg.config_key]"
-                    active-text="true"
-                    inactive-text="false"
-                    @change="markDirty(cfg.config_key)"
-                  />
-
-                  <!-- number → el-input-number -->
-                  <el-input-number
-                    v-else-if="cfg.config_type === 'number'"
-                    v-model="editValues[cfg.config_key]"
-                    :controls="true"
-                    class="config-card__input-number"
-                    @change="markDirty(cfg.config_key)"
-                  />
-
-                  <!-- json → el-input textarea -->
-                  <el-input
-                    v-else-if="cfg.config_type === 'json'"
-                    v-model="editValues[cfg.config_key]"
-                    type="textarea"
-                    :rows="4"
-                    placeholder="请输入 JSON 内容"
-                    @input="markDirty(cfg.config_key)"
-                  />
-
-                  <!-- string / default → el-input -->
-                  <el-input
-                    v-else
-                    v-model="editValues[cfg.config_key]"
-                    placeholder="请输入配置值"
-                    @input="markDirty(cfg.config_key)"
-                  />
-                </div>
-
-                <!-- 默认值 + 重置按钮 -->
-                <div v-if="cfg.default_value !== null && cfg.default_value !== undefined" class="config-card__default">
-                  <span class="config-card__default-label">默认值：</span>
-                  <code class="config-card__default-value">{{ cfg.default_value }}</code>
-                  <el-button
-                    text
-                    type="primary"
-                    size="small"
-                    @click="handleResetSingle(cfg.config_key)"
-                  >
-                    重置
-                  </el-button>
-                </div>
-              </div>
-            </el-card>
-          </template>
-
-          <!-- 空状态 -->
-          <el-empty v-else description="暂无配置项" />
+        <div class="cv-config__toolbar-right">
+          <el-button
+            type="primary"
+            :disabled="dirtyCount === 0"
+            :loading="saveLoading"
+            @click="handleBatchSave"
+          >
+            <el-icon><Check /></el-icon>
+            保存修改
+          </el-button>
+          <el-button type="warning" plain @click="handleBatchReset">
+            <el-icon><RefreshLeft /></el-icon>
+            全部重置
+          </el-button>
         </div>
-      </el-col>
-    </el-row>
+      </div>
+
+      <!-- Config items list -->
+      <div v-loading="loading" class="cv-config__content">
+        <template v-if="filteredConfigs.length > 0">
+          <div
+            v-for="cfg in filteredConfigs"
+            :key="cfg.config_key"
+            class="cv-config__item"
+            :class="{ 'cv-config__item--dirty': isDirty(cfg.config_key) }"
+          >
+            <!-- Item header: key + type badge -->
+            <div class="cv-config__item-header">
+              <code class="cv-config__item-key">{{ cfg.config_key }}</code>
+              <span
+                class="cv-config__type-badge"
+                :class="`cv-config__type-badge--${cfg.config_type || 'string'}`"
+              >
+                {{ cfg.config_type || 'string' }}
+              </span>
+            </div>
+
+            <!-- Description -->
+            <p v-if="cfg.description" class="cv-config__item-desc">
+              {{ cfg.description }}
+            </p>
+
+            <!-- Value editor -->
+            <div class="cv-config__item-editor">
+              <!-- boolean → el-switch -->
+              <el-switch
+                v-if="cfg.config_type === 'boolean'"
+                v-model="editValues[cfg.config_key]"
+                active-text="开启"
+                inactive-text="关闭"
+                @change="markDirty(cfg.config_key)"
+              />
+
+              <!-- number → el-input-number -->
+              <el-input-number
+                v-else-if="cfg.config_type === 'number'"
+                v-model="editValues[cfg.config_key]"
+                :controls="true"
+                class="cv-config__number-input"
+                @change="markDirty(cfg.config_key)"
+              />
+
+              <!-- json → el-input textarea -->
+              <el-input
+                v-else-if="cfg.config_type === 'json'"
+                v-model="editValues[cfg.config_key]"
+                type="textarea"
+                :rows="4"
+                placeholder="请输入 JSON 内容"
+                @input="markDirty(cfg.config_key)"
+              />
+
+              <!-- string / default → el-input -->
+              <el-input
+                v-else
+                v-model="editValues[cfg.config_key]"
+                placeholder="请输入配置值"
+                @input="markDirty(cfg.config_key)"
+              />
+            </div>
+
+            <!-- Default value + reset -->
+            <div
+              v-if="cfg.default_value !== null && cfg.default_value !== undefined"
+              class="cv-config__item-default"
+            >
+              <span class="cv-config__default-label">默认值</span>
+              <code class="cv-config__default-value">{{ cfg.default_value }}</code>
+              <el-button
+                text
+                type="primary"
+                size="small"
+                @click="handleResetSingle(cfg.config_key)"
+              >
+                重置
+              </el-button>
+            </div>
+          </div>
+        </template>
+
+        <!-- Empty state -->
+        <el-empty v-else description="暂无配置项" />
+      </div>
+    </main>
   </div>
 </template>
 
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue';
 import { ElMessage, ElMessageBox } from 'element-plus';
-import { Collection, Folder } from '@element-plus/icons-vue';
-import {
-  listConfigs,
-  getConfigGroups,
-  batchUpdateConfigs,
-  resetConfig,
-} from '@/api/config';
+import { Collection, Folder, Check, RefreshLeft, Setting } from '@element-plus/icons-vue';
+import { listConfigs, getConfigGroups, batchUpdateConfigs, resetConfig } from '@/api/config';
 
 /** 配置项接口 */
 interface Config {
@@ -192,7 +187,7 @@ const originalValues = ref<Record<string, string | number | boolean>>({});
 /** 按当前分组过滤配置列表 */
 const filteredConfigs = computed(() => {
   if (!activeGroup.value) return configs.value;
-  return configs.value.filter((c) => c.group_name === activeGroup.value);
+  return configs.value.filter(c => c.group_name === activeGroup.value);
 });
 
 /** 脏配置键列表 */
@@ -238,6 +233,11 @@ function castValue(cfg: Config): string | number | boolean {
   if (cfg.config_type === 'boolean') return raw === 'true';
   if (cfg.config_type === 'number') return Number(raw) || 0;
   return raw;
+}
+
+/** 计算分组内配置数量 */
+function groupCount(group: string): number {
+  return configs.value.filter(c => c.group_name === group).length;
 }
 
 /** 加载配置列表 */
@@ -286,16 +286,16 @@ async function handleBatchSave() {
   if (dirtyCount.value === 0) return;
 
   try {
-    await ElMessageBox.confirm(
-      `确定保存 ${dirtyCount.value} 项修改？`,
-      '确认保存',
-      { confirmButtonText: '确定', cancelButtonText: '取消', type: 'warning' },
-    );
+    await ElMessageBox.confirm(`确定保存 ${dirtyCount.value} 项修改？`, '确认保存', {
+      confirmButtonText: '确定',
+      cancelButtonText: '取消',
+      type: 'warning',
+    });
   } catch {
     return; // 用户取消
   }
 
-  const items = dirtyKeys.value.map((key) => ({
+  const items = dirtyKeys.value.map(key => ({
     key,
     value: String(editValues.value[key]),
   }));
@@ -318,11 +318,11 @@ async function handleBatchSave() {
 /** 全部重置确认 */
 async function handleBatchReset() {
   try {
-    await ElMessageBox.confirm(
-      '确定将所有配置项重置为默认值？此操作不可撤销。',
-      '确认重置',
-      { confirmButtonText: '确定', cancelButtonText: '取消', type: 'warning' },
-    );
+    await ElMessageBox.confirm('确定将所有配置项重置为默认值？此操作不可撤销。', '确认重置', {
+      confirmButtonText: '确定',
+      cancelButtonText: '取消',
+      type: 'warning',
+    });
   } catch {
     return;
   }
@@ -330,7 +330,7 @@ async function handleBatchReset() {
   loading.value = true;
   try {
     // 逐个重置
-    const promises = configs.value.map((cfg) => resetConfig(cfg.config_key));
+    const promises = configs.value.map(cfg => resetConfig(cfg.config_key));
     await Promise.all(promises);
     ElMessage.success('全部重置成功');
     // 重新加载
@@ -345,11 +345,11 @@ async function handleBatchReset() {
 /** 单个重置 */
 async function handleResetSingle(key: string) {
   try {
-    await ElMessageBox.confirm(
-      `确定将 ${key} 重置为默认值？`,
-      '确认重置',
-      { confirmButtonText: '确定', cancelButtonText: '取消', type: 'warning' },
-    );
+    await ElMessageBox.confirm(`确定将 ${key} 重置为默认值？`, '确认重置', {
+      confirmButtonText: '确定',
+      cancelButtonText: '取消',
+      type: 'warning',
+    });
   } catch {
     return;
   }
@@ -362,7 +362,7 @@ async function handleResetSingle(key: string) {
     editValues.value[key] = val;
     originalValues.value[key] = val;
     // 同步 configs 数组中的值
-    const idx = configs.value.findIndex((c) => c.config_key === key);
+    const idx = configs.value.findIndex(c => c.config_key === key);
     if (idx !== -1) {
       configs.value[idx] = resetCfg;
     }
@@ -380,160 +380,275 @@ onMounted(() => {
 </script>
 
 <style lang="scss" scoped>
-/* ─── 配置页面布局 ─────────────────────────────────────── */
-.config-page {
+@use '@/assets/styles/variables.module.scss' as vars;
+
+// Local alias for $--color-info (Sass private member, not accessible via vars.*)
+$color-info: #909399;
+
+/* ─── Layout ────────────────────────────────────────────── */
+.cv-config {
+  display: flex;
   min-height: calc(100vh - 84px);
+  background: vars.$page-bg;
+  border-radius: 8px;
+  overflow: hidden;
 }
 
-/* ─── 分组卡片 ─────────────────────────────────────────── */
-.group-card {
-  :deep(.el-card__header) {
-    padding: 12px 16px;
-    background: var(--el-fill-color-light);
-  }
-
-  &__title {
-    font-size: 15px;
-    font-weight: 600;
-    color: var(--el-text-color-primary);
-  }
+/* ─── Sidebar ───────────────────────────────────────────── */
+.cv-config__sidebar {
+  width: 240px;
+  min-width: 240px;
+  background: vars.$card-bg;
+  border-right: 1px solid rgba($color-info, 0.15);
+  display: flex;
+  flex-direction: column;
 }
 
-.group-menu {
-  border-right: none;
+.cv-config__sidebar-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 20px 20px 12px;
+  font-size: 15px;
+  font-weight: 600;
+  color: vars.$text-primary;
+  letter-spacing: 0.02em;
+}
 
-  .el-menu-item {
-    height: 40px;
-    line-height: 40px;
-    border-radius: 6px;
-    margin-bottom: 2px;
+.cv-config__nav {
+  display: flex;
+  flex-direction: column;
+  padding: 4px 8px 16px;
+  gap: 2px;
+  overflow-y: auto;
+  flex: 1;
+}
 
-    &.is-active {
-      background-color: rgba(2, 167, 151, 0.08);
-      color: #02a797;
-      font-weight: 500;
+.cv-config__nav-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  padding: 10px 12px;
+  border: none;
+  background: transparent;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 14px;
+  color: vars.$text-secondary;
+  transition: all 0.2s ease;
+  text-align: left;
+  font-family: inherit;
+
+  &:hover {
+    background: rgba(vars.$primary-color, 0.06);
+    color: vars.$text-primary;
+  }
+
+  &--active {
+    background: rgba(vars.$primary-color, 0.1);
+    color: vars.$primary-color;
+    font-weight: 500;
+
+    .cv-config__nav-count {
+      background: vars.$primary-color;
+      color: #fff;
     }
-
-    &:hover {
-      background-color: var(--el-fill-color-light);
-    }
   }
 }
 
-/* ─── 工具栏 ───────────────────────────────────────────── */
-.toolbar {
+.cv-config__nav-count {
+  margin-left: auto;
+  font-size: 11px;
+  font-weight: 600;
+  padding: 1px 8px;
+  border-radius: 10px;
+  background: rgba(vars.$text-secondary, 0.12);
+  color: vars.$text-secondary;
+  transition: all 0.2s ease;
+}
+
+/* ─── Main panel ────────────────────────────────────────── */
+.cv-config__main {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  padding: 24px 28px;
+}
+
+/* ─── Toolbar ───────────────────────────────────────────── */
+.cv-config__toolbar {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  margin-bottom: 16px;
-  padding: 0 4px;
-
-  &__left {
-    display: flex;
-    align-items: center;
-  }
-
-  &__right {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-  }
+  margin-bottom: 20px;
 }
 
-.dirty-tag {
-  animation: pulse 1.5s ease-in-out infinite;
-}
-
-@keyframes pulse {
-  0%, 100% { opacity: 1; }
-  50% { opacity: 0.7; }
-}
-
-/* ─── 配置卡片 ─────────────────────────────────────────── */
-.config-list {
+.cv-config__toolbar-left {
   display: flex;
-  flex-direction: column;
+  align-items: center;
   gap: 12px;
 }
 
-.config-card {
-  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+.cv-config__toolbar-right {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.cv-config__title {
+  font-size: 20px;
+  font-weight: 700;
+  color: vars.$text-primary;
+  margin: 0;
+  letter-spacing: -0.01em;
+}
+
+.cv-config__dirty-badge {
+  display: inline-flex;
+  align-items: center;
+  font-size: 12px;
+  font-weight: 600;
+  padding: 3px 10px;
+  border-radius: 12px;
+  background: rgba(vars.$warning-color, 0.12);
+  color: vars.$warning-color;
+  animation: cv-pulse 1.8s ease-in-out infinite;
+}
+
+@keyframes cv-pulse {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.65;
+  }
+}
+
+/* ─── Content area ──────────────────────────────────────── */
+.cv-config__content {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  overflow-y: auto;
+  flex: 1;
+}
+
+/* ─── Config item card ──────────────────────────────────── */
+.cv-config__item {
+  background: vars.$card-bg;
+  border-radius: 10px;
+  padding: 18px 20px;
+  border: 1px solid rgba($color-info, 0.12);
+  transition:
+    border-color 0.25s ease,
+    box-shadow 0.25s ease;
+
+  &:hover {
+    border-color: rgba(vars.$primary-color, 0.25);
+    box-shadow: 0 2px 12px rgba(vars.$primary-color, 0.06);
+  }
 
   &--dirty {
-    border-left: 3px solid #e6a23c;
+    border-left: 3px solid vars.$warning-color;
+    background: rgba(vars.$warning-color, 0.02);
   }
+}
 
-  &__header {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-  }
+.cv-config__item-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 6px;
+}
 
-  &__key {
-    font-family: 'SFMono-Regular', 'Menlo', 'Monaco', 'Consolas', 'Liberation Mono',
-      'Courier New', monospace;
-    font-size: 14px;
-    font-weight: 600;
-    color: var(--el-text-color-primary);
-    background: var(--el-fill-color-light);
-    padding: 2px 8px;
-    border-radius: 4px;
-  }
+.cv-config__item-key {
+  font-family:
+    'SFMono-Regular', 'Menlo', 'Monaco', 'Consolas', 'Liberation Mono', 'Courier New', monospace;
+  font-size: 14px;
+  font-weight: 600;
+  color: vars.$text-primary;
+  background: rgba(vars.$primary-color, 0.06);
+  padding: 2px 8px;
+  border-radius: 4px;
+}
 
-  &__type {
-    flex-shrink: 0;
-  }
+.cv-config__type-badge {
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  padding: 2px 8px;
+  border-radius: 4px;
 
-  &__body {
-    display: flex;
-    flex-direction: column;
-    gap: 12px;
+  &--string {
+    background: rgba($color-info, 0.08);
+    color: $color-info;
   }
+  &--number {
+    background: rgba(vars.$success-color, 0.1);
+    color: vars.$success-color;
+  }
+  &--boolean {
+    background: rgba(vars.$warning-color, 0.1);
+    color: vars.$warning-color;
+  }
+  &--json {
+    background: rgba(vars.$danger-color, 0.1);
+    color: vars.$danger-color;
+  }
+}
 
-  &__desc {
-    font-size: 13px;
-    color: var(--el-text-color-secondary);
-    margin: 0;
-    line-height: 1.5;
-  }
+.cv-config__item-desc {
+  font-size: 13px;
+  color: vars.$text-secondary;
+  margin: 0 0 14px;
+  line-height: 1.6;
+}
 
-  &__editor {
-    display: flex;
-    flex-direction: column;
-    gap: 6px;
-  }
+.cv-config__item-editor {
+  margin-bottom: 4px;
+}
 
-  &__label {
-    font-size: 12px;
-    font-weight: 500;
-    color: var(--el-text-color-regular);
-  }
+.cv-config__number-input {
+  width: 100%;
+}
 
-  &__input-number {
-    width: 100%;
-  }
+/* ─── Default value row ──────────────────────────────────── */
+.cv-config__item-default {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding-top: 12px;
+  margin-top: 8px;
+  border-top: 1px dashed rgba($color-info, 0.15);
+}
 
-  &__default {
-    display: flex;
-    align-items: center;
-    gap: 4px;
-    padding-top: 8px;
-    border-top: 1px dashed var(--el-border-color-lighter);
-  }
+.cv-config__default-label {
+  font-size: 12px;
+  font-weight: 500;
+  color: vars.$text-secondary;
+}
 
-  &__default-label {
-    font-size: 12px;
-    color: var(--el-text-color-secondary);
-  }
+.cv-config__default-value {
+  font-family:
+    'SFMono-Regular', 'Menlo', 'Monaco', 'Consolas', 'Liberation Mono', 'Courier New', monospace;
+  font-size: 12px;
+  color: vars.$text-secondary;
+  background: rgba($color-info, 0.06);
+  padding: 2px 8px;
+  border-radius: 4px;
+}
 
-  &__default-value {
-    font-family: 'SFMono-Regular', 'Menlo', 'Monaco', 'Consolas', 'Liberation Mono',
-      'Courier New', monospace;
-    font-size: 12px;
-    color: var(--el-text-color-secondary);
-    background: var(--el-fill-color-lighter);
-    padding: 1px 6px;
-    border-radius: 3px;
-  }
+/* ─── Transitions ───────────────────────────────────────── */
+.cv-fade-enter-active,
+.cv-fade-leave-active {
+  transition: opacity 0.25s ease;
+}
+.cv-fade-enter-from,
+.cv-fade-leave-to {
+  opacity: 0;
 }
 </style>

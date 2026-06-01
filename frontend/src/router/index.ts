@@ -108,12 +108,20 @@ export const constantRoutes: RouteRecordRaw[] = [
   {
     path: '/attendance',
     component: Layout,
+    alwaysShow: true,
+    meta: { title: '考勤管理', icon: 'date' },
     children: [
       {
         path: 'index',
         component: () => import('@/views/attendance/index.vue'),
         name: 'Attendance',
         meta: { title: '考勤统计', icon: 'date' },
+      },
+      {
+        path: 'inspection',
+        component: () => import('@/views/attendance/inspection.vue'),
+        name: 'Inspection',
+        meta: { title: '查寝名单', icon: 'list' },
       },
     ],
   },
