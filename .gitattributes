@@ -1,3 +1,3 @@
 # Exclude SCSS style files from GitLab/GitHub language statistics
 # SCSS is purely presentation — not core application logic
-*.scss linguist-generated=true
+*.scss linguist-vendored=true
