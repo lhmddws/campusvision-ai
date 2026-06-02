@@ -1,5 +1,5 @@
 -- ============================================================================
--- Migration: V002__face_embedding
+-- Migration: 002_face_embedding
 -- Description: Create face_embedding table for face recognition pipeline
 --
 -- This table stores face feature vectors (512-dim float embeddings as BLOB)

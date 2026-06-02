@@ -6,7 +6,7 @@
 -- multiple camera types (RTSP, SIMULATED, USB) and centralized credential
 -- storage with AES-256-GCM encryption.
 --
--- Columns added: 10
+-- Columns added: 9
 --   - type             Camera type classification
 --   - protocol         RTSP protocol variant
 --   - host             Camera host/IP
@@ -16,7 +16,6 @@
 --   - password_enc     AES-256-GCM encrypted password
 --   - nonce            Encryption nonce (base64)
 --   - key_id           Encryption key version
---   - last_health_check Last health check timestamp
 --
 -- Backward compatible: rtsp_url column is preserved (not dropped or altered).
 -- ============================================================================
