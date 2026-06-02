@@ -1,63 +1,157 @@
-<p align="center">
-	<img alt="logo" src="./src/assets/logo/logo.png">
-</p>
-<h1 align="center" style="margin: 30px 0 30px; font-weight: bold;">智先生 Vue3 + ts 版UI组件库</h1>
-<h4 align="center">基于RuoYi v3.8.5 的 Vue3前端UI组件库</h4>
+# frontend
 
-## 说明
-智先生 Vue3 + ts 版UI组件库
+CampusVision AI 前端管理界面 — 基于 Vue 3 + TypeScript + Element Plus 的宿舍智能监控 SPA。
 
-fork 于 https://github.com/zzh948498/RuoYi-Vue3-ts.git
-## 平台简介
+## 概述
 
-* 本仓库为前端技术栈 [Vue3](https://v3.cn.vuejs.org) + [Element Plus](https://element-plus.org/zh-CN) + [Vite](https://cn.vitejs.dev) 版本。
-* 配套后端代码仓库地址[RuoYi-Vue](https://gitee.com/y_project/RuoYi-Vue) 或 [RuoYi-Vue-fast](https://github.com/yangzongzhuan/RuoYi-Vue-fast) 版本。
-* [RuoYi前端手册] (https://doc.ruoyi.vip/ruoyi-vue/document/qdsc.html#%E9%80%9A%E7%94%A8%E6%96%B9%E6%B3%95)
+frontend 是 CampusVision AI 的管理控制台，提供实时监控、摄像头管理、考勤查询、告警处理、人脸记录等功能。基于 [RuoYi-Vue3-ts](https://github.com/zzh948498/RuoYi-Vue3-ts) 框架二次开发。
 
-## 前端运行
+| 属性 | 值 |
+|---|---|
+| 框架 | Vue 3.2 + TypeScript |
+| UI 库 | Element Plus 2.2 |
+| 构建工具 | Vite 3.2 |
+| 状态管理 | Pinia |
+| 路由 | Vue Router 4 |
+| 包管理 | pnpm |
+| 开发端口 | 80 |
 
-拉取本项目 使用最先进的包管理工具pnpm
-```bash
-# 克隆项目
-git clone https://10.10.200.23/MrHooge/zxs-admin-base.git
+## 目录结构
 
-# 进入项目目录
-cd zxs-admin-base
-
-# 安装依赖
-pnpm i
-
-# 启动服务
-pnpm dev
-
-# 构建测试环境 yarn build:stage
-# 构建生产环境 yarn build:prod
-# 前端访问地址 http://localhost:80
+```
+frontend/
+├── src/
+│   ├── api/                 # 后端 API 封装
+│   │   ├── camera.ts        # 摄像头管理
+│   │   ├── events.ts        # 进出事件
+│   │   ├── alerts.ts        # 告警
+│   │   ├── attendance.ts    # 考勤统计
+│   │   ├── face.ts          # 人脸匹配/特征
+│   │   ├── dashboard.ts     # 仪表盘数据
+│   │   ├── config.ts        # 系统配置
+│   │   └── login.ts         # 登录鉴权
+│   ├── views/               # 页面组件
+│   │   ├── dashboard/       # 仪表盘 (概览统计)
+│   │   ├── monitor/         # 实时监控
+│   │   ├── camera/          # 摄像头管理
+│   │   ├── events/          # 进出事件查询
+│   │   ├── alerts/          # 告警管理
+│   │   ├── attendance/      # 考勤记录
+│   │   ├── face/            # 人脸记录
+│   │   ├── config/          # 系统配置
+│   │   └── system/          # 系统管理 (用户/角色/菜单/字典)
+│   ├── router/              # 路由配置
+│   ├── store/               # Pinia 状态管理
+│   ├── layout/              # 布局组件
+│   ├── components/          # 公共组件
+│   ├── plugins/             # 插件
+│   ├── hooks/               # 组合式函数
+│   ├── locales/             # 国际化 (vue-i18n)
+│   └── utils/               # 工具函数
+├── public/
+├── vite.config.ts
+├── tailwind.config.cjs
+├── tsconfig.json
+├── package.json
+└── Dockerfile
 ```
 
-## 内置功能
+## 快速开始
 
-1.  用户管理：用户是系统操作者，该功能主要完成系统用户配置。
-2.  部门管理：配置系统组织机构（公司、部门、小组），树结构展现支持数据权限。
-3.  岗位管理：配置系统用户所属担任职务。
-4.  菜单管理：配置系统菜单，操作权限，按钮权限标识等。
-5.  角色管理：角色菜单权限分配、设置角色按机构进行数据范围权限划分。
-6.  字典管理：对系统中经常使用的一些较为固定的数据进行维护。
-7.  参数管理：对系统动态配置常用参数。
-8.  通知公告：系统通知公告信息发布维护。
-9.  操作日志：系统正常操作日志记录和查询；系统异常信息日志记录和查询。
-10. 登录日志：系统登录日志记录查询包含登录异常。
-11. 在线用户：当前系统中活跃用户状态监控。
-12. 定时任务：在线（添加、修改、删除)任务调度包含执行结果日志。
-13. 代码生成：前后端代码的生成（java、html、xml、sql）支持CRUD下载 。
-14. 系统接口：根据业务代码自动生成相关的api接口文档。
-15. 服务监控：监视当前系统CPU、内存、磁盘、堆栈等相关信息。
-16. 缓存监控：对系统的缓存信息查询，命令统计等。
-17. 在线构建器：拖动表单元素生成相应的HTML代码。
-18. 连接池监视：监视当前系统数据库连接池状态，可进行分析SQL找出系统性能瓶颈。
+### 前置条件
 
-## 在线体验
+- Node.js 18+
+- pnpm (`npm install -g pnpm`)
+- dormitory-service-go 运行中 (后端 API :8083)
 
-演示地址：http://vue.ruoyi.vip  
-文档地址：http://doc.ruoyi.vip
+### 本地开发
 
+```bash
+cd frontend
+
+# 安装依赖
+pnpm install
+
+# 启动开发服务器
+pnpm dev
+# → http://localhost:80
+```
+
+### 构建
+
+```bash
+# 生产构建
+pnpm build:prod
+
+# 测试环境构建
+pnpm build:stage
+
+# 预览构建产物
+pnpm preview
+```
+
+### Docker 运行
+
+```bash
+docker compose up -d frontend
+```
+
+## 环境配置
+
+| 文件 | 用途 |
+|---|---|
+| `.env.development` | 开发环境 (API → localhost:8083) |
+| `.env.staging` | 测试环境 |
+| `.env.production` | 生产环境 |
+
+## 功能模块
+
+### 业务功能
+
+| 模块 | 说明 |
+|---|---|
+| 仪表盘 | 在校人数统计、今日进出趋势、告警概览、摄像头状态 |
+| 实时监控 | 宿舍楼栋实时人员状态 |
+| 摄像头管理 | 摄像头 CRUD、状态监控、RTSP 配置 |
+| 进出事件 | 按楼栋/时间/人员查询进出记录 |
+| 告警管理 | 陌生人告警、行为告警，支持处理/忽略 |
+| 考勤记录 | 每日考勤统计、缺勤查询 |
+| 人脸记录 | 人脸特征库管理 |
+| 系统配置 | 系统参数动态配置 |
+
+### 系统功能 (RuoYi 内置)
+
+用户管理、角色权限、菜单管理、字典管理、操作日志、登录日志、定时任务、服务监控。
+
+## 技术栈
+
+| 类别 | 技术 |
+|---|---|
+| 核心 | Vue 3.2 (Composition API), TypeScript |
+| UI | Element Plus, Animate.css, Tailwind CSS |
+| 图表 | ECharts 5 |
+| 状态 | Pinia |
+| 路由 | Vue Router 4 |
+| HTTP | Axios |
+| 国际化 | vue-i18n |
+| 富文本 | WangEditor, Vue Quill |
+| 测试 | Vitest, @vue/test-utils |
+| 构建 | Vite 3, unplugin-auto-import |
+
+## 测试
+
+```bash
+cd frontend
+
+# 运行测试
+pnpm test
+
+# 监听模式
+pnpm test:watch
+```
+
+## 代码规范
+
+- ESLint + Prettier (`.eslintrc.js`, `.prettierrc`)
+- TypeScript 严格模式
+- EditorConfig (`.editorconfig`)
