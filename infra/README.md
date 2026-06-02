@@ -1,93 +1,93 @@
 # infra
 
-CampusVision AI 基础设施 — 数据库初始化脚本与迁移文件。
+CampusVision AI infrastructure — database initialization scripts and migration files.
 
-## 概述
+## Overview
 
-`infra/` 包含 MariaDB 数据库的初始化 DDL 和增量迁移文件，由 Docker Compose 自动加载。
+`infra/` contains MariaDB database initialization DDL and incremental migration files, auto-loaded by Docker Compose.
 
 ```
 infra/
 └── mariadb/
-    ├── init.sql             # 初始化脚本 (docker-compose 首次启动自动执行)
-    └── migrations/          # 增量迁移 (手动执行)
+    ├── init.sql             # Init script (auto-executed on first docker-compose startup)
+    └── migrations/          # Incremental migrations (applied manually)
         ├── 001_camera_platform.sql
         ├── 002_face_embedding.sql
         └── README.md
 ```
 
-## 数据库
+## Database
 
-| 属性 | 值 |
+| Property | Value |
 |---|---|
-| 引擎 | MariaDB |
-| 数据库名 | `dormitory` |
-| 字符集 | utf8mb4 / utf8mb4_unicode_ci |
-| 端口 | 3306 |
+| Engine | MariaDB |
+| Database | `dormitory` |
+| Charset | utf8mb4 / utf8mb4_unicode_ci |
+| Port | 3306 |
 
-## 初始化脚本 (init.sql)
+## Initialization Script (init.sql)
 
-由 Docker Compose 的 `mariadb` 服务在首次启动时自动执行，创建 11 张业务表：
+Auto-executed by the `mariadb` Docker Compose service on first startup. Creates 11 business tables:
 
-### 核心业务表
+### Core Business Tables
 
-| 表名 | 说明 |
+| Table | Description |
 |---|---|
-| `dorm_student_assignment` | 学生宿舍分配 (从学管系统同步) |
-| `dorm_student_status` | 人员在校实时状态 |
-| `dorm_entry_exit_event` | 进出事件流水 (核心) |
-| `dorm_camera` | 摄像头注册与配置 |
-| `dorm_face_embedding` | 人脸特征向量存储 |
-| `dorm_alert` | 告警记录 |
-| `dorm_attendance_record` | 每日考勤记录 |
-| `dorm_attendance_report` | 考勤汇总报告 |
+| `dorm_student_assignment` | Student dormitory assignments (synced from student management system) |
+| `dorm_student_status` | Real-time on-campus student status |
+| `dorm_entry_exit_event` | Entry/exit event log (core) |
+| `dorm_camera` | Camera registration and configuration |
+| `dorm_face_embedding` | Face feature vector storage |
+| `dorm_alert` | Alert records |
+| `dorm_attendance_record` | Daily attendance records |
+| `dorm_attendance_report` | Attendance summary reports |
 
-### 系统配置表
+### System Configuration Tables
 
-| 表名 | 说明 |
+| Table | Description |
 |---|---|
-| `dorm_system_config` | 系统参数配置 |
-| `dorm_behavior_event` | 行为分析事件 |
-| `dorm_stranger_record` | 陌生人记录 |
+| `dorm_system_config` | System parameter configuration |
+| `dorm_behavior_event` | Behavior analysis events |
+| `dorm_stranger_record` | Stranger records |
 
-### 设计规范
+### Design Conventions
 
-- 表名统一 `dorm_` 前缀
-- 引擎: InnoDB
-- 主键: `BIGINT AUTO_INCREMENT`
-- 时间列: `DATETIME` + `CURRENT_TIMESTAMP`
-- 列注释: 中文 COMMENT
-- 索引命名: `idx_{表缩写}_{列名}`
+- Table names prefixed with `dorm_`
+- Engine: InnoDB
+- Primary key: `BIGINT AUTO_INCREMENT`
+- Timestamps: `DATETIME` + `CURRENT_TIMESTAMP`
+- Column comments: Chinese COMMENT
+- Index naming: `idx_{table_abbrev}_{column_name}`
 
-## 迁移文件
+## Migration Files
 
-迁移文件位于 `mariadb/migrations/`，按序号递增命名：
+Migration files are in `mariadb/migrations/`, sequentially numbered:
 
 ```
-001_camera_platform.sql    # 摄像头平台字段扩展
-002_face_embedding.sql     # 人脸特征表调整
+001_camera_platform.sql    # Camera platform field extensions
+002_face_embedding.sql     # Face feature table adjustments
 ```
 
-### 执行迁移
+### Applying Migrations
 
-迁移需要**手动执行**（项目未使用 Flyway 或 golang-migrate）：
+Migrations must be **applied manually** (no Flyway or golang-migrate):
 
 ```bash
-# 执行单个迁移
+# Apply a single migration
 docker compose exec -T mariadb mysql -uroot -proot dormitory < infra/mariadb/migrations/001_camera_platform.sql
 
-# 按顺序执行所有迁移
+# Apply all migrations in order
 for f in infra/mariadb/migrations/[0-9]*.sql; do
   echo "Applying $f..."
   docker compose exec -T mariadb mysql -uroot -proot dormitory < "$f"
 done
 ```
 
-> 迁移执行记录维护在 `mariadb/migrations/README.md` 中。
+> Migration execution records are maintained in `mariadb/migrations/README.md`.
 
-## Docker Compose 集成
+## Docker Compose Integration
 
-`docker-compose.yml` 中 MariaDB 服务配置：
+MariaDB service configuration in `docker-compose.yml`:
 
 ```yaml
 mariadb:
@@ -101,19 +101,19 @@ mariadb:
     - "3306:3306"
 ```
 
-## 其他基础设施
+## Other Infrastructure
 
-项目通过 Docker Compose 管理的完整基础设施栈：
+The full infrastructure stack managed by Docker Compose:
 
-| 服务 | 端口 | 说明 |
+| Service | Port | Description |
 |---|---|---|
-| Zookeeper | 2181 | Kafka 依赖 |
-| Kafka | 9092 | 消息队列 (3 topics) |
-| Redis | 6379 | 事件去重 + 缓存 |
-| MariaDB | 3306 | 业务数据存储 |
-| MinIO | 9000/9001 | 对象存储 (当前未使用) |
+| Zookeeper | 2181 | Kafka dependency |
+| Kafka | 9092 | Message broker (3 topics) |
+| Redis | 6379 | Event dedup + caching |
+| MariaDB | 3306 | Business data storage |
+| MinIO | 9000/9001 | Object storage (currently unused) |
 
-快速启动最小开发环境：
+Quick start minimal dev environment:
 
 ```bash
 docker compose up -d kafka redis

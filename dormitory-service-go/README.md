@@ -1,76 +1,76 @@
 # dormitory-service-go
 
-宿舍管理业务服务 — 消费 Kafka 人脸事件，处理考勤记录、告警、摄像头管理、人脸匹配，对外提供 HTTP API。
+Dormitory management business service — consumes Kafka face events, handles attendance records, alerts, camera management, and face matching, exposing an HTTP API for the frontend.
 
-## 概述
+## Overview
 
-dormitory-service-go 是 CampusVision AI 的业务层，连接感知管线与前端管理界面：
+dormitory-service-go is the business layer of CampusVision AI, bridging the perception pipeline and the frontend management UI:
 
 ```
-t_dorm_event (Kafka) → EventConsumer → 考勤记录 + 学生状态更新
-t_dorm_alert (Kafka) → AlertConsumer → (骨架, 待实现)
+t_dorm_event (Kafka) → EventConsumer → Attendance records + student status updates
+t_dorm_alert (Kafka) → AlertConsumer → (skeleton, not yet implemented)
 
-前端 SPA → Gin HTTP API (:8083) → MariaDB + Redis
+Frontend SPA → Gin HTTP API (:8083) → MariaDB + Redis
 ```
 
-| 属性 | 值 |
+| Property | Value |
 |---|---|
-| 语言 | Go 1.26 |
-| 端口 | 8083 |
-| 入口 | `cmd/dormitory-service/main.go` |
-| 框架 | Gin + sqlx + go-redis + Viper |
-| 消费 Topic | `t_dorm_event`, `t_dorm_alert` |
+| Language | Go 1.26 |
+| Port | 8083 |
+| Entrypoint | `cmd/dormitory-service/main.go` |
+| Framework | Gin + sqlx + go-redis + Viper |
+| Consumes | `t_dorm_event`, `t_dorm_alert` |
 
-## 目录结构
+## Directory Structure
 
 ```
 dormitory-service-go/
 ├── cmd/dormitory-service/
-│   └── main.go              # 入口: 依赖注入、路由注册、Kafka 消费者启动
+│   └── main.go              # Entrypoint: DI, route registration, Kafka consumer startup
 ├── internal/
-│   ├── client/              # PushClient → stream-gateway 通知
-│   ├── config/              # Viper 配置 (YAML + 环境变量 + Spring Boot 兼容)
-│   ├── consumer/            # Kafka 消费者 (EventConsumer, AlertConsumer)
+│   ├── client/              # PushClient → stream-gateway notifications
+│   ├── config/              # Viper config (YAML + env vars + Spring Boot compat)
+│   ├── consumer/            # Kafka consumers (EventConsumer, AlertConsumer)
 │   ├── handler/             # Gin HTTP handlers (camera, record, alert, config, face)
-│   ├── middleware/           # JWT 鉴权 + CORS
+│   ├── middleware/           # JWT auth + CORS
 │   ├── model/
-│   │   ├── dto/             # 请求/响应类型
-│   │   ├── entity/          # DB 实体 (12 个, db tag 映射)
-│   │   └── enums/           # 领域枚举 (EventType, AlertType, ...)
-│   ├── redis/               # go-redis 封装 + 事件去重
-│   ├── repository/          # sqlx 仓储 + 泛型 BaseRepository[T]
-│   ├── scheduler/           # 定时任务 (robfig/cron: 每晚报告 + 健康检查)
-│   ├── service/             # 业务逻辑 (camera, record, alert, config, report)
-│   └── util/                # AES-256-GCM 密码加密
-├── config.yaml              # 本地开发配置
-├── config.docker.yaml       # Docker Compose 配置覆盖
+│   │   ├── dto/             # Request/response types
+│   │   ├── entity/          # DB entities (12 structs, db tag mapping)
+│   │   └── enums/           # Domain enums (EventType, AlertType, ...)
+│   ├── redis/               # go-redis wrapper + event dedup
+│   ├── repository/          # sqlx repositories + generic BaseRepository[T]
+│   ├── scheduler/           # Cron jobs (robfig/cron: nightly reports + health checks)
+│   ├── service/             # Business logic (camera, record, alert, config, report)
+│   └── util/                # AES-256-GCM password encryption
+├── config.yaml              # Local dev config
+├── config.docker.yaml       # Docker Compose config override
 ├── Dockerfile
 └── go.mod
 ```
 
-## 快速开始
+## Quick Start
 
-### 前置条件
+### Prerequisites
 
 - Go 1.26+
-- MariaDB 运行中 (数据库 `dormitory`，表由 `infra/mariadb/init.sql` 初始化)
-- Redis 运行中
-- Kafka 运行中
+- MariaDB running (database `dormitory`, tables initialized by `infra/mariadb/init.sql`)
+- Redis running
+- Kafka running
 
-### 本地运行
+### Local Development
 
 ```bash
 cd dormitory-service-go
 CONFIG_PATH=config.yaml go run ./cmd/dormitory-service/
 ```
 
-### Docker 运行
+### Docker
 
 ```bash
 docker compose up -d dormitory-service-go
 ```
 
-## 配置
+## Configuration
 
 ### config.yaml
 
@@ -104,97 +104,97 @@ log:
   level: "info"
 ```
 
-### 环境变量
+### Environment Variables
 
-| 变量 | 说明 |
+| Variable | Description |
 |---|---|
-| `CONFIG_PATH` | 配置文件路径 (默认 `config.yaml`) |
-| `JWT_SECRET` | JWT 签名密钥，生产环境必须设置，需与主后端一致 |
-| `CAMERA_ENCRYPTION_KEY` | 32 字节 AES-256-GCM 密钥，需与 stream-gateway 保持一致 |
+| `CONFIG_PATH` | Config file path (default `config.yaml`) |
+| `JWT_SECRET` | JWT signing key — must be set in production, must match main backend |
+| `CAMERA_ENCRYPTION_KEY` | 32-byte AES-256-GCM key — must match stream-gateway |
 
-> 配置加载优先级: 默认值 < config.yaml < 环境变量。支持 Spring Boot 风格环境变量 (`SPRING_DATASOURCE_URL`, `KAFKA_BOOTSTRAP_SERVERS` 等)。
+> Config loading priority: defaults < config.yaml < environment variables. Supports Spring Boot-style env vars (`SPRING_DATASOURCE_URL`, `KAFKA_BOOTSTRAP_SERVERS`, etc.).
 
-## API 概览
+## API Overview
 
-所有接口返回统一 `{code, message, data}` 信封格式。
+All endpoints return a unified `{code, message, data}` envelope.
 
-### 摄像头管理
+### Camera Management
 
-| 方法 | 路径 | 说明 |
+| Method | Path | Description |
 |---|---|---|
-| GET | `/api/cameras` | 摄像头列表 |
-| POST | `/api/cameras` | 注册摄像头 |
-| PUT | `/api/cameras/:id` | 更新摄像头 |
-| DELETE | `/api/cameras/:id` | 删除摄像头 |
-| GET | `/api/cameras/:id/status` | 摄像头状态 |
+| GET | `/api/cameras` | List cameras |
+| POST | `/api/cameras` | Register camera |
+| PUT | `/api/cameras/:id` | Update camera |
+| DELETE | `/api/cameras/:id` | Delete camera |
+| GET | `/api/cameras/:id/status` | Camera status |
 
-### 考勤与事件
+### Attendance & Events
 
-| 方法 | 路径 | 说明 |
+| Method | Path | Description |
 |---|---|---|
-| GET | `/api/records` | 进出记录查询 |
-| GET | `/api/events` | 事件列表 |
-| GET | `/api/attendance` | 考勤统计 |
+| GET | `/api/records` | Entry/exit records |
+| GET | `/api/events` | Event list |
+| GET | `/api/attendance` | Attendance statistics |
 
-### 告警
+### Alerts
 
-| 方法 | 路径 | 说明 |
+| Method | Path | Description |
 |---|---|---|
-| GET | `/api/alerts` | 告警列表 |
-| PUT | `/api/alerts/:id/handle` | 处理告警 |
+| GET | `/api/alerts` | Alert list |
+| PUT | `/api/alerts/:id/handle` | Handle alert |
 
-### 人脸
+### Face
 
-| 方法 | 路径 | 说明 |
+| Method | Path | Description |
 |---|---|---|
-| POST | `/api/face/match` | 人脸特征匹配 (余弦相似度) |
-| POST | `/api/face/embed` | 人脸特征提取 (骨架, 返回 null) |
+| POST | `/api/face/match` | Face feature matching (cosine similarity) |
+| POST | `/api/face/embed` | Face feature extraction (skeleton, returns null) |
 
-### 系统配置
+### System Config
 
-| 方法 | 路径 | 说明 |
+| Method | Path | Description |
 |---|---|---|
-| GET | `/api/configs` | 系统配置列表 |
-| PUT | `/api/configs/:key` | 更新配置项 |
+| GET | `/api/configs` | System config list |
+| PUT | `/api/configs/:key` | Update config item |
 
-详细接口定义见 [`doc/api/dormitory-service-api.json`](../doc/api/dormitory-service-api.json)。
+Full API spec: [`doc/api/dormitory-service-api.json`](../doc/api/dormitory-service-api.json).
 
-## 核心机制
+## Core Mechanisms
 
-### 事件消费
+### Event Consumption
 
-EventConsumer 从 `t_dorm_event` 消费人脸事件，直接调用 repository 层 (跳过 service)：
+EventConsumer reads from `t_dorm_event` and calls the repository layer directly (bypasses service):
 
-1. 解析 JSON 事件消息
-2. Redis 去重检查 (key: `dedup:{camera_id}:{frame_sequence}`, TTL 3600s)
-3. 更新学生在校状态 (`dorm_student_status`)
-4. 写入进出事件记录 (`dorm_entry_exit_event`)
-5. 陌生人检测 → 创建告警 (`dorm_alert`)
+1. Parse JSON event message
+2. Redis dedup check (key: `dedup:{camera_id}:{frame_sequence}`, TTL 3600s)
+3. Update student on-campus status (`dorm_student_status`)
+4. Write entry/exit event record (`dorm_entry_exit_event`)
+5. Stranger detection → create alert (`dorm_alert`)
 
-### 定时任务
+### Scheduled Tasks
 
-| 任务 | 调度 | 说明 |
+| Task | Schedule | Description |
 |---|---|---|
-| 每晚考勤报告 | 每天 23:00 | 生成当日考勤汇总 (骨架实现) |
-| 摄像头健康检查 | 每 5 分钟 | 轮询 stream-gateway 健康端点 |
+| Nightly attendance report | Daily 23:00 | Generate daily attendance summary (skeleton) |
+| Camera health check | Every 5 min | Poll stream-gateway health endpoint |
 
-### 泛型仓储
+### Generic Repository
 
-`BaseRepository[T]` 基于 Go 泛型 + 反射，提供通用 CRUD 操作。实体必须使用 `db:"column"` tag 映射数据库列。
+`BaseRepository[T]` provides generic CRUD operations using Go generics + reflection. Entities must use `db:"column"` tags for database column mapping.
 
-## 测试
+## Testing
 
 ```bash
 cd dormitory-service-go && go test ./...
 ```
 
-目前仅 `repository/base_test.go` 一个测试文件，覆盖泛型 CRUD 操作 (go-sqlmock + testify)。
+Currently only `repository/base_test.go` — covers generic CRUD operations (go-sqlmock + testify).
 
-## 注意事项
+## Caveats
 
-- **CONFIG_PATH**: 使用环境变量加载配置，不是 CLI flag (与 stream-gateway 不同)
-- **JWT 开发密钥**: 默认 `your-256-bit-secret`，生产环境必须通过 `JWT_SECRET` 设置
-- **AES 密钥同步**: `CAMERA_ENCRYPTION_KEY` 需与 stream-gateway 保持一致
-- **AlertConsumer 骨架**: 当前仅记录日志并提交 offset，无实际告警处理逻辑
-- **FaceMatch 性能**: 使用 O(n) 全表扫描 + 余弦相似度，大规模场景需优化
-- **摄像头上限**: 硬编码 50 台，通过 `FindAll()` 计数检查 (非原子操作)
+- **CONFIG_PATH**: Uses environment variable for config loading, not CLI flag (differs from stream-gateway)
+- **JWT dev key**: Default `your-256-bit-secret` — must set `JWT_SECRET` in production
+- **AES key sync**: `CAMERA_ENCRYPTION_KEY` must match stream-gateway
+- **AlertConsumer skeleton**: Currently only logs and commits offset — no actual alert handling
+- **FaceMatch performance**: O(n) full table scan + cosine similarity — needs optimization at scale
+- **Camera limit**: Hardcoded at 50, checked via `FindAll()` count (non-atomic operation)

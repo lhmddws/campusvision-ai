@@ -1,80 +1,80 @@
 # stream-gateway
 
-RTSP 视频流网关 — 从宿舍摄像头采集 RTSP 流，通过 ffmpeg 解码为原始帧，经运动检测后发布到 Kafka。
+RTSP video stream gateway — captures RTSP streams from dormitory cameras, decodes frames via ffmpeg, and publishes to Kafka after motion detection.
 
-## 概述
+## Overview
 
-stream-gateway 是 CampusVision AI 感知管线的第一跳：
+stream-gateway is the first hop in the CampusVision AI perception pipeline:
 
 ```
-RTSP 摄像头 (A/B/C/D)
-  → ffmpeg 解码 (YUV420P)
-  → 运动检测 (160×90 Y 平面差分)
+RTSP Cameras (A/B/C/D)
+  → ffmpeg decode (YUV420P)
+  → Motion detection (160×90 Y-plane differential)
   → Kafka Producer → t_dorm_frame (hash by building, Snappy)
 ```
 
-| 属性 | 值 |
+| Property | Value |
 |---|---|
-| 语言 | Go 1.26 |
-| 端口 | 8080 (健康检查), 8081 (管理 API) |
-| 入口 | `cmd/main.go` |
-| Kafka Topic | `t_dorm_frame` (4 分区, hash by `building`, Snappy 压缩) |
+| Language | Go 1.26 |
+| Ports | 8080 (health), 8081 (management API) |
+| Entrypoint | `cmd/main.go` |
+| Kafka Topic | `t_dorm_frame` (4 partitions, hash by `building`, Snappy compression) |
 
-## 目录结构
+## Directory Structure
 
 ```
 stream-gateway/
-├── cmd/main.go              # 入口: 配置加载、信号处理、DB 轮询、HTTP 服务
+├── cmd/main.go              # Entrypoint: config loading, signal handling, DB polling, HTTP servers
 ├── internal/
-│   ├── camera/              # 摄像头管理: goroutine 生命周期、DB 同步
-│   ├── config/              # YAML 配置结构体
-│   ├── crypto/              # AES-256-GCM RTSP 密码加解密
-│   ├── decoder/             # ffmpeg 子进程: RTSP → 原始 YUV420P 帧
-│   ├── frame/               # 运动检测: Y 平面降采样差分
-│   ├── health/              # 健康检查 HTTP handler
-│   ├── kafka/               # Kafka Producer 封装 (hash balancer)
-│   └── management/          # 管理 API (X-Management-Key 鉴权)
-├── config.yaml              # 本地开发配置
-├── config.docker.yaml       # Docker Compose 配置覆盖
+│   ├── camera/              # Camera management: goroutine lifecycle, DB sync
+│   ├── config/              # YAML config structs
+│   ├── crypto/              # AES-256-GCM RTSP password encryption/decryption
+│   ├── decoder/             # ffmpeg subprocess: RTSP → raw YUV420P frames
+│   ├── frame/               # Motion detection: Y-plane downsampled differential
+│   ├── health/              # Health check HTTP handler
+│   ├── kafka/               # Kafka Producer wrapper (hash balancer)
+│   └── management/          # Management API (X-Management-Key auth)
+├── config.yaml              # Local dev config
+├── config.docker.yaml       # Docker Compose config override
 ├── Dockerfile
 └── go.mod
 ```
 
-## 快速开始
+## Quick Start
 
-### 前置条件
+### Prerequisites
 
 - Go 1.26+
-- ffmpeg 已安装并在 `$PATH` 中
-- Kafka 运行中 (`docker compose up -d kafka`)
-- MariaDB 运行中 (可选, 用于动态摄像头同步)
+- ffmpeg installed and available in `$PATH`
+- Kafka running (`docker compose up -d kafka`)
+- MariaDB running (optional, for dynamic camera sync)
 
-### 本地运行
+### Local Development
 
 ```bash
 cd stream-gateway
 go run cmd/main.go --config config.yaml
 ```
 
-### Docker 运行
+### Docker
 
 ```bash
 docker compose up -d stream-gateway
 ```
 
-## 配置
+## Configuration
 
 ### config.yaml
 
 ```yaml
 frame:
-  fps_day: 5              # 白天帧率
-  fps_night: 1            # 夜间帧率
+  fps_day: 5              # Daytime frame rate
+  fps_night: 1            # Nighttime frame rate
   jpeg_quality: 80
   width: 1280
   height: 720
-  dynamic_extraction: true # 启用运动检测动态抽帧
-  motion_threshold: 0.05   # 运动阈值 (160×90 Y 平面均值绝对差分)
+  dynamic_extraction: true # Enable motion-based dynamic frame extraction
+  motion_threshold: 0.05   # Motion threshold (160×90 Y-plane mean absolute differential)
 
 kafka:
   brokers: ["localhost:9092"]
@@ -85,7 +85,7 @@ kafka:
 rtsp:
   reconnect_interval: 5s
   read_timeout: 10s
-  max_reconnect_attempts: 0  # 0 = 无限重试
+  max_reconnect_attempts: 0  # 0 = infinite retry
 
 health:
   port: 8080
@@ -93,82 +93,82 @@ health:
 management:
   port: 8081
   bind_address: "127.0.0.1"
-  management_key: ""         # 空 = 不启用鉴权
+  management_key: ""         # Empty = no auth
 
 database:
   dsn: "root:root@tcp(localhost:3306)/dormitory"
   driver: "mysql"
-  poll_interval: 30s         # DB 轮询间隔
+  poll_interval: 30s         # DB polling interval
 ```
 
-### 环境变量
+### Environment Variables
 
-| 变量 | 说明 |
+| Variable | Description |
 |---|---|
-| `CAMERA_ENCRYPTION_KEY` | 32 字节 AES-256-GCM 密钥, 用于 RTSP 密码解密。未设置时使用内置开发密钥 |
+| `CAMERA_ENCRYPTION_KEY` | 32-byte AES-256-GCM key for RTSP password decryption. Falls back to built-in dev key if unset |
 
-> **注意**: `CAMERA_ENCRYPTION_KEY` 必须与 `dormitory-service-go` 保持一致，否则跨模块密码解密会失败。
+> **Note**: `CAMERA_ENCRYPTION_KEY` must match the one in `dormitory-service-go`, otherwise cross-module password decryption will fail.
 
-## 核心机制
+## Core Mechanisms
 
-### 动态抽帧
+### Dynamic Frame Extraction
 
-stream-gateway 不是固定帧率抽帧，而是根据画面运动量动态决定：
+Instead of fixed-rate frame capture, stream-gateway dynamically decides based on scene motion:
 
-1. ffmpeg 解码输出 YUV420P 原始帧
-2. Y 平面降采样到 160×90 灰度图
-3. 与上一帧计算均值绝对差分 (MAD)
-4. 超过 `motion_threshold` 时才发布帧到 Kafka
+1. ffmpeg decodes RTSP to raw YUV420P frames
+2. Y-plane downsampled to 160×90 grayscale
+3. Mean absolute differential (MAD) computed against previous frame
+4. Frame published to Kafka only when MAD exceeds `motion_threshold`
 
-白天最高 `fps_day` (5fps)，夜间降至 `fps_night` (1fps)。
+Daytime caps at `fps_day` (5fps), nighttime drops to `fps_night` (1fps).
 
-### 摄像头管理
+### Camera Management
 
-- **DB 轮询**: 每 30s 从 `dorm_camera` 表同步摄像头列表 (需配置 `database.dsn`)
-- **管理 API**: 通过 8081 端口动态增删摄像头 (需 `X-Management-Key` 鉴权)
-- **生命周期**: 每个摄像头独立 goroutine，支持启停和重连
+- **DB Polling**: Syncs camera list from `dorm_camera` table every 30s (requires `database.dsn`)
+- **Management API**: Add/remove cameras dynamically via port 8081 (requires `X-Management-Key`)
+- **Lifecycle**: Each camera runs in its own goroutine with start/stop/reconnect support
 
-### 优雅关闭
+### Graceful Shutdown
 
-信号 → 停止所有摄像头 goroutine → HTTP 服务 Shutdown → context cancel
+Signal → stop all camera goroutines → HTTP server Shutdown → context cancel
 
-## 测试
+## Testing
 
 ```bash
 cd stream-gateway && go test ./...
 ```
 
-| 测试文件 | 覆盖范围 |
+| Test File | Coverage |
 |---|---|
-| `internal/health/handler_test.go` | 健康检查 handler |
-| `internal/management/handler_test.go` | 管理 API handler |
-| `internal/config/camera_config_test.go` | 配置解析 |
-| `internal/crypto/service_test.go` | AES-256-GCM 加解密 |
+| `internal/health/handler_test.go` | Health check handler |
+| `internal/management/handler_test.go` | Management API handler |
+| `internal/config/camera_config_test.go` | Config parsing |
+| `internal/crypto/service_test.go` | AES-256-GCM encryption/decryption |
 
 ## API
 
-### 健康检查 (port 8080)
+### Health Check (port 8080)
 
-| 方法 | 路径 | 说明 |
+| Method | Path | Description |
 |---|---|---|
-| GET | `/health` | 服务健康状态 |
+| GET | `/health` | Service health status |
 
-### 管理 API (port 8081)
+### Management API (port 8081)
 
-| 方法 | 路径 | 说明 |
+| Method | Path | Description |
 |---|---|---|
-| GET | `/cameras` | 列出所有摄像头 |
-| POST | `/cameras` | 添加摄像头 |
-| DELETE | `/cameras/:id` | 删除摄像头 |
-| GET | `/status` | 网关运行状态 |
+| GET | `/cameras` | List all cameras |
+| POST | `/cameras` | Add camera |
+| DELETE | `/cameras/:id` | Remove camera |
+| GET | `/status` | Gateway runtime status |
 
-> 管理 API 需设置 `management.management_key` 并在请求头中携带 `X-Management-Key`。
+> Management API requires `management.management_key` configured and `X-Management-Key` header in requests.
 
-详细接口定义见 [`doc/api/stream-gateway-api.json`](../doc/api/stream-gateway-api.json)。
+Full API spec: [`doc/api/stream-gateway-api.json`](../doc/api/stream-gateway-api.json).
 
-## 注意事项
+## Caveats
 
-- **ffmpeg 依赖**: decoder 通过子进程调用 ffmpeg，必须在 `$PATH` 中可用
-- **帧大小硬编码**: `width × height × 3 / 2` 字节 (YUV420P)，无校验
-- **无 Producer 背压**: Kafka 慢时帧会在内存中无限排队
-- **日志级别未实现**: `config.Log.Level` 已定义但代码使用 stdlib `log.Printf`
+- **ffmpeg dependency**: Decoder spawns ffmpeg subprocess — must be available in `$PATH`
+- **Hardcoded frame size**: `width × height × 3 / 2` bytes (YUV420P), no validation
+- **No producer backpressure**: Frames queue indefinitely in memory when Kafka is slow
+- **Log level unimplemented**: `config.Log.Level` is defined but code uses stdlib `log.Printf`

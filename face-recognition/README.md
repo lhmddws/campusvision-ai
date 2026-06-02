@@ -1,103 +1,103 @@
 # face-recognition
 
-人脸识别服务 — 从 Kafka 帧流中检测人脸、提取特征、匹配身份、分析行为，将事件发布到下游 Kafka topic。
+Face recognition service — detects faces from Kafka frame stream, extracts embeddings, matches identities, analyzes behavior, and publishes events to downstream Kafka topics.
 
-## 概述
+## Overview
 
-face-recognition 是 CampusVision AI 感知管线的核心处理节点：
+face-recognition is the core processing node in the CampusVision AI perception pipeline:
 
 ```
 t_dorm_frame (Kafka)
-  → Base64 解码 → JPEG → BGR
-  → 夜间增强 (CLAHE)
-  → 人脸检测 (RetinaFace ONNX / Haar Cascade 回退)
-  → 特征提取 (ArcFace ONNX)
-  → 身份匹配 (dormitory-service-go API + Redis 缓存)
-  → 方向判定 (ROI 线穿越 → 进/出)
-  → 事件去重 (Redis)
-  → 行为分析 (徘徊/奔跑/区域入侵/聚集, 默认关闭)
+  → Base64 decode → JPEG → BGR
+  → Night enhancement (CLAHE)
+  → Face detection (RetinaFace ONNX / Haar Cascade fallback)
+  → Feature extraction (ArcFace ONNX)
+  → Identity matching (dormitory-service-go API + Redis cache)
+  → Direction determination (ROI line crossing → in/out)
+  → Event deduplication (Redis)
+  → Behavior analysis (loitering/running/zone intrusion/crowd, disabled by default)
   → t_dorm_event (Kafka, raw JSON)
 ```
 
-| 属性 | 值 |
+| Property | Value |
 |---|---|
-| 语言 | Python 3.11 |
-| 端口 | 无 HTTP (纯 Kafka consumer/producer) |
-| 入口 | `python -m app.main --config config.yaml` |
-| 消费 Topic | `t_dorm_frame` |
-| 生产 Topic | `t_dorm_event` |
+| Language | Python 3.11 |
+| Port | None (pure Kafka consumer/producer) |
+| Entrypoint | `python -m app.main --config config.yaml` |
+| Consumes | `t_dorm_frame` |
+| Produces | `t_dorm_event` |
 
-## 目录结构
+## Directory Structure
 
 ```
 face-recognition/
 ├── app/
-│   ├── main.py              # 入口: Kafka consumer/producer 主循环
-│   ├── config.py            # 12 个 dataclass 配置定义
-│   ├── detector.py          # 人脸检测: ONNX RetinaFace + Haar Cascade 回退
-│   ├── feature.py           # 特征提取: ONNX ArcFace + 零向量回退
-│   ├── matcher.py           # 身份匹配: 外部 API + Redis 缓存回退
-│   ├── direction.py         # 方向判定: ROI 线穿越 → 进/出
-│   ├── dedup.py             # Redis 事件去重
-│   ├── tracker.py           # 人脸跟踪 (IoU, 行为分析启用时初始化)
-│   ├── behavior.py          # 行为分析: 徘徊/奔跑/区域入侵/聚集
-│   ├── event_publisher.py   # 行为事件 Kafka 发布
-│   ├── night_mode.py        # 夜间 CLAHE 增强
-│   ├── download_models.py   # ONNX 模型下载器 (SHA256 校验)
-│   └── models/              # ONNX 模型文件 (gitignored)
-│       └── model_urls.yaml  # 模型 URL + SHA256 哈希
-├── tests/                   # pytest 测试 (使用 Haar Cascade 回退, 无需 ONNX)
-├── config.yaml              # 本地开发配置
-├── config.docker.yaml       # Docker Compose 配置覆盖
+│   ├── main.py              # Entrypoint: Kafka consumer/producer main loop
+│   ├── config.py            # 12 dataclass config definitions
+│   ├── detector.py          # Face detection: ONNX RetinaFace + Haar Cascade fallback
+│   ├── feature.py           # Feature extraction: ONNX ArcFace + zero-vector fallback
+│   ├── matcher.py           # Identity matching: external API + Redis cache fallback
+│   ├── direction.py         # Direction: ROI line crossing → in/out
+│   ├── dedup.py             # Redis event deduplication
+│   ├── tracker.py           # Face tracking (IoU, initialized when behavior enabled)
+│   ├── behavior.py          # Behavior analysis: loitering/running/zone intrusion/crowd
+│   ├── event_publisher.py   # Behavior event Kafka publisher
+│   ├── night_mode.py        # Nighttime CLAHE enhancement
+│   ├── download_models.py   # ONNX model downloader (SHA256 verification)
+│   └── models/              # ONNX model files (gitignored)
+│       └── model_urls.yaml  # Model URLs + SHA256 hashes
+├── tests/                   # pytest tests (use Haar Cascade fallback, no ONNX needed)
+├── config.yaml              # Local dev config
+├── config.docker.yaml       # Docker Compose config override
 ├── requirements.txt
 ├── Dockerfile
 └── ruff.toml
 ```
 
-## 快速开始
+## Quick Start
 
-### 前置条件
+### Prerequisites
 
 - Python 3.11+
-- Kafka 运行中
-- Redis 运行中
-- dormitory-service-go 运行中 (身份匹配 API)
+- Kafka running
+- Redis running
+- dormitory-service-go running (identity matching API)
 
-### 安装依赖
+### Install Dependencies
 
 ```bash
 cd face-recognition
 pip install -r requirements.txt
-# 或使用 uv
+# Or using uv
 uv pip install -r requirements.txt
 ```
 
-### 下载 ONNX 模型
+### Download ONNX Models
 
 ```bash
-# 自动下载 (优先 hf-mirror.com → huggingface.co)
+# Auto-download (prefers hf-mirror.com → huggingface.co)
 python -m app.download_models
 
-# 自定义镜像 + 代理
+# Custom mirror + proxy
 python -m app.download_models --mirror https://hf-mirror.com --proxy http://127.0.0.1:7890
 
-# 查看已配置的镜像
+# List configured mirrors
 python -m app.download_models --list-mirrors
 ```
 
-### 本地运行
+### Local Development
 
 ```bash
 python -m app.main --config config.yaml
 ```
 
-### Docker 运行
+### Docker
 
 ```bash
-# 标准构建
+# Standard build
 docker compose up -d face-recognition
 
-# 带镜像加速构建
+# Build with mirror acceleration
 docker compose build \
   --build-arg "HF_ENDPOINT=https://hf-mirror.com" \
   --build-arg "APT_MIRROR=https://mirrors.tuna.tsinghua.edu.cn/debian" \
@@ -105,9 +105,9 @@ docker compose build \
   face-recognition
 ```
 
-## 配置
+## Configuration
 
-### config.yaml 核心配置
+### config.yaml Core Settings
 
 ```yaml
 kafka:
@@ -117,7 +117,7 @@ kafka:
   group_id: "face-recognition-group"
 
 detection:
-  model_path: "app/models/retinaface-R50.onnx"  # 空字符串 → Haar Cascade 回退
+  model_path: "app/models/retinaface-R50.onnx"  # Empty string → Haar Cascade fallback
   confidence_threshold: 0.6
   input_size: [640, 640]
   min_face_size: 80
@@ -132,7 +132,7 @@ match:
   sims_api_url: "http://localhost:8083/api/face/match"
   sims_api_timeout: 3.0
   match_threshold: 0.65
-  fallback_to_cache: true    # API 失败时回退到 Redis 缓存扫描
+  fallback_to_cache: true    # Fall back to Redis cache scan on API failure
 
 redis:
   host: "localhost"
@@ -140,60 +140,60 @@ redis:
   db: 0
 
 behavior:
-  enabled: false             # 行为分析默认关闭
+  enabled: false             # Behavior analysis disabled by default
 ```
 
-完整配置项见 `config.yaml` 和 `app/config.py` 中的 12 个 dataclass 定义。
+Full configuration reference: `config.yaml` and the 12 dataclasses in `app/config.py`.
 
-## 核心机制
+## Core Mechanisms
 
-### 双检测策略
+### Dual Detection Strategy
 
-| 模式 | 模型 | 触发条件 |
+| Mode | Model | Trigger |
 |---|---|---|
-| 主检测 | RetinaFace ONNX | `detection.model_path` 指向有效 `.onnx` 文件 |
-| 回退检测 | Haar Cascade (OpenCV) | `model_path` 为空或文件不存在 |
+| Primary | RetinaFace ONNX | `detection.model_path` points to valid `.onnx` file |
+| Fallback | Haar Cascade (OpenCV) | `model_path` empty or file not found |
 
-### 身份匹配流程
+### Identity Matching Flow
 
-1. 调用 `POST /api/face/match` (dormitory-service-go:8083) 进行余弦相似度匹配
-2. API 失败时 (超时/连接错误)，回退到 Redis 缓存扫描 (`fallback_to_cache: true`)
-3. 匹配阈值: `match_threshold` (默认 0.65)
+1. Call `POST /api/face/match` (dormitory-service-go:8083) for cosine similarity matching
+2. On API failure (timeout/connection error), fall back to Redis cache scan (`fallback_to_cache: true`)
+3. Match threshold: `match_threshold` (default 0.65)
 
-### 事件去重
+### Event Deduplication
 
-Redis key 格式: `dedup:{student_id}:{direction}:{camera_id}`，TTL 由 `dedup.window_seconds` 控制 (默认 10s)。
+Redis key format: `dedup:{student_id}:{direction}:{camera_id}`, TTL controlled by `dedup.window_seconds` (default 10s).
 
-### 行为分析 (默认关闭)
+### Behavior Analysis (disabled by default)
 
-设置 `behavior.enabled: true` 启用，支持：
+Set `behavior.enabled: true` to enable. Supported behaviors:
 
-| 行为 | 阈值配置 |
+| Behavior | Threshold Config |
 |---|---|
-| 徘徊 (loitering) | `loitering_threshold_seconds`, `loitering_radius_px` |
-| 奔跑 (running) | `running_speed_threshold_px_per_sec` |
-| 区域入侵 (zone intrusion) | `zones[]` 定义多边形区域 |
-| 人群聚集 (crowd) | `crowd_threshold_count`, `crowd_debounce_frames` |
+| Loitering | `loitering_threshold_seconds`, `loitering_radius_px` |
+| Running | `running_speed_threshold_px_per_sec` |
+| Zone Intrusion | `zones[]` polygon definitions |
+| Crowd Gathering | `crowd_threshold_count`, `crowd_debounce_frames` |
 
-## 测试
+## Testing
 
 ```bash
 cd face-recognition && pytest tests/
 ```
 
-测试使用 Haar Cascade 回退 (无需 ONNX 模型)：
+Tests use Haar Cascade fallback (no ONNX models required):
 
-| 测试文件 | 覆盖范围 |
+| Test File | Coverage |
 |---|---|
-| `test_detector.py` | Haar 回退检测、模糊过滤 |
-| `test_behavior.py` | 徘徊/奔跑/区域入侵/聚集检测 |
-| `test_tracker.py` | IoU 跟踪、轨迹过期 |
-| `test_event_publisher.py` | 行为事件 Kafka 发布 |
-| `test_integration.py` | 端到端管线 (mock Kafka) |
+| `test_detector.py` | Haar fallback detection, blur filtering |
+| `test_behavior.py` | Loitering/running/zone intrusion/crowd detection |
+| `test_tracker.py` | IoU tracking, trajectory expiration |
+| `test_event_publisher.py` | Behavior event Kafka publishing |
+| `test_integration.py` | End-to-end pipeline (mock Kafka) |
 
-## Kafka 消息格式
+## Kafka Message Formats
 
-### 消费: t_dorm_frame
+### Consumed: t_dorm_frame
 
 ```json
 {
@@ -207,7 +207,7 @@ cd face-recognition && pytest tests/
 }
 ```
 
-### 生产: t_dorm_event (raw JSON, 无 Spring Kafka 头)
+### Produced: t_dorm_event (raw JSON, no Spring Kafka headers)
 
 ```json
 {
@@ -223,9 +223,9 @@ cd face-recognition && pytest tests/
 }
 ```
 
-## 注意事项
+## Caveats
 
-- **ONNX 模型 gitignored**: `*.onnx` 文件不入库，需通过 `download_models` 或 Docker 构建下载
-- **Docker CMD**: Dockerfile 已包含 `--config` 参数，使用 bind-mounted 的 `config.docker.yaml`
-- **Raw JSON**: Kafka 消息为纯 JSON (无 `__TypeId__` 头)，Go 消费端需适配
-- **外部 API 依赖**: 身份匹配依赖 dormitory-service-go 的 `/api/face/match` 接口
+- **ONNX models gitignored**: `*.onnx` files not committed — download via `download_models` or Docker build
+- **Docker CMD**: Dockerfile includes `--config` flag, uses bind-mounted `config.docker.yaml`
+- **Raw JSON**: Kafka messages are plain JSON (no `__TypeId__` headers) — Go consumer must handle accordingly
+- **External API dependency**: Identity matching depends on dormitory-service-go's `/api/face/match` endpoint
