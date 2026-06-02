@@ -76,6 +76,14 @@ func (h *Handler) FaceMatch(c *gin.Context) {
 		}
 	}
 
+	if err := rows.Err(); err != nil {
+		c.JSON(http.StatusInternalServerError, FaceMatchResponse{
+			Success: false,
+			Error:   "row iteration failed",
+		})
+		return
+	}
+
 	c.JSON(http.StatusOK, FaceMatchResponse{
 		Success: true,
 		Match:   bestMatch,

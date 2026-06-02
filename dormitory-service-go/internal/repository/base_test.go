@@ -1,6 +1,7 @@
 package repository_test
 
 import (
+	"context"
 	"database/sql"
 	"regexp"
 	"testing"
@@ -47,7 +48,7 @@ func TestBase_Create_ReturnsErrorWhenNoDbTags(t *testing.T) {
 	repo := repository.NewBaseRepository[noTagEntity](sqlxDB, "no_tag_table")
 
 	var e noTagEntity
-	_, err = repo.Create(&e)
+	_, err = repo.Create(context.Background(), &e)
 	assert.ErrorContains(t, err, "no columns found from db tags")
 }
 
@@ -59,7 +60,7 @@ func TestBase_Create_BuildsInsertQueryFromDbTags(t *testing.T) {
 		WillReturnResult(sqlmock.NewResult(1, 1))
 
 	entity := &testEntity{Name: "Alice", Building: "A"}
-	id, err := repo.Create(entity)
+	id, err := repo.Create(context.Background(), entity)
 	require.NoError(t, err)
 	assert.Equal(t, int64(1), id)
 	assert.NoError(t, mock.ExpectationsWereMet())
@@ -76,7 +77,7 @@ func TestBase_FindByID_ReturnsEntityWhenFound(t *testing.T) {
 		WithArgs(int64(42)).
 		WillReturnRows(rows)
 
-	entity, err := repo.FindByID(42)
+	entity, err := repo.FindByID(context.Background(), 42)
 	require.NoError(t, err)
 	require.NotNil(t, entity)
 	assert.Equal(t, int64(42), entity.ID)
@@ -92,7 +93,7 @@ func TestBase_FindByID_ReturnsErrorWhenNotFound(t *testing.T) {
 		WithArgs(int64(999)).
 		WillReturnError(sql.ErrNoRows)
 
-	entity, err := repo.FindByID(999)
+	entity, err := repo.FindByID(context.Background(), 999)
 	assert.ErrorIs(t, err, sql.ErrNoRows)
 	assert.Nil(t, entity)
 	assert.NoError(t, mock.ExpectationsWereMet())
@@ -109,7 +110,7 @@ func TestBase_FindAll_NoOrderBy(t *testing.T) {
 	mock.ExpectQuery(regexp.QuoteMeta("SELECT * FROM test_table")).
 		WillReturnRows(rows)
 
-	entities, err := repo.FindAll()
+	entities, err := repo.FindAll(context.Background())
 	require.NoError(t, err)
 	assert.Len(t, entities, 2)
 	assert.NoError(t, mock.ExpectationsWereMet())
@@ -124,7 +125,7 @@ func TestBase_FindAll_WithOrderBy(t *testing.T) {
 	mock.ExpectQuery(regexp.QuoteMeta("SELECT * FROM test_table ORDER BY name DESC")).
 		WillReturnRows(rows)
 
-	entities, err := repo.FindAll("name DESC")
+	entities, err := repo.FindAll(context.Background(), "name DESC")
 	require.NoError(t, err)
 	assert.Len(t, entities, 2)
 	assert.Equal(t, "Bob", entities[0].Name)
@@ -139,7 +140,7 @@ func TestBase_FindAll_WithEmptyOrderByDefaultsToNoOrder(t *testing.T) {
 	mock.ExpectQuery(regexp.QuoteMeta("SELECT * FROM test_table")).
 		WillReturnRows(rows)
 
-	entities, err := repo.FindAll("")
+	entities, err := repo.FindAll(context.Background(), "")
 	require.NoError(t, err)
 	assert.Len(t, entities, 0)
 	assert.NoError(t, mock.ExpectationsWereMet())

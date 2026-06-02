@@ -1,7 +1,6 @@
 package service
 
 import (
-	"context"
 	"database/sql"
 	"errors"
 	"fmt"
@@ -31,12 +30,12 @@ func NewAlertService(
 
 // GetAlerts returns a paginated list of alerts with optional filters.
 func (s *AlertService) GetAlerts(building string, alertType string, acknowledged *bool, page, size int) ([]entity.DormAlert, int64, error) {
-	return s.alertRepo.FindWithPagination(context.Background(), building, alertType, acknowledged, nil, nil, page, size)
+	return s.alertRepo.FindWithPagination(serviceCtx(), building, alertType, acknowledged, nil, nil, page, size)
 }
 
 // AcknowledgeAlert marks an alert as resolved/acknowledged.
 func (s *AlertService) AcknowledgeAlert(id int64) error {
-	alert, err := s.alertRepo.FindByID(context.Background(), id)
+	alert, err := s.alertRepo.FindByID(serviceCtx(), id)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return ErrNotFound
@@ -45,7 +44,7 @@ func (s *AlertService) AcknowledgeAlert(id int64) error {
 	}
 
 	log.Printf("[AlertService] Acknowledging alert id=%d, type=%s", id, alert.AlertType)
-	return s.alertRepo.ResolveAlert(context.Background(), id)
+	return s.alertRepo.ResolveAlert(serviceCtx(), id)
 }
 
 // GetAlertCount returns the count of alerts with optional filters.
@@ -73,7 +72,7 @@ func (s *AlertService) GetAlertCount(building string, acknowledged *bool) (int64
 		}
 	}
 
-	return s.alertRepo.Count(context.Background(), where, args...)
+	return s.alertRepo.Count(serviceCtx(), where, args...)
 }
 
 // GetAlertStats returns total and unresolved alert counts for a building.
@@ -108,7 +107,7 @@ func (s *AlertService) CreateAlert(building, alertType, message, details string)
 		CreatedAt:  time.Now(),
 	}
 
-	id, err := s.alertRepo.Create(context.Background(), alert)
+	id, err := s.alertRepo.Create(serviceCtx(), alert)
 	if err != nil {
 		return nil, fmt.Errorf("create alert: %w", err)
 	}

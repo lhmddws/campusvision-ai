@@ -41,7 +41,7 @@ func (s *RecordService) formatDate(t time.Time) string {
 
 // GetAttendanceStats returns aggregated attendance statistics.
 func (s *RecordService) GetAttendanceStats(buildingId int64, startDate, endDate time.Time) dto.AttendanceStatsDTO {
-	ctx := context.Background()
+	ctx := serviceCtx()
 
 	building, err := s.buildingRepo.FindByID(ctx, buildingId)
 	if err != nil {
@@ -87,7 +87,7 @@ func (s *RecordService) GetAttendanceStats(buildingId int64, startDate, endDate 
 
 // GetDailySummary returns daily attendance summaries for a date range.
 func (s *RecordService) GetDailySummary(buildingId int64, startDate, endDate time.Time) []dto.DailySummaryDTO {
-	ctx := context.Background()
+	ctx := serviceCtx()
 
 	building, err := s.buildingRepo.FindByID(ctx, buildingId)
 	if err != nil {
