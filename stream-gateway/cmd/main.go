@@ -131,9 +131,9 @@ func dbPollLoop(ctx context.Context, dbCfg config.DatabaseConfig, camManager *ca
 	defer db.Close()
 
 	// Connection pool limits for DB polling (low volume, periodic sync).
-	db.SetMaxOpenConns(10)
-	db.SetMaxIdleConns(5)
-	db.SetConnMaxLifetime(5 * time.Minute)
+	db.SetMaxOpenConns(dbCfg.MaxOpenConns)
+	db.SetMaxIdleConns(dbCfg.MaxIdleConns)
+	db.SetConnMaxLifetime(dbCfg.ConnMaxLifetime)
 
 	if err := db.PingContext(ctx); err != nil {
 		log.Printf("[dbpoll] DB ping failed: %v", err)

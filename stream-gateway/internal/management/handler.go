@@ -3,6 +3,7 @@ package management
 import (
 	"crypto/subtle"
 	"encoding/json"
+	"log"
 	"net/http"
 	"strings"
 
@@ -58,12 +59,18 @@ func (h *Handler) handleCameras(w http.ResponseWriter, r *http.Request) {
 		writeJSON(w, http.StatusOK, items)
 
 	case http.MethodPost:
+		ct := r.Header.Get("Content-Type")
+		if ct != "" && !strings.HasPrefix(ct, "application/json") {
+			http.Error(w, `{"error":"Content-Type must be application/json"}`, http.StatusUnsupportedMediaType)
+			return
+		}
 		var body struct {
 			ID       string `json:"id"`
 			Building string `json:"building"`
 			RTSPURL  string `json:"rtsp_url"`
 			Enabled  bool   `json:"enabled"`
 		}
+		r.Body = http.MaxBytesReader(w, r.Body, 1<<20)
 		if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
 			http.Error(w, `{"error":"invalid JSON"}`, http.StatusBadRequest)
 			return
@@ -121,6 +128,8 @@ func writeJSON(w http.ResponseWriter, status int, data interface{}) {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(status)
 	if data != nil {
-		json.NewEncoder(w).Encode(data)
+		if err := json.NewEncoder(w).Encode(data); err != nil {
+			log.Printf("[management] json encode error: %v", err)
+		}
 	}
 }

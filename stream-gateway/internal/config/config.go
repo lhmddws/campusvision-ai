@@ -18,7 +18,6 @@ type Config struct {
 	Health     HealthConfig     `yaml:"health"`
 	Management ManagementConfig `yaml:"management"`
 	Database   DatabaseConfig   `yaml:"database"`
-	Log        LogConfig        `yaml:"log"`
 }
 
 type RTSPComponents struct {
@@ -109,13 +108,12 @@ type ManagementConfig struct {
 }
 
 type DatabaseConfig struct {
-	DSN          string        `yaml:"dsn"`
-	Driver       string        `yaml:"driver"`
-	PollInterval time.Duration `yaml:"poll_interval"`
-}
-
-type LogConfig struct {
-	Level string `yaml:"level"`
+	DSN             string        `yaml:"dsn"`
+	Driver          string        `yaml:"driver"`
+	PollInterval    time.Duration `yaml:"poll_interval"`
+	MaxOpenConns    int           `yaml:"max_open_conns"`
+	MaxIdleConns    int           `yaml:"max_idle_conns"`
+	ConnMaxLifetime time.Duration `yaml:"conn_max_lifetime"`
 }
 
 func Load(path string) (*Config, error) {
@@ -141,6 +139,15 @@ func Load(path string) (*Config, error) {
 	}
 	if cfg.Database.PollInterval == 0 {
 		cfg.Database.PollInterval = 30 * time.Second
+	}
+	if cfg.Database.MaxOpenConns == 0 {
+		cfg.Database.MaxOpenConns = 10
+	}
+	if cfg.Database.MaxIdleConns == 0 {
+		cfg.Database.MaxIdleConns = 5
+	}
+	if cfg.Database.ConnMaxLifetime == 0 {
+		cfg.Database.ConnMaxLifetime = 5 * time.Minute
 	}
 
 	return cfg, nil

@@ -9,10 +9,6 @@ import (
 	"github.com/sims/campusvision/stream-gateway/internal/kafka"
 )
 
-// context.Background() for streams added dynamically (not tied to main ctx lifecycle;
-// individual streams manage their own cancellation via Stop/stopCh).
-var backgroundCtx = context.Background()
-
 type CameraStatus struct {
 	CameraID     string `json:"camera_id"`
 	Building     string `json:"building"`
@@ -31,6 +27,7 @@ type Manager struct {
 	cfg      config.FrameConfig
 	rtspCfg  config.RTSPConfig
 	encKey   []byte
+	bgCtx    context.Context
 }
 
 func NewManager(cfg config.FrameConfig, rtspCfg config.RTSPConfig, producer *kafka.Producer, encKey []byte) *Manager {
@@ -48,6 +45,7 @@ func NewManager(cfg config.FrameConfig, rtspCfg config.RTSPConfig, producer *kaf
 }
 
 func (m *Manager) Start(ctx context.Context, cameras []config.CameraConfig) {
+	m.bgCtx = ctx
 	for _, cam := range cameras {
 		if !cam.Enabled {
 			continue
@@ -119,7 +117,7 @@ func (m *Manager) AddCamera(cfg config.CameraConfig) {
 		Building:  cfg.Building,
 		Connected: false,
 	}
-	go stream.Run(backgroundCtx)
+	go stream.Run(m.ctx())
 	log.Printf("[manager] camera stream added: %s (%s栋)", cfg.ID, cfg.Building)
 }
 
@@ -176,7 +174,7 @@ func (m *Manager) DiffAndSync(desired []config.CameraConfig) {
 				Building:  cfg.Building,
 				Connected: false,
 			}
-			go stream.Run(backgroundCtx)
+			go stream.Run(m.ctx())
 			log.Printf("[manager] camera stream added: %s (%s栋)", cfg.ID, cfg.Building)
 		} else if exists && !cfg.Enabled {
 			if stream, ok := m.streams[id]; ok {
@@ -187,4 +185,11 @@ func (m *Manager) DiffAndSync(desired []config.CameraConfig) {
 			}
 		}
 	}
+}
+
+func (m *Manager) ctx() context.Context {
+	if m.bgCtx != nil {
+		return m.bgCtx
+	}
+	return context.Background()
 }

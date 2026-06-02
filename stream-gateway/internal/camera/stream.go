@@ -73,6 +73,8 @@ func (s *Stream) Run(ctx context.Context) {
 		default:
 		}
 
+		s.startedAt = time.Now()
+
 		// Check max reconnect attempts (0 = infinite).
 		if s.rtspCfg.MaxReconnectAttempts > 0 && reconnectCount >= s.rtspCfg.MaxReconnectAttempts {
 			log.Printf("[stream] max reconnect attempts (%d) reached for %s", s.rtspCfg.MaxReconnectAttempts, s.camCfg.ID)
@@ -193,21 +195,6 @@ func (s *Stream) Stop() {
 	s.mu.Unlock()
 }
 
-// IsConnected reports whether the stream is currently receiving frames.
-func (s *Stream) IsConnected() bool {
-	return s.connected.Load()
-}
-
-// FramesSent returns the total number of frames successfully sent to Kafka.
-func (s *Stream) FramesSent() int64 {
-	return s.frameCount.Load()
-}
-
-// Uptime returns the duration since Run() was called.
-func (s *Stream) Uptime() time.Duration {
-	return time.Since(s.startedAt)
-}
-
 // ---------------------------------------------------------------------------
 // internal helpers
 // ---------------------------------------------------------------------------
@@ -217,7 +204,10 @@ func (s *Stream) emitStatusUpdate() {
 		return
 	}
 	uptime := time.Since(s.startedAt).Seconds()
-	fps := float64(s.frameCount.Load()) / uptime
+	var fps float64
+	if uptime > 0 {
+		fps = float64(s.frameCount.Load()) / uptime
+	}
 	s.updateStatus(s.camCfg.ID, CameraStatus{
 		CameraID:      s.camCfg.ID,
 		Building:      s.camCfg.Building,

@@ -8,8 +8,8 @@ import (
 // CameraConfigJSON represents the per-camera config_json content.
 // V1: FPS override + type params (reserved for future use).
 type CameraConfigJSON struct {
-	FPSOverride *int                    `json:"fps_override,omitempty"`
-	TypeParams  map[string]interface{}  `json:"type_params,omitempty"`
+	FPSOverride *int                   `json:"fps_override,omitempty"`
+	TypeParams  map[string]interface{} `json:"type_params,omitempty"`
 }
 
 // ParseCameraConfig parses config_json string and returns effective FrameConfig.

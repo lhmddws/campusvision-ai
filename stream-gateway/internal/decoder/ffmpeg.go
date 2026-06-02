@@ -111,11 +111,6 @@ func (d *Decoder) Stop() {
 	}
 }
 
-// IsRunning reports whether the decoder subprocess is currently active.
-func (d *Decoder) IsRunning() bool {
-	return d.running.Load()
-}
-
 // ---------------------------------------------------------------------------
 // internal helpers
 // ---------------------------------------------------------------------------

@@ -17,9 +17,6 @@ frame:
   motion_threshold: 0.05
 
 kafka:
-  # Override via env KAFKA_BROKERS before starting the binary, or
-  # replace "localhost:9092" with the Docker service name in production.
-  #   export KAFKA_BROKERS="kafka:9092"
   brokers:
     - "localhost:9092"
   topic: "t_dorm_frame"
