@@ -42,8 +42,7 @@ class DedupFilter:
         key = (student_id, direction)
         with self._lock:
             self._seen[key] = time.time()
-            self._seen.move_to_end(key)  # LRU: promote to end
-            # Enforce maximum cache size (evict oldest)
+            # Enforce maximum cache size
             while len(self._seen) > self.config.max_cache_size:
                 self._seen.popitem(last=False)
 

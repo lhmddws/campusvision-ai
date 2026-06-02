@@ -45,7 +45,8 @@ class FeatureExtractor:
         return cv2.resize(face_img, (112, 112))
 
     def _onnx_extract(self, face_img: np.ndarray) -> np.ndarray:
-        assert self.session is not None  # guarded by extract()
+        if self.session is None:
+            return np.zeros(self.embedding_size, dtype=np.float32)
         img = face_img.astype(np.float32) / 255.0
         img = np.transpose(img, (2, 0, 1))[None, ...]
         inputs = {self.session.get_inputs()[0].name: img}

@@ -64,12 +64,14 @@ class FaceDetector:
     def __init__(self, model_path: str, conf_threshold: float,
                  input_size: tuple, min_face_size: int,
                  blur_threshold: float = 100.0,
-                 nms_iou_threshold: float = 0.5):
+                 nms_iou_threshold: float = 0.5,
+                 haar_confidence: float = 0.9):
         self.conf_threshold = conf_threshold
         self.input_size = input_size
         self.min_face_size = min_face_size
         self.blur_threshold = blur_threshold
         self.nms_iou_threshold = nms_iou_threshold
+        self.haar_confidence = haar_confidence
         self.session = None
         if model_path:
             import onnxruntime as ort
@@ -115,8 +117,8 @@ class FaceDetector:
         return filtered
 
     def _onnx_detect(self, image: np.ndarray) -> list[Face]:
-        # ONNX RetinaFace inference
-        assert self.session is not None  # guarded by detect()
+        if self.session is None:
+            return []
         img = cv2.resize(image, self.input_size)
         img = img.astype(np.float32) / 255.0
         img = np.transpose(img, (2, 0, 1))[None, ...]
@@ -261,6 +263,6 @@ class FaceDetector:
             faces.append(Face(
                 x1=float(x), y1=float(y),
                 x2=float(x + w), y2=float(y + h),
-                confidence=0.9
+                confidence=self.haar_confidence
             ))
         return faces

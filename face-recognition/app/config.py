@@ -21,6 +21,7 @@ class DetectionConfig:
     min_face_size: int = 80
     blur_threshold: float = 100.0
     nms_iou_threshold: float = 0.5
+    haar_confidence: float = 0.9
 
 
 @dataclass
@@ -48,6 +49,7 @@ class DirectionConfig:
     method: str = "roi_line"
     roi_line_x: float = 0.5
     min_track_points: int = 3
+    track_ttl: float = 5.0
 
 
 @dataclass
@@ -92,6 +94,7 @@ class BehaviorEventConfig:
         "zone_intrusion": "zone",
         "crowd_alert": "crowd",
     })
+    event_confidence: float = 1.0
 
 
 @dataclass
@@ -160,5 +163,11 @@ def load_config(path: str = "config.yaml") -> AppConfig:
         if "event" in bdata:
             bdata["event"] = BehaviorEventConfig(**bdata["event"])
         cfg.behavior = BehaviorConfig(**bdata)
+
+    # Warn about unknown config keys
+    known_keys = {"kafka", "detection", "feature", "match", "direction", "dedup", "stranger", "night_mode", "redis", "log", "behavior"}
+    unknown = set(data.keys()) - known_keys
+    for key in sorted(unknown):
+        print(f"[WARN] unknown config key '{key}' in {path}")
 
     return cfg

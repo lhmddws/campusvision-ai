@@ -32,6 +32,7 @@ class BehaviorAnalyzer:
 
         # Cooldown map: key = "{event_type}:{track_id}", value = timestamp
         self._cooldowns: Dict[str, float] = {}
+        self._max_cooldown_entries = 1000
 
         # Crowd detection state
         self._crowd_frames: List[float] = []
@@ -232,7 +233,7 @@ class BehaviorAnalyzer:
                             "track_id": "",
                             "detail": f"Crowd detected: {face_count} faces",
                             "timestamp": now,
-                            "confidence": 1.0,
+                            "confidence": self.config.event.event_confidence,
                         }
                     )
         else:
@@ -259,13 +260,15 @@ class BehaviorAnalyzer:
         """Record the cooldown timestamp for the given *(event_type, track_id)* pair."""
         key = f"{event_type}:{track_id}"
         self._cooldowns[key] = now
+        if len(self._cooldowns) > self._max_cooldown_entries:
+            self._cooldowns.pop(next(iter(self._cooldowns)))
 
     # ------------------------------------------------------------------
     # Event builder
     # ------------------------------------------------------------------
 
-    @staticmethod
     def _make_event(
+        self,
         event_type: str,
         track: Track,
         detail: str,
@@ -286,5 +289,5 @@ class BehaviorAnalyzer:
             "track_id": track.track_id,
             "detail": detail,
             "timestamp": timestamp,
-            "confidence": 1.0,
+            "confidence": self.config.event.event_confidence,
         }

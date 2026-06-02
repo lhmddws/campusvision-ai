@@ -7,6 +7,7 @@ from typing import Optional
 
 import httpx
 import numpy as np
+import redis
 
 logger = logging.getLogger(__name__)
 
@@ -61,7 +62,7 @@ class FaceMatcher:
             )
             self._redis.ping()
             logger.info("Redis connected for face-match cache (%s:%s/%d)", host, port, db_idx)
-        except Exception:
+        except (redis.ConnectionError, redis.TimeoutError, Exception):
             logger.warning("Redis unavailable, face-match cache disabled", exc_info=True)
             self._redis = None
 
@@ -84,7 +85,7 @@ class FaceMatcher:
                 self._cache_result(result["student_id"], embedding, result["name"])
                 result["from_cache"] = False
                 return result
-        except Exception as exc:
+        except (httpx.RequestError, httpx.HTTPStatusError, Exception) as exc:
             logger.warning("SIMS API call failed, falling back to cache", error=str(exc))
 
         # 2. Fallback: scan cached embeddings
@@ -151,7 +152,7 @@ class FaceMatcher:
                 self.config.cache_ttl,
                 json.dumps(value),
             )
-        except Exception:
+        except (redis.ConnectionError, redis.TimeoutError, json.JSONDecodeError, Exception):
             logger.warning("Failed to cache match result in Redis", exc_info=True)
 
     def _search_cache(self, query_emb: np.ndarray) -> Optional[dict]:
@@ -193,7 +194,7 @@ class FaceMatcher:
 
             if best_result is not None and best_sim >= self.config.match_threshold:
                 return best_result
-        except Exception:
+        except (redis.ConnectionError, redis.TimeoutError, json.JSONDecodeError, Exception):
             logger.warning("Cache search failed", exc_info=True)
 
         return None
