@@ -44,5 +44,3 @@ database:
   driver: "mysql"
   poll_interval: 30s
 
-log:
-  level: "info"

@@ -23,6 +23,7 @@ import (
 )
 
 func main() {
+	// Config is loaded via --config CLI flag (unlike other modules which use CONFIG_PATH env var).
 	configPath := flag.String("config", "config.yaml", "path to config file")
 	flag.Parse()
 
@@ -73,6 +74,10 @@ func main() {
 		Addr:    fmt.Sprintf(":%d", healthAddr),
 		Handler: mux,
 	}
+	healthServer.ReadTimeout = 10 * time.Second
+	healthServer.WriteTimeout = 10 * time.Second
+	healthServer.IdleTimeout = 30 * time.Second
+	healthServer.ReadHeaderTimeout = 5 * time.Second
 
 	go func() {
 		log.Printf("Health API listening on :%d", healthAddr)
@@ -94,6 +99,11 @@ func main() {
 		Addr:    mgrAddr,
 		Handler: mgrMux,
 	}
+	mgrServer.ReadTimeout = 10 * time.Second
+	mgrServer.WriteTimeout = 10 * time.Second
+	mgrServer.IdleTimeout = 30 * time.Second
+	mgrServer.ReadHeaderTimeout = 5 * time.Second
+
 	go func() {
 		log.Printf("Management API listening on %s", mgrAddr)
 		if err := mgrServer.ListenAndServe(); err != nil && err != http.ErrServerClosed {
@@ -106,10 +116,10 @@ func main() {
 	<-quit
 
 	log.Println("Shutting down...")
+	cancel() // stop dbPollLoop first — ctx must be cancelled before manager shutdown
 	camManager.Stop()
 	healthServer.Shutdown(ctx)
 	mgrServer.Shutdown(ctx)
-	cancel() // cancel AFTER Shutdown — ctx must be alive during graceful drain
 }
 
 func dbPollLoop(ctx context.Context, dbCfg config.DatabaseConfig, camManager *camera.Manager) {

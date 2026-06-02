@@ -332,6 +332,14 @@ latest       # 最新稳定版
 git-{sha}    # 具体提交（回滚用）
 ```
 
+### 6.4 Linter 配置
+
+项目根目录包含以下 Linter 配置文件，可供本地开发使用，但**尚未集成到 CI 流水线**中：
+
+- `.golangci.yml` — Go 代码检查（6 个 linter）
+- `ruff.toml` — Python 代码检查（Python 3.11，行长度 120）
+- `.editorconfig` — 跨编辑器格式统一（Go 使用 Tab，Python/YAML 使用 4 空格，JSON/MD 使用 2 空格）
+
 ---
 
 ## 7. 常见问题

@@ -2,7 +2,7 @@ server:
   port: 8083
 
 database:
-  dsn: "root:MyStrongPassword123!@tcp(mariadb:3306)/dormitory?charset=utf8mb4&parseTime=True&loc=Asia%2FShanghai"
+  dsn: "root:root_dev@tcp(localhost:3306)/dormitory?charset=utf8mb4&parseTime=True&loc=Asia%2FShanghai"
   driver: mysql
   max_open_conns: 25
   max_idle_conns: 10
@@ -22,6 +22,7 @@ kafka:
   max_poll_records: 500
 
 jwt:
+  # ⚠ SECURITY: Change this secret in production! The default value is for dev only.
   secret: "${JWT_SECRET:your-256-bit-secret}"  # Override via JWT_SECRET env var; set to match main backend's signing key in production
   expiration_hours: 24
 

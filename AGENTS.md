@@ -98,8 +98,7 @@ Fixed in migration 001 and entity updates — `infra/mariadb/init.sql` and Go en
 - DB polling syncs cameras from `dorm_camera` table every 30s (gated by `database.dsn`).
 
 ### CI / Linters / Formatters
-- **CI exists** at `.github/workflows/ci.yml` — Go build+test+vet matrix for 3 modules, Python pytest. Runs on `main` branch only.
-- **Linter configs exist but are NOT run in CI**: `.golangci.yml` (6 linters), `ruff.toml` (Python 3.11, line-length 120), `.editorconfig` (tabs for Go, 4-space Python/YAML, 2-space JSON/MD).
+- **CI**: Not yet set up — no `.github/workflows/ci.yml` file exists yet. Linter configs (`.golangci.yml`, `ruff.toml`, `.editorconfig`) are present in the project root but are not run in any pipeline.
 - **Missing**: Makefile, go.work, pyproject.toml, ESLint, pre-commit hooks, .python-version.
 - No version injection via `-ldflags` in CI.
 
