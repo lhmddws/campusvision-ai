@@ -37,6 +37,9 @@ class BehaviorAnalyzer:
         self._crowd_frames: List[float] = []
         self._crowd_active: bool = False
 
+        # Current camera_id (set by analyze(), used by _check_crowd)
+        self._current_camera_id: str = ""
+
     # ------------------------------------------------------------------
     # Public API
     # ------------------------------------------------------------------
@@ -46,6 +49,7 @@ class BehaviorAnalyzer:
         tracks: List[Track],
         frame_face_count: int,
         timestamp: Optional[float] = None,
+        camera_id: str = "",
     ) -> List[dict]:
         """Analyze tracks for behavior events.
 
@@ -68,6 +72,7 @@ class BehaviorAnalyzer:
         if not self.config.enabled:
             return []
 
+        self._current_camera_id = camera_id
         now = timestamp if timestamp is not None else time.time()
         events: List[dict] = []
 
@@ -223,7 +228,7 @@ class BehaviorAnalyzer:
                     events.append(
                         {
                             "event_type": event_type,
-                            "camera_id": "0",
+                            "camera_id": self._current_camera_id,
                             "track_id": "",
                             "detail": f"Crowd detected: {face_count} faces",
                             "timestamp": now,

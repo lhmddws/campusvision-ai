@@ -107,6 +107,9 @@ def main():
     producer = KafkaProducer(
         bootstrap_servers=cfg.kafka.brokers,
         value_serializer=lambda v: json.dumps(v).encode(),
+        acks="all",
+        retries=3,
+        max_in_flight_requests_per_connection=1,
     )
 
     log.info(
@@ -178,7 +181,7 @@ def main():
         if tracker and behavior_analyzer and event_publisher:
             tracks = tracker.update(faces, embeddings, camera_id, timestamp)
             behavior_events = behavior_analyzer.analyze(
-                tracks, len(faces), timestamp
+                tracks, len(faces), timestamp, camera_id=camera_id
             )
             for be in behavior_events:
                 be["camera_id"] = camera_id
@@ -250,38 +253,39 @@ def main():
     # ------------------------------------------------------------------
     try:
         while running:
-            msg_pack = consumer.poll(timeout_ms=1000)
+            try:
+                msg_pack = consumer.poll(timeout_ms=1000)
 
-            for _tp, messages in msg_pack.items():
-                for raw_msg in messages:
-                    process_frame(raw_msg.value)
-                    stats["frames_processed"] += 1
+                for _tp, messages in msg_pack.items():
+                    for raw_msg in messages:
+                        process_frame(raw_msg.value)
+                        stats["frames_processed"] += 1
 
-            # Periodic maintenance
-            direction.cleanup()
-            dedup.cleanup()
-            if tracker:
-                tracker.cleanup()
+                # Periodic maintenance
+                direction.cleanup()
+                dedup.cleanup()
+                if tracker:
+                    tracker.cleanup()
 
-            # Stats logging every 60 seconds
-            now = time.time()
-            if now - stats["last_log_time"] >= 60:
-                elapsed = int(now - stats["last_log_time"])
-                log.info(
-                    "processing_stats",
-                    frames_processed=stats["frames_processed"],
-                    faces_detected=stats["faces_detected"],
-                    events_produced=stats["events_produced"],
-                    matches_found=stats["matches_found"],
-                    strangers=stats["strangers"],
-                    behavior_events=stats["behavior_events"],
-                    elapsed_seconds=elapsed,
-                )
-                stats["last_log_time"] = now
+                # Stats logging every 60 seconds
+                now = time.time()
+                if now - stats["last_log_time"] >= 60:
+                    elapsed = int(now - stats["last_log_time"])
+                    log.info(
+                        "processing_stats",
+                        frames_processed=stats["frames_processed"],
+                        faces_detected=stats["faces_detected"],
+                        events_produced=stats["events_produced"],
+                        matches_found=stats["matches_found"],
+                        strangers=stats["strangers"],
+                        behavior_events=stats["behavior_events"],
+                        elapsed_seconds=elapsed,
+                    )
+                    stats["last_log_time"] = now
 
-    except Exception:
-        log.error("unexpected_error", exc_info=True)
-        raise
+            except Exception:
+                log.error("unexpected_error", exc_info=True)
+                time.sleep(1)
     finally:
         log.info("shutting_down")
         consumer.close()

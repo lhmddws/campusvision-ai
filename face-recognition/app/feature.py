@@ -55,7 +55,11 @@ class FeatureExtractor:
         return embedding / norm if norm > 0 else embedding
 
     def _fallback_embedding(self, face_img: np.ndarray) -> np.ndarray:
-        # Placeholder: resize + flatten + normalize for dev testing
         feat = cv2.resize(face_img, (32, 32)).flatten().astype(np.float32)
+        # Truncate or pad to match onnx embedding dimension
+        if len(feat) > self.embedding_size:
+            feat = feat[:self.embedding_size]
+        elif len(feat) < self.embedding_size:
+            feat = np.pad(feat, (0, self.embedding_size - len(feat)))
         norm = np.linalg.norm(feat)
         return feat / norm if norm > 0 else feat

@@ -121,13 +121,13 @@ class FaceMatcher:
             conf = match_info.get("confidence", 0)
             if conf >= self.config.match_threshold:
                 return {
-                    "student_id": match_info["student_id"],
+                    "student_id": match_info.get("student_id", ""),
                     "name": match_info.get("name", ""),
                     "confidence": conf,
                 }
         elif match_info and data.get("confidence", 0) >= self.config.match_threshold:
             return {
-                "student_id": data["student_id"],
+                "student_id": data.get("student_id", ""),
                 "name": data.get("name", ""),
                 "confidence": data["confidence"],
             }

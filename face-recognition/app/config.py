@@ -123,8 +123,15 @@ class AppConfig:
 
 
 def load_config(path: str = "config.yaml") -> AppConfig:
-    with open(path) as f:
-        data = yaml.safe_load(f)
+    try:
+        with open(path) as f:
+            data = yaml.safe_load(f)
+    except FileNotFoundError:
+        print(f"[WARN] config file '{path}' not found, using defaults")
+        data = {}
+    except (OSError, yaml.YAMLError) as e:
+        print(f"[ERROR] failed to load config '{path}': {e}")
+        data = {}
 
     cfg = AppConfig()
 
