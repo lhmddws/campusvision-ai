@@ -25,11 +25,12 @@ type CameraStatusItem struct {
 }
 
 type Handler struct {
-	manager *camera.Manager
+	manager   *camera.Manager
+	startedAt time.Time
 }
 
 func NewHandler(manager *camera.Manager) *Handler {
-	return &Handler{manager: manager}
+	return &Handler{manager: manager, startedAt: time.Now()}
 }
 
 func (h *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
@@ -88,13 +89,12 @@ func (h *Handler) HandleCameraHealth(w http.ResponseWriter, r *http.Request) {
 func (h *Handler) Register(mux *http.ServeMux) {
 	mux.HandleFunc("/health", func(w http.ResponseWriter, r *http.Request) {
 		statuses := h.manager.Statuses()
-		now := time.Now()
 
 		items := make([]CameraStatusItem, 0, len(statuses))
 		for _, s := range statuses {
 			uptime := int64(0)
 			if s.Connected {
-				uptime = int64(now.Sub(time.UnixMilli(0)).Seconds())
+				uptime = int64(time.Since(h.startedAt).Seconds())
 			}
 			items = append(items, CameraStatusItem{
 				CameraID:      s.CameraID,

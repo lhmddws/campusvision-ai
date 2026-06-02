@@ -161,8 +161,10 @@ func (s *Stream) processFrames(ctx context.Context, dec *decoder.Decoder, frameC
 				IsDynamic:     isDynamic && s.frameCfg.DynamicExtraction,
 			}
 
-			if err := s.producer.SendFrame(ctx, msg); err != nil {
-				log.Printf("[stream] send frame error [%s]: %v", s.camCfg.ID, err)
+			if s.producer != nil {
+				if err := s.producer.SendFrame(ctx, msg); err != nil {
+					log.Printf("[stream] send frame error [%s]: %v", s.camCfg.ID, err)
+				}
 			}
 
 			// Periodic status update – every 30 frames or at least every 5 s.
