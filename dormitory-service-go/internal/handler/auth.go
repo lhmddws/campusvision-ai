@@ -12,13 +12,17 @@ import (
 type AuthHandler struct {
 	JWTSecret         string
 	JWTExpirationHrs  int
+	AdminUsername     string
+	AdminPassword     string
 }
 
 // NewAuthHandler creates a new AuthHandler.
-func NewAuthHandler(secret string, expirationHours int) *AuthHandler {
+func NewAuthHandler(secret string, expirationHours int, adminUser, adminPass string) *AuthHandler {
 	return &AuthHandler{
 		JWTSecret:        secret,
 		JWTExpirationHrs: expirationHours,
+		AdminUsername:    adminUser,
+		AdminPassword:    adminPass,
 	}
 }
 
@@ -28,7 +32,8 @@ type loginRequest struct {
 }
 
 // Login authenticates a user and returns a JWT token.
-// Dev mode: accepts admin/admin123. In production, delegate to main backend SSO.
+// Credentials are configurable via ADMIN_USERNAME/ADMIN_PASSWORD env vars.
+// TODO: Replace with main backend SSO delegation in production.
 func (h *AuthHandler) Login(c *gin.Context) {
 	var req loginRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
@@ -38,7 +43,7 @@ func (h *AuthHandler) Login(c *gin.Context) {
 
 	// Dev-mode credential check.
 	// TODO: Replace with main backend SSO delegation in production.
-	if req.Username != "admin" || req.Password != "admin123" {
+	if req.Username != h.AdminUsername || req.Password != h.AdminPassword {
 		Error(c, http.StatusUnauthorized, "invalid username or password")
 		return
 	}
@@ -72,8 +77,16 @@ func (h *AuthHandler) Login(c *gin.Context) {
 
 // GetUserInfo returns the current user's info (extracted from JWT claims).
 func (h *AuthHandler) GetUserInfo(c *gin.Context) {
-	username, _ := c.Get("username")
-	userID, _ := c.Get("user_id")
+	username, exists := c.Get("username")
+	if !exists {
+		Error(c, http.StatusUnauthorized, "missing user context")
+		return
+	}
+	userID, exists := c.Get("user_id")
+	if !exists {
+		Error(c, http.StatusUnauthorized, "missing user context")
+		return
+	}
 
 	Success(c, gin.H{
 		"user": gin.H{

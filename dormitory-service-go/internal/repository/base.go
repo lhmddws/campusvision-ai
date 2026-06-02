@@ -3,19 +3,11 @@ package repository
 import (
 	"context"
 	"fmt"
-	"math"
 	"reflect"
 	"strings"
-	"time"
 
 	"github.com/jmoiron/sqlx"
 )
-
-// defaultQueryContext returns a context with 30s timeout for DB queries.
-// Used as fallback when no external context is provided.
-func defaultQueryContext() (context.Context, context.CancelFunc) {
-	return context.WithTimeout(context.Background(), 30*time.Second)
-}
 
 // BaseRepository provides common CRUD operations for any entity.
 // T is the entity type, constrained by any (Go 1.18+).
@@ -224,12 +216,4 @@ func (r *BaseRepository[T]) FindWithPagination(
 	}
 
 	return entities, total, nil
-}
-
-// TotalPages calculates the total number of pages.
-func TotalPages(total int64, size int) int {
-	if size <= 0 {
-		return 0
-	}
-	return int(math.Ceil(float64(total) / float64(size)))
 }

@@ -31,14 +31,6 @@ func init() {
 // In production, set via SetEncryptionKey at startup or CAMERA_ENCRYPTION_KEY env var.
 var encryptionKey = []byte("01234567890123456789012345678901")
 
-// SetEncryptionKey overrides the default AES-256 key.
-// The key must be exactly 32 bytes.
-func SetEncryptionKey(key []byte) {
-	if len(key) == 32 {
-		encryptionKey = key
-	}
-}
-
 // EncryptedPassword holds the AES-GCM encrypted password and its nonce.
 type EncryptedPassword struct {
 	Ciphertext string `json:"ciphertext"`
@@ -69,34 +61,4 @@ func EncryptPassword(plaintext string) (*EncryptedPassword, error) {
 		Ciphertext: base64.StdEncoding.EncodeToString(ciphertext),
 		Nonce:      base64.StdEncoding.EncodeToString(nonce),
 	}, nil
-}
-
-// DecryptPassword decrypts a base64-encoded ciphertext and nonce.
-func DecryptPassword(ciphertext, nonce string) (string, error) {
-	block, err := aes.NewCipher(encryptionKey)
-	if err != nil {
-		return "", fmt.Errorf("new cipher: %w", err)
-	}
-
-	aead, err := cipher.NewGCM(block)
-	if err != nil {
-		return "", fmt.Errorf("new gcm: %w", err)
-	}
-
-	ciphertextBytes, err := base64.StdEncoding.DecodeString(ciphertext)
-	if err != nil {
-		return "", fmt.Errorf("decode ciphertext: %w", err)
-	}
-
-	nonceBytes, err := base64.StdEncoding.DecodeString(nonce)
-	if err != nil {
-		return "", fmt.Errorf("decode nonce: %w", err)
-	}
-
-	plaintextBytes, err := aead.Open(nil, nonceBytes, ciphertextBytes, nil)
-	if err != nil {
-		return "", fmt.Errorf("decrypt: %w", err)
-	}
-
-	return string(plaintextBytes), nil
 }

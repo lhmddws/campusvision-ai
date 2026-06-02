@@ -113,13 +113,13 @@ func main() {
 	}
 
 	// Initialize services
-	cameraSvc := service.NewCameraService(cameraRepo, eventLogRepo, cameraLogRepo, pushClient, gatewayURL)
-	recordSvc := service.NewRecordService(eventLogRepo, studentRepo, buildingRepo)
-	alertSvc := service.NewAlertService(alertRepo, strangerRecordRepo)
-	configSvc := service.NewConfigService(configRepo)
+	cameraSvc := service.NewCameraService(cameraRepo, eventLogRepo, cameraLogRepo, pushClient, gatewayURL, cfg.Camera.MaxCameras, logger)
+	recordSvc := service.NewRecordService(eventLogRepo, studentRepo, buildingRepo, logger)
+	alertSvc := service.NewAlertService(alertRepo, strangerRecordRepo, logger)
+	configSvc := service.NewConfigService(configRepo, logger)
 
 	// Initialize handlers
-	h := handler.NewHandler(cameraSvc, recordSvc, alertSvc, configSvc, db)
+	h := handler.NewHandler(cameraSvc, recordSvc, alertSvc, configSvc, db, cfg.Face.MatchThreshold, cfg.Face.MatchKey)
 	cameraHandler := handler.NewCameraHandler(cameraSvc)
 	recordHandler := handler.NewRecordHandler(recordSvc)
 	alertHandler := handler.NewAlertHandler(alertSvc)
@@ -162,7 +162,7 @@ func main() {
 	// JWT auth middleware — applied to all protected route groups
 	jwtMiddleware := middleware.NewJWTAuthMiddleware(cfg.JWT.Secret)
 
-	authHandler := handler.NewAuthHandler(cfg.JWT.Secret, cfg.JWT.ExpirationHours)
+	authHandler := handler.NewAuthHandler(cfg.JWT.Secret, cfg.JWT.ExpirationHours, cfg.Auth.AdminUsername, cfg.Auth.AdminPassword)
 
 	// --- Public routes (no auth required) ---
 

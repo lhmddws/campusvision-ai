@@ -5,7 +5,6 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"log"
 	"net/http"
 	"net/url"
 	"strings"
@@ -17,6 +16,7 @@ import (
 	"github.com/sims/campusvision/dormitory-service-go/internal/model/entity"
 	"github.com/sims/campusvision/dormitory-service-go/internal/repository"
 	"github.com/sims/campusvision/dormitory-service-go/internal/util"
+	"go.uber.org/zap"
 )
 
 // CameraService handles camera lifecycle management.
@@ -26,6 +26,8 @@ type CameraService struct {
 	cameraLogRepo *repository.CameraLogRepository
 	pushClient   *client.PushClient
 	gatewayURL   string
+	maxCameras   int
+	logger       *zap.Logger
 	mu           sync.Mutex
 }
 
@@ -36,14 +38,31 @@ func NewCameraService(
 	cameraLogRepo *repository.CameraLogRepository,
 	pushClient *client.PushClient,
 	gatewayURL string,
+	maxCameras int,
+	logger *zap.Logger,
 ) *CameraService {
+	if maxCameras <= 0 {
+		maxCameras = 50
+	}
+	if logger == nil {
+		logger, _ = zap.NewDevelopment()
+	}
 	return &CameraService{
 		cameraRepo:   cameraRepo,
 		eventLogRepo:  eventLogRepo,
 		cameraLogRepo: cameraLogRepo,
 		pushClient:   pushClient,
 		gatewayURL:   gatewayURL,
+		maxCameras:   maxCameras,
+		logger:       logger,
 	}
+}
+
+func (s *CameraService) log() *zap.Logger {
+	if s.logger == nil {
+		return zap.NewNop()
+	}
+	return s.logger
 }
 
 // RegisterCamera creates a new camera entry with RTSP URL parsing and push notification.
@@ -54,7 +73,7 @@ func (s *CameraService) RegisterCamera(dto dto.CameraCreateDTO) (*entity.DormCam
 		s.mu.Unlock()
 		return nil, fmt.Errorf("count cameras: %w", err)
 	}
-	if len(all) >= 50 {
+	if len(all) >= s.maxCameras {
 		s.mu.Unlock()
 		return nil, ErrCameraLimitExceeded
 	}
@@ -69,12 +88,12 @@ func (s *CameraService) RegisterCamera(dto dto.CameraCreateDTO) (*entity.DormCam
 					if ep, encErr := util.EncryptPassword(pass); encErr == nil {
 						passwordEnc = toNullString(ep.Ciphertext)
 						nonce = toNullString(ep.Nonce)
-						log.Printf("[CameraService] Password encrypted for camera %s", dto.CameraID)
+						s.log().Info("password encrypted", zap.String("camera_id", dto.CameraID))
 					}
 				}
 			}
 		} else {
-			log.Printf("[CameraService] Failed to parse RTSP URL: %v", err)
+			s.log().Warn("failed to parse RTSP URL", zap.Error(err))
 		}
 	}
 
@@ -105,7 +124,7 @@ func (s *CameraService) RegisterCamera(dto dto.CameraCreateDTO) (*entity.DormCam
 	// Push notification (best-effort)
 	if s.pushClient != nil {
 		if err := s.pushClient.NotifyRegister(*cam); err != nil {
-			log.Printf("[CameraService] Push notification failed for register: %v", err)
+			s.log().Warn("push notification failed for register", zap.Error(err))
 		}
 	}
 
@@ -154,7 +173,7 @@ func (s *CameraService) UpdateCamera(cameraID string, dto dto.CameraUpdateDTO) (
 
 	if s.pushClient != nil {
 		if err := s.pushClient.NotifyUpdate(cameraID, *cam); err != nil {
-			log.Printf("[CameraService] Push notification failed for update: %v", err)
+			s.log().Warn("push notification failed for update", zap.Error(err))
 		}
 	}
 
@@ -179,7 +198,7 @@ func (s *CameraService) DeleteCamera(cameraID string) error {
 
 	if s.pushClient != nil {
 		if err := s.pushClient.NotifyDelete(cameraID); err != nil {
-			log.Printf("[CameraService] Push notification failed for delete: %v", err)
+			s.log().Warn("push notification failed for delete", zap.Error(err))
 		}
 	}
 
@@ -346,7 +365,7 @@ func (s *CameraService) insertCameraLog(cam *entity.DormCamera, statusFrom, stat
 		entry.StatusFrom = toNullString(statusFrom)
 	}
 	if _, err := s.cameraLogRepo.Create(serviceCtx(), entry); err != nil {
-		log.Printf("[CameraService] Failed to insert camera log: %v", err)
+		s.log().Warn("failed to insert camera log", zap.Error(err))
 	}
 }
 

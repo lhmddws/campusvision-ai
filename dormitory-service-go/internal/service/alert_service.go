@@ -4,28 +4,40 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
-	"log"
-	"time"
 
 	"github.com/sims/campusvision/dormitory-service-go/internal/model/entity"
 	"github.com/sims/campusvision/dormitory-service-go/internal/repository"
+	"go.uber.org/zap"
 )
 
 // AlertService handles alert record CRUD and acknowledgement.
 type AlertService struct {
 	alertRepo      *repository.AlertRepository
 	strangerRepo   *repository.StrangerRecordRepository
+	logger         *zap.Logger
 }
 
 // NewAlertService creates a new AlertService.
 func NewAlertService(
 	alertRepo *repository.AlertRepository,
 	strangerRepo *repository.StrangerRecordRepository,
+	logger *zap.Logger,
 ) *AlertService {
+	if logger == nil {
+		logger, _ = zap.NewDevelopment()
+	}
 	return &AlertService{
 		alertRepo:    alertRepo,
 		strangerRepo: strangerRepo,
+		logger:       logger,
 	}
+}
+
+func (s *AlertService) log() *zap.Logger {
+	if s.logger == nil {
+		return zap.NewNop()
+	}
+	return s.logger
 }
 
 // GetAlerts returns a paginated list of alerts with optional filters.
@@ -43,7 +55,7 @@ func (s *AlertService) AcknowledgeAlert(id int64) error {
 		return fmt.Errorf("find alert: %w", err)
 	}
 
-	log.Printf("[AlertService] Acknowledging alert id=%d, type=%s", id, alert.AlertType)
+	s.log().Info("acknowledging alert", zap.Int64("id", id), zap.String("type", alert.AlertType))
 	return s.alertRepo.ResolveAlert(serviceCtx(), id)
 }
 
@@ -92,27 +104,4 @@ func (s *AlertService) GetAlertStats(building string) (map[string]interface{}, e
 		"total":      total,
 		"unresolved": unresolvedCount,
 	}, nil
-}
-
-// CreateAlert inserts a new alert record.
-func (s *AlertService) CreateAlert(building, alertType, message, details string) (*entity.DormAlert, error) {
-	alert := &entity.DormAlert{
-		AlertType:  alertType,
-		Building:   toNullString(building),
-		Severity:   "medium",
-		Description: toNullString(message),
-		IsRead:     false,
-		IsResolved: false,
-		OccurredAt: time.Now(),
-		CreatedAt:  time.Now(),
-	}
-
-	id, err := s.alertRepo.Create(serviceCtx(), alert)
-	if err != nil {
-		return nil, fmt.Errorf("create alert: %w", err)
-	}
-	alert.ID = id
-
-	log.Printf("[AlertService] Created alert id=%d, type=%s", id, alertType)
-	return alert, nil
 }

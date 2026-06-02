@@ -66,8 +66,3 @@ func timeZone() *time.Location {
 	}
 	return loc
 }
-
-// getTodayDate returns today's date in YYYY-MM-DD format in Asia/Shanghai.
-func getTodayDate() string {
-	return time.Now().In(timeZone()).Format("2006-01-02")
-}

@@ -7,11 +7,13 @@ import (
 
 // Handler aggregates all service dependencies for HTTP handlers.
 type Handler struct {
-	CameraService *service.CameraService
-	RecordService *service.RecordService
-	AlertService  *service.AlertService
-	ConfigService *service.ConfigService
-	DB            *sqlx.DB
+	CameraService      *service.CameraService
+	RecordService      *service.RecordService
+	AlertService       *service.AlertService
+	ConfigService      *service.ConfigService
+	DB                 *sqlx.DB
+	FaceMatchThreshold float64
+	FaceMatchKey       string
 }
 
 // NewHandler creates a Handler with all required services.
@@ -21,12 +23,16 @@ func NewHandler(
 	alertService *service.AlertService,
 	configService *service.ConfigService,
 	db *sqlx.DB,
+	faceMatchThreshold float64,
+	faceMatchKey string,
 ) *Handler {
 	return &Handler{
-		CameraService: cameraService,
-		RecordService: recordService,
-		AlertService:  alertService,
-		ConfigService: configService,
-		DB:            db,
+		CameraService:      cameraService,
+		RecordService:      recordService,
+		AlertService:       alertService,
+		ConfigService:      configService,
+		DB:                 db,
+		FaceMatchThreshold: faceMatchThreshold,
+		FaceMatchKey:       faceMatchKey,
 	}
 }

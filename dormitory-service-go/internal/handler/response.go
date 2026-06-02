@@ -13,6 +13,13 @@ type APIResponse struct {
 	Data    interface{} `json:"data"`
 }
 
+// APIResponseT is the generic version of APIResponse (Go 1.18+).
+type APIResponseT[T any] struct {
+	Code    int    `json:"code"`
+	Message string `json:"message"`
+	Data    T      `json:"data"`
+}
+
 // PageData wraps paginated results.
 type PageData struct {
 	Items interface{} `json:"items"`

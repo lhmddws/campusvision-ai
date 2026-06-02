@@ -2,13 +2,12 @@ package service
 
 import (
 	"context"
-	"database/sql"
-	"log"
 	"time"
 
 	"github.com/sims/campusvision/dormitory-service-go/internal/model/dto"
 	"github.com/sims/campusvision/dormitory-service-go/internal/model/entity"
 	"github.com/sims/campusvision/dormitory-service-go/internal/repository"
+	"go.uber.org/zap"
 )
 
 // RecordService handles attendance records and event log queries.
@@ -16,6 +15,7 @@ type RecordService struct {
 	eventLogRepo *repository.EventLogRepository
 	studentRepo  *repository.StudentRepository
 	buildingRepo *repository.BuildingRepository
+	logger       *zap.Logger
 }
 
 // NewRecordService creates a new RecordService.
@@ -23,12 +23,24 @@ func NewRecordService(
 	eventLogRepo *repository.EventLogRepository,
 	studentRepo *repository.StudentRepository,
 	buildingRepo *repository.BuildingRepository,
+	logger *zap.Logger,
 ) *RecordService {
+	if logger == nil {
+		logger, _ = zap.NewDevelopment()
+	}
 	return &RecordService{
 		eventLogRepo: eventLogRepo,
 		studentRepo:  studentRepo,
 		buildingRepo: buildingRepo,
+		logger:       logger,
 	}
+}
+
+func (s *RecordService) log() *zap.Logger {
+	if s.logger == nil {
+		return zap.NewNop()
+	}
+	return s.logger
 }
 
 func (s *RecordService) formatDate(t time.Time) string {
@@ -45,7 +57,7 @@ func (s *RecordService) GetAttendanceStats(buildingId int64, startDate, endDate 
 
 	building, err := s.buildingRepo.FindByID(ctx, buildingId)
 	if err != nil {
-		log.Printf("[RecordService] Building not found for id=%d: %v", buildingId, err)
+		s.log().Warn("building not found", zap.Int64("id", buildingId), zap.Error(err))
 		return dto.AttendanceStatsDTO{}
 	}
 
@@ -54,19 +66,19 @@ func (s *RecordService) GetAttendanceStats(buildingId int64, startDate, endDate 
 
 	total, err := s.studentRepo.CountActiveByBuilding(ctx, building.Code)
 	if err != nil {
-		log.Printf("[RecordService] Error counting active students: %v", err)
+		s.log().Warn("error counting active students", zap.Error(err))
 		return dto.AttendanceStatsDTO{}
 	}
 
 	present, err := s.eventLogRepo.CountDistinctPresentStudents(ctx, building.Code, startStr, endStr)
 	if err != nil {
-		log.Printf("[RecordService] Error counting present students: %v", err)
+		s.log().Warn("error counting present students", zap.Error(err))
 		return dto.AttendanceStatsDTO{}
 	}
 
 	stranger, err := s.eventLogRepo.CountDistinctStrangers(ctx, building.Code, startStr, endStr)
 	if err != nil {
-		log.Printf("[RecordService] Error counting strangers: %v", err)
+		s.log().Warn("error counting strangers", zap.Error(err))
 		return dto.AttendanceStatsDTO{}
 	}
 
@@ -91,7 +103,7 @@ func (s *RecordService) GetDailySummary(buildingId int64, startDate, endDate tim
 
 	building, err := s.buildingRepo.FindByID(ctx, buildingId)
 	if err != nil {
-		log.Printf("[RecordService] Building not found for id=%d: %v", buildingId, err)
+		s.log().Warn("building not found", zap.Int64("id", buildingId), zap.Error(err))
 		return []dto.DailySummaryDTO{}
 	}
 
@@ -100,13 +112,13 @@ func (s *RecordService) GetDailySummary(buildingId int64, startDate, endDate tim
 
 	total, err := s.studentRepo.CountActiveByBuilding(ctx, building.Code)
 	if err != nil {
-		log.Printf("[RecordService] Error counting active students: %v", err)
+		s.log().Warn("error counting active students", zap.Error(err))
 		return []dto.DailySummaryDTO{}
 	}
 
 	dailyCounts, err := s.eventLogRepo.GetDailyPresentCounts(ctx, building.Code, startStr, endStr)
 	if err != nil {
-		log.Printf("[RecordService] Error getting daily present counts: %v", err)
+		s.log().Warn("error getting daily present counts", zap.Error(err))
 		return []dto.DailySummaryDTO{}
 	}
 
@@ -211,13 +223,6 @@ func (s *RecordService) GetInspectionList(ctx context.Context, building string) 
 	}
 
 	return result, nil
-}
-
-func toNullFloat64(f *float64) sql.NullFloat64 {
-	if f == nil {
-		return sql.NullFloat64{Valid: false}
-	}
-	return sql.NullFloat64{Float64: *f, Valid: true}
 }
 
 func getTodayDateShanghai() string {

@@ -49,22 +49,46 @@ func (r *ConfigRepository) UpdateByKey(ctx context.Context, configKey, configVal
 	if err != nil {
 		return fmt.Errorf("update config %s: %w", configKey, err)
 	}
-	rows, _ := result.RowsAffected()
+	rows, err := result.RowsAffected()
+	if err != nil {
+		return fmt.Errorf("update config %s: rows affected: %w", configKey, err)
+	}
 	if rows == 0 {
 		return fmt.Errorf("config key %s not found", configKey)
 	}
 	return nil
 }
 
-// FindAllAsMap returns all config entries as a map[string]string.
-func (r *ConfigRepository) FindAllAsMap(ctx context.Context) (map[string]string, error) {
-	configs, err := r.FindAll(ctx, "config_key ASC")
+// BatchUpdateByKey updates multiple config values atomically using a transaction.
+func (r *ConfigRepository) BatchUpdateByKey(ctx context.Context, updates map[string]string) error {
+	if len(updates) == 0 {
+		return nil
+	}
+
+	tx, err := r.DB.BeginTxx(ctx, nil)
 	if err != nil {
-		return nil, err
+		return fmt.Errorf("begin transaction: %w", err)
 	}
-	result := make(map[string]string, len(configs))
-	for _, c := range configs {
-		result[c.ConfigKey] = c.ConfigValue
+	defer func() {
+		if err := tx.Rollback(); err != nil {
+			_ = fmt.Errorf("rollback: %w", err)
+		}
+	}()
+
+	query := "UPDATE dorm_config SET config_value = ? WHERE config_key = ?"
+	for key, value := range updates {
+		result, err := tx.ExecContext(ctx, query, value, key)
+		if err != nil {
+			return fmt.Errorf("update config %s: %w", key, err)
+		}
+		rows, err := result.RowsAffected()
+		if err != nil {
+			return fmt.Errorf("update config %s: rows affected: %w", key, err)
+		}
+		if rows == 0 {
+			return fmt.Errorf("config key %s not found", key)
+		}
 	}
-	return result, nil
+
+	return tx.Commit()
 }

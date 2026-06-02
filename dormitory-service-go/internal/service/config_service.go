@@ -5,24 +5,36 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
-	"log"
 	"time"
 
 	"github.com/sims/campusvision/dormitory-service-go/internal/model/dto"
 	"github.com/sims/campusvision/dormitory-service-go/internal/model/entity"
 	"github.com/sims/campusvision/dormitory-service-go/internal/repository"
+	"go.uber.org/zap"
 )
 
 // ConfigService handles configuration CRUD operations.
 type ConfigService struct {
 	configRepo *repository.ConfigRepository
+	logger     *zap.Logger
 }
 
 // NewConfigService creates a new ConfigService.
-func NewConfigService(configRepo *repository.ConfigRepository) *ConfigService {
+func NewConfigService(configRepo *repository.ConfigRepository, logger *zap.Logger) *ConfigService {
+	if logger == nil {
+		logger, _ = zap.NewDevelopment()
+	}
 	return &ConfigService{
 		configRepo: configRepo,
+		logger:     logger,
 	}
+}
+
+func (s *ConfigService) log() *zap.Logger {
+	if s.logger == nil {
+		return zap.NewNop()
+	}
+	return s.logger
 }
 
 // GetAllConfigs returns all configs, optionally filtered by group.
@@ -60,7 +72,7 @@ func (s *ConfigService) UpdateConfig(ctx context.Context, key, value string) err
 		return fmt.Errorf("update config: %w", err)
 	}
 
-	log.Printf("[ConfigService] Config updated: key=%s", key)
+	s.log().Info("config updated", zap.String("key", key))
 	return nil
 }
 
@@ -69,12 +81,17 @@ func (s *ConfigService) BatchUpdate(ctx context.Context, updates []dto.ConfigUpd
 	if len(updates) == 0 {
 		return nil
 	}
+
+	m := make(map[string]string, len(updates))
 	for _, u := range updates {
-		if err := s.UpdateConfig(ctx, u.ConfigKey, u.ConfigValue); err != nil {
-			return fmt.Errorf("batch update %s: %w", u.ConfigKey, err)
-		}
+		m[u.ConfigKey] = u.ConfigValue
 	}
-	log.Printf("[ConfigService] Batch updated %d configs", len(updates))
+
+	if err := s.configRepo.BatchUpdateByKey(ctx, m); err != nil {
+		return fmt.Errorf("batch update: %w", err)
+	}
+
+	s.log().Info("batch updated", zap.Int("count", len(updates)))
 	return nil
 }
 
@@ -96,7 +113,7 @@ func (s *ConfigService) ResetConfig(ctx context.Context, key string) (*entity.Do
 	}
 
 	cfg.UpdatedAt = time.Now()
-	log.Printf("[ConfigService] Config reset to default: key=%s", key)
+	s.log().Info("config reset to default", zap.String("key", key))
 	return cfg, nil
 }
 

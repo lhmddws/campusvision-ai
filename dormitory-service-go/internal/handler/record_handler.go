@@ -22,7 +22,15 @@ func NewRecordHandler(svc *service.RecordService) *RecordHandler {
 
 // GetAttendanceStats    GET /sims/dorm/records/attendance/stats
 func (h *RecordHandler) GetAttendanceStats(c *gin.Context) {
-	buildingID, _ := strconv.ParseInt(c.Query("building_id"), 10, 64)
+	var buildingID int64
+	if v := c.Query("building_id"); v != "" {
+		var err error
+		buildingID, err = strconv.ParseInt(v, 10, 64)
+		if err != nil {
+			Error(c, http.StatusBadRequest, "invalid building_id")
+			return
+		}
+	}
 	startDate, _ := time.Parse("2006-01-02", c.DefaultQuery("start_date", "2000-01-01"))
 	endDate, _ := time.Parse("2006-01-02", c.DefaultQuery("end_date", "2099-12-31"))
 
@@ -32,7 +40,15 @@ func (h *RecordHandler) GetAttendanceStats(c *gin.Context) {
 
 // GetDailySummary    GET /sims/dorm/records/attendance/daily-summary
 func (h *RecordHandler) GetDailySummary(c *gin.Context) {
-	buildingID, _ := strconv.ParseInt(c.Query("building_id"), 10, 64)
+	var buildingID int64
+	if v := c.Query("building_id"); v != "" {
+		var err error
+		buildingID, err = strconv.ParseInt(v, 10, 64)
+		if err != nil {
+			Error(c, http.StatusBadRequest, "invalid building_id")
+			return
+		}
+	}
 	startDate, _ := time.Parse("2006-01-02", c.DefaultQuery("start_date", "2000-01-01"))
 	endDate, _ := time.Parse("2006-01-02", c.DefaultQuery("end_date", "2099-12-31"))
 
