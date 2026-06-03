@@ -1,3 +1,3 @@
-import ContentWrap from './src/ContentWrap.vue'
+import ContentWrap from './src/ContentWrap.vue';
 
-export { ContentWrap }
+export { ContentWrap };

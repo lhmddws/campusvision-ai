@@ -18,7 +18,10 @@ vi.mock('@/api/camera', () => ({
 
 // Mock ElMessageBox to avoid real dialogs
 vi.mock('element-plus', async () => {
-  const actual: Record<string, any> = await vi.importActual('element-plus') as Record<string, any>;
+  const actual: Record<string, any> = (await vi.importActual('element-plus')) as Record<
+    string,
+    any
+  >;
   return {
     ...actual,
     ElMessageBox: {
@@ -123,7 +126,7 @@ describe('Camera Page', () => {
   it('renders the add camera button', () => {
     const wrapper = createWrapper();
     const buttons = wrapper.findAll('.cv-filter-bar__right .el-button');
-    const addBtn = buttons.find((b) => b.text().includes('添加摄像头'));
+    const addBtn = buttons.find(b => b.text().includes('添加摄像头'));
     expect(addBtn).toBeDefined();
   });
 

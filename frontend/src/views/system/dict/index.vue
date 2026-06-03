@@ -86,11 +86,7 @@
             @click="handleRefreshCache"
             >刷新缓存</el-button
           >
-          <el-button
-            v-hasPermi="['system:dict:export']"
-            plain
-            icon="Download"
-            @click="handleExport"
+          <el-button v-hasPermi="['system:dict:export']" plain icon="Download" @click="handleExport"
             >导出</el-button
           >
         </ElCol>
@@ -99,11 +95,7 @@
 
     <el-row :gutter="10" class="mb8"> </el-row>
 
-    <el-table
-      v-loading="loading"
-      :data="typeList"
-      @selectionChange="handleSelectionChange"
-    >
+    <el-table v-loading="loading" :data="typeList" @selectionChange="handleSelectionChange">
       <el-table-column type="selection" width="55" align="center" />
       <el-table-column label="字典编号" align="center" prop="dictId" />
       <el-table-column
@@ -114,10 +106,7 @@
       />
       <el-table-column label="字典类型" align="center" :show-overflow-tooltip="true">
         <template #default="scope">
-          <router-link
-            :to="'/system/dict-data/index/' + scope.row.dictId"
-            class="link-type"
-          >
+          <router-link :to="'/system/dict-data/index/' + scope.row.dictId" class="link-type">
             <span>{{ scope.row.dictType }}</span>
           </router-link>
         </template>
@@ -127,12 +116,7 @@
           <dict-tag :options="sys_normal_disable" :value="scope.row.status" />
         </template>
       </el-table-column>
-      <el-table-column
-        label="备注"
-        align="center"
-        prop="remark"
-        :show-overflow-tooltip="true"
-      />
+      <el-table-column label="备注" align="center" prop="remark" :show-overflow-tooltip="true" />
       <el-table-column label="创建时间" align="center" prop="createTime" width="180">
         <template #default="scope">
           <span>{{ parseTime(scope.row.createTime) }}</span>
@@ -177,20 +161,13 @@
         </el-form-item>
         <el-form-item label="状态" prop="status">
           <el-radio-group v-model="form.status">
-            <el-radio
-              v-for="dict in sys_normal_disable"
-              :key="dict.value"
-              :label="dict.value"
-              >{{ dict.label }}</el-radio
-            >
+            <el-radio v-for="dict in sys_normal_disable" :key="dict.value" :label="dict.value">{{
+              dict.label
+            }}</el-radio>
           </el-radio-group>
         </el-form-item>
         <el-form-item label="备注" prop="remark">
-          <el-input
-            v-model="form.remark"
-            type="textarea"
-            placeholder="请输入内容"
-          ></el-input>
+          <el-input v-model="form.remark" type="textarea" placeholder="请输入内容"></el-input>
         </el-form-item>
       </el-form>
       <template #footer>
@@ -205,7 +182,7 @@
 
 <script setup name="Dict" lang="ts">
 /* eslint-disable camelcase */
-import useDictStore from "@/store/modules/dict";
+import useDictStore from '@/store/modules/dict';
 import {
   listType,
   getType,
@@ -213,19 +190,13 @@ import {
   addType,
   updateType,
   refreshCache,
-} from "@/api/system/dict/type";
-import { parseTime } from "@/utils/ruoyi";
-import {
-  getCurrentInstance,
-  ComponentInternalInstance,
-  ref,
-  reactive,
-  toRefs,
-} from "vue";
+} from '@/api/system/dict/type';
+import { parseTime } from '@/utils/ruoyi';
+import { getCurrentInstance, ComponentInternalInstance, ref, reactive, toRefs } from 'vue';
 
 const { proxy } = getCurrentInstance() as ComponentInternalInstance;
 
-const { sys_normal_disable } = proxy!.useDict("sys_normal_disable");
+const { sys_normal_disable } = proxy!.useDict('sys_normal_disable');
 
 const typeList = ref<any[]>([]);
 const open = ref(false);
@@ -235,7 +206,7 @@ const ids = ref<number[]>([]);
 const single = ref(true);
 const multiple = ref(true);
 const total = ref(0);
-const title = ref("");
+const title = ref('');
 const dateRange = ref<any>([]);
 
 const data = reactive<{
@@ -252,8 +223,8 @@ const data = reactive<{
     status: undefined,
   },
   rules: {
-    dictName: [{ required: true, message: "字典名称不能为空", trigger: "blur" }],
-    dictType: [{ required: true, message: "字典类型不能为空", trigger: "blur" }],
+    dictName: [{ required: true, message: '字典名称不能为空', trigger: 'blur' }],
+    dictType: [{ required: true, message: '字典类型不能为空', trigger: 'blur' }],
   },
 });
 
@@ -262,13 +233,11 @@ const { queryParams, form, rules } = toRefs(data);
 /** 查询字典类型列表 */
 function getList() {
   loading.value = true;
-  listType(proxy!.addDateRange(queryParams.value, dateRange.value)).then(
-    (response: any) => {
-      typeList.value = response.rows;
-      total.value = response.total;
-      loading.value = false;
-    }
-  );
+  listType(proxy!.addDateRange(queryParams.value, dateRange.value)).then((response: any) => {
+    typeList.value = response.rows;
+    total.value = response.total;
+    loading.value = false;
+  });
 }
 /** 取消按钮 */
 function cancel() {
@@ -281,10 +250,10 @@ function reset() {
     dictId: undefined,
     dictName: undefined,
     dictType: undefined,
-    status: "0",
+    status: '0',
     remark: undefined,
   };
-  proxy!.resetForm("dictRef");
+  proxy!.resetForm('dictRef');
 }
 /** 搜索按钮操作 */
 function handleQuery() {
@@ -294,18 +263,18 @@ function handleQuery() {
 /** 重置按钮操作 */
 function resetQuery() {
   dateRange.value = [];
-  proxy!.resetForm("queryRef");
+  proxy!.resetForm('queryRef');
   handleQuery();
 }
 /** 新增按钮操作 */
 function handleAdd() {
   reset();
   open.value = true;
-  title.value = "添加字典类型";
+  title.value = '添加字典类型';
 }
 /** 多选框选中数据 */
 function handleSelectionChange(selection: any[]) {
-  ids.value = selection.map((item) => item.dictId);
+  ids.value = selection.map(item => item.dictId);
   single.value = selection.length !== 1;
   multiple.value = !selection.length;
 }
@@ -313,25 +282,25 @@ function handleSelectionChange(selection: any[]) {
 function handleUpdate(row: any) {
   reset();
   const dictId = row.dictId || ids.value;
-  getType(dictId).then((response) => {
+  getType(dictId).then(response => {
     form.value = response.data;
     open.value = true;
-    title.value = "修改字典类型";
+    title.value = '修改字典类型';
   });
 }
 /** 提交按钮 */
 function submitForm() {
-  (proxy?.$refs["dictRef"] as any).validate((valid: any) => {
+  (proxy?.$refs['dictRef'] as any).validate((valid: any) => {
     if (valid) {
       if (form.value.dictId !== undefined) {
-        updateType(form.value).then((response) => {
-          proxy!.$modal.msgSuccess("修改成功");
+        updateType(form.value).then(response => {
+          proxy!.$modal.msgSuccess('修改成功');
           open.value = false;
           getList();
         });
       } else {
-        addType(form.value).then((response) => {
-          proxy!.$modal.msgSuccess("新增成功");
+        addType(form.value).then(response => {
+          proxy!.$modal.msgSuccess('新增成功');
           open.value = false;
           getList();
         });
@@ -349,7 +318,7 @@ function handleDelete(row: any) {
     })
     .then(() => {
       getList();
-      proxy!.$modal.msgSuccess("删除成功");
+      proxy!.$modal.msgSuccess('删除成功');
     })
     .catch((e: any) => {
       console.log(e);
@@ -358,17 +327,17 @@ function handleDelete(row: any) {
 /** 导出按钮操作 */
 function handleExport() {
   proxy!.download(
-    "system/dict/type/export",
+    'system/dict/type/export',
     {
       ...queryParams.value,
     },
-    `dict_${new Date().getTime()}.xlsx`
+    `dict_${new Date().getTime()}.xlsx`,
   );
 }
 /** 刷新缓存按钮操作 */
 function handleRefreshCache() {
   refreshCache().then(() => {
-    proxy!.$modal.msgSuccess("刷新成功");
+    proxy!.$modal.msgSuccess('刷新成功');
     useDictStore().cleanDict();
   });
 }

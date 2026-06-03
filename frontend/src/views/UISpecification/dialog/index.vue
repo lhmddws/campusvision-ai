@@ -5,7 +5,7 @@
     </ElButton>
 
     <Dialog v-model="dialogVisible" :title="t('dialogDemo.dialog')" width="600px">
-      <BasicForm ref="formRef" :schema="schema"/>
+      <BasicForm ref="formRef" :schema="schema" />
       <template #footer>
         <ElButton @click="dialogVisible = false">{{ t('dialogDemo.close') }}</ElButton>
         <ElButton type="primary" @click="formSubmit">{{ t('dialogDemo.submit') }}</ElButton>
@@ -23,7 +23,6 @@ import { BasicForm, FormExpose } from '@/components/Form';
 import { Dialog } from '@/components/Dialog';
 import { ElButton } from 'element-plus';
 
-
 const { t } = useI18n();
 
 const dialogVisible = ref(false);
@@ -35,38 +34,38 @@ const schema = reactive<FormSchema[]>([
     label: t('formDemo.input'),
     component: 'Input',
     colProps: {
-      span: 12
-    }
+      span: 12,
+    },
   },
   {
     field: 'field2',
     label: t('formDemo.select'),
     component: 'Select',
     colProps: {
-      span: 12
+      span: 12,
     },
     componentProps: {
       style: {
-        width: '100%'
+        width: '100%',
       },
       options: [
         {
           label: 'option1',
-          value: '1'
+          value: '1',
         },
         {
           label: 'option2',
-          value: '2'
-        }
-      ]
-    }
+          value: '2',
+        },
+      ],
+    },
   },
 ]);
 
 const formSubmit = () => {
   unref(formRef)
     ?.getElFormRef()
-    ?.validate((valid) => {
+    ?.validate(valid => {
       if (valid) {
         console.log('submit success');
       } else {

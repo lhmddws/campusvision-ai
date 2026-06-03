@@ -8,19 +8,10 @@
         class="building-select"
         @change="handleQuery"
       >
-        <el-option
-          v-for="b in buildings"
-          :key="b.value"
-          :label="b.label"
-          :value="b.value"
-        />
+        <el-option v-for="b in buildings" :key="b.value" :label="b.label" :value="b.value" />
       </el-select>
-      <el-button type="primary" icon="Download" @click="handleExportExcel">
-        导出 Excel
-      </el-button>
-      <el-button type="danger" icon="Document" @click="handleExportPDF">
-        导出 PDF
-      </el-button>
+      <el-button type="primary" icon="Download" @click="handleExportExcel"> 导出 Excel </el-button>
+      <el-button type="danger" icon="Document" @click="handleExportPDF"> 导出 PDF </el-button>
     </div>
 
     <el-table
@@ -53,10 +44,7 @@
       <el-table-column prop="unknown_count" label="待核实人数" align="center" min-width="100" />
       <el-table-column label="状态" align="center" min-width="120">
         <template #default="{ row }">
-          <el-tag
-            :type="row.unknown_count === 0 ? 'success' : 'warning'"
-            size="default"
-          >
+          <el-tag :type="row.unknown_count === 0 ? 'success' : 'warning'" size="default">
             {{ row.unknown_count === 0 ? '✅ 正常' : '⚠️ 待检查' }}
           </el-tag>
         </template>
@@ -117,8 +105,8 @@ function handleExportExcel() {
   }
 
   const rows: Record<string, string>[] = [];
-  roomList.value.forEach((room) => {
-    room.students.forEach((student) => {
+  roomList.value.forEach(room => {
+    room.students.forEach(student => {
       rows.push({
         楼栋: room.building,
         房间号: room.room,
@@ -130,13 +118,7 @@ function handleExportExcel() {
   });
 
   const ws = XLSX.utils.json_to_sheet(rows);
-  const colWidths = [
-    { wch: 8 },
-    { wch: 12 },
-    { wch: 12 },
-    { wch: 18 },
-    { wch: 8 },
-  ];
+  const colWidths = [{ wch: 8 }, { wch: 12 }, { wch: 12 }, { wch: 18 }, { wch: 8 }];
   ws['!cols'] = colWidths;
 
   const wb = XLSX.utils.book_new();
@@ -154,8 +136,8 @@ function handleExportPDF() {
 
   const head = [['房间号', '学生姓名', '学号', '状态']];
   const body: string[][] = [];
-  roomList.value.forEach((room) => {
-    room.students.forEach((student) => {
+  roomList.value.forEach(room => {
+    room.students.forEach(student => {
       body.push([room.room, student.student_name, student.student_id, student.status]);
     });
   });
@@ -167,7 +149,7 @@ function handleExportPDF() {
     styles: { fontSize: 10 },
     headStyles: { fillColor: [24, 144, 255], textColor: 255 },
     alternateRowStyles: { fillColor: [245, 247, 250] },
-    didDrawPage: (data) => {
+    didDrawPage: data => {
       if (data.pageNumber === 1) {
         doc.setFontSize(16);
         doc.text('查寝名单', doc.internal.pageSize.getWidth() / 2, 14, { align: 'center' });

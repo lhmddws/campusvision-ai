@@ -13,13 +13,25 @@
         <p class="brand-tagline">{{ subtitle }}</p>
         <div class="brand-features">
           <div class="brand-feature">
-            <svg class="brand-feature__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <svg
+              class="brand-feature__icon"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+            >
               <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
             </svg>
             <span>智能安防监控</span>
           </div>
           <div class="brand-feature">
-            <svg class="brand-feature__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <svg
+              class="brand-feature__icon"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+            >
               <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
               <circle cx="9" cy="7" r="4" />
               <path d="M23 21v-2a4 4 0 0 0-3-3.87" />
@@ -28,7 +40,13 @@
             <span>人脸识别考勤</span>
           </div>
           <div class="brand-feature">
-            <svg class="brand-feature__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <svg
+              class="brand-feature__icon"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+            >
               <path d="M22 12h-4l-3 9L9 3l-3 9H2" />
             </svg>
             <span>实时异常预警</span>
@@ -177,7 +195,7 @@ getCookie();
 
 // ── Design Tokens ──────────────────────────────────────────
 $brand-gradient-start: #001529;
-$brand-gradient-end: #1890FF;
+$brand-gradient-end: #1890ff;
 $brand-accent: #40a9ff;
 $form-bg: $card-bg;
 $form-shadow: 0 20px 60px rgba(0, 0, 0, 0.08);
@@ -202,7 +220,12 @@ $transition-smooth: 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   width: 60%;
   height: 100%;
   overflow: hidden;
-  background: linear-gradient(135deg, $brand-gradient-start 0%, darken($brand-gradient-end, 15%) 50%, $brand-gradient-end 100%);
+  background: linear-gradient(
+    135deg,
+    $brand-gradient-start 0%,
+    darken($brand-gradient-end, 15%) 50%,
+    $brand-gradient-end 100%
+  );
 
   // Decorative geometric patterns
   .brand-pattern {
@@ -309,9 +332,15 @@ $transition-smooth: 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   opacity: 0.9;
   animation: feature-entrance 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) both;
 
-  &:nth-child(1) { animation-delay: 0.5s; }
-  &:nth-child(2) { animation-delay: 0.65s; }
-  &:nth-child(3) { animation-delay: 0.8s; }
+  &:nth-child(1) {
+    animation-delay: 0.5s;
+  }
+  &:nth-child(2) {
+    animation-delay: 0.65s;
+  }
+  &:nth-child(3) {
+    animation-delay: 0.8s;
+  }
 
   &__icon {
     width: 22px;

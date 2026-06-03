@@ -9,7 +9,7 @@ vi.mock('@/api/dashboard', () => ({
   getCamerasStatus: vi.fn(() =>
     Promise.resolve({
       data: { total: 15, online: 12, offline: 2, error: 1, cameras: [] },
-    })
+    }),
   ),
   getAlertStats: vi.fn(() =>
     Promise.resolve({
@@ -20,23 +20,37 @@ vi.mock('@/api/dashboard', () => ({
         by_type: { entry: 30, exit: 15, stranger: 3, late_return: 2 },
         by_severity: { critical: 2, high: 5, medium: 8, low: 35 },
       },
-    })
+    }),
   ),
   getAttendanceStats: vi.fn(() =>
     Promise.resolve({
       data: { total: 200, present: 180, absent: 15, late: 5, stranger: 3, rate: 0.9 },
-    })
+    }),
   ),
   getRecentEvents: vi.fn(() =>
     Promise.resolve({
       data: {
         items: [
-          { id: 1, event_type: 'entry', building: 'A栋', camera: '前门', student: '张三', event_time: '2026-05-28T10:00:00' },
-          { id: 2, event_type: 'exit', building: 'B栋', camera: '后门', student: '李四', event_time: '2026-05-28T09:30:00' },
+          {
+            id: 1,
+            event_type: 'entry',
+            building: 'A栋',
+            camera: '前门',
+            student: '张三',
+            event_time: '2026-05-28T10:00:00',
+          },
+          {
+            id: 2,
+            event_type: 'exit',
+            building: 'B栋',
+            camera: '后门',
+            student: '李四',
+            event_time: '2026-05-28T09:30:00',
+          },
         ],
         total: 45,
       },
-    })
+    }),
   ),
 }));
 

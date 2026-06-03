@@ -14,31 +14,31 @@
 }
 
 .blue-btn {
-  @include colorBtn($blue)
+  @include colorBtn($blue);
 }
 
 .light-blue-btn {
-  @include colorBtn($light-blue)
+  @include colorBtn($light-blue);
 }
 
 .red-btn {
-  @include colorBtn($red)
+  @include colorBtn($red);
 }
 
 .pink-btn {
-  @include colorBtn($pink)
+  @include colorBtn($pink);
 }
 
 .green-btn {
-  @include colorBtn($green)
+  @include colorBtn($green);
 }
 
 .tiffany-btn {
-  @include colorBtn($tiffany)
+  @include colorBtn($tiffany);
 }
 
 .yellow-btn {
-  @include colorBtn($yellow)
+  @include colorBtn($yellow);
 }
 
 .pan-btn {
@@ -81,44 +81,44 @@
   }
 }
 
-.el-button{
+.el-button {
   padding: 8px 16px;
   height: 36px;
   min-width: 72px;
   background-color: var(--el-color-primary);
-    &.is-link{
-        color: var(--el-color-primary) !important;
-    }
-    &.is-text{
-      padding: 0 8px;
-      height: 28px;
-      min-width: 0;
-    }
-    &.is-text + &.is-text{
-      margin-left: 0;
-    }
-    &.is-plain, &.is-plain:focus{
-      --el-button-hover-bg-color: rgba(32, 158, 145, 0.1) !important;
-      --el-button-hover-text-color: #209E91 !important;
-      --el-button-hover-border-color: rgba(32, 158, 145, 0.6) !important;
-    }
-    &.is-plain:hover{
-      --el-button-hover-bg-color: rgba(32, 158, 145, 0.1) !important;
-      --el-button-hover-text-color: #209E91 !important;
-      --el-button-hover-border-color: rgba(32, 158, 145, 0.6) !important;
-    }
-    &.is-plain:active{
-      --el-button-active-bg-color: #D4ECE8 !important;
-      --el-button-active-text-color: #209E91 !important;
-      --el-button-active-border-color: rgba(32, 158, 145, 0.6) !important;
-    }
-    &.el-button--danger:hover {
-      --el-button-hover-text-color: #f56c6c !important;
-      --el-button-hover-bg-color: #f9dfdf !important;
-      --el-button-hover-border-color: #f56c6c8f !important;
-    }
+  &.is-link {
+    color: var(--el-color-primary) !important;
+  }
+  &.is-text {
+    padding: 0 8px;
+    height: 28px;
+    min-width: 0;
+  }
+  &.is-text + &.is-text {
+    margin-left: 0;
+  }
+  &.is-plain,
+  &.is-plain:focus {
+    --el-button-hover-bg-color: rgba(32, 158, 145, 0.1) !important;
+    --el-button-hover-text-color: #209e91 !important;
+    --el-button-hover-border-color: rgba(32, 158, 145, 0.6) !important;
+  }
+  &.is-plain:hover {
+    --el-button-hover-bg-color: rgba(32, 158, 145, 0.1) !important;
+    --el-button-hover-text-color: #209e91 !important;
+    --el-button-hover-border-color: rgba(32, 158, 145, 0.6) !important;
+  }
+  &.is-plain:active {
+    --el-button-active-bg-color: #d4ece8 !important;
+    --el-button-active-text-color: #209e91 !important;
+    --el-button-active-border-color: rgba(32, 158, 145, 0.6) !important;
+  }
+  &.el-button--danger:hover {
+    --el-button-hover-text-color: #f56c6c !important;
+    --el-button-hover-bg-color: #f9dfdf !important;
+    --el-button-hover-border-color: #f56c6c8f !important;
+  }
 }
-
 
 .custom-button {
   display: inline-block;

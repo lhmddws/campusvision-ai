@@ -79,9 +79,9 @@ export function resetForm(refName: string) {
 export function addDateRange(params: any, dateRange: any[], propName?: string[]) {
   const search = params;
   search.params =
-        typeof search.params === 'object' && search.params !== null && !Array.isArray(search.params)
-          ? search.params
-          : {};
+    typeof search.params === 'object' && search.params !== null && !Array.isArray(search.params)
+      ? search.params
+      : {};
   dateRange = Array.isArray(dateRange) ? dateRange : [];
   if (typeof propName === 'undefined') {
     search.params['beginTime'] = dateRange[0];
@@ -272,7 +272,6 @@ export function blobValidate(data: any) {
   return data.type !== 'application/json';
 }
 
-
 export function downLoadExcel(url: string, params: any, name: any, method = 'get') {
   url = baseUrl + url;
   axios({
@@ -323,7 +322,7 @@ export function resolveBlob(res: any, mimeType: any, name: any) {
   const patt = new RegExp('filename=([^;]+\\.[^\\.;]+);*');
   const contentDisposition = decodeURI(res.headers['content-disposition']);
   const result = patt.exec(contentDisposition);
-  let fileName = name || result&&result[1];
+  let fileName = name || (result && result[1]);
   // eslint-disable-next-line no-useless-escape
   fileName = fileName.replace(/\"/g, '');
   aLink.style.display = 'none';

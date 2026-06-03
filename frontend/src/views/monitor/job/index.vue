@@ -101,11 +101,7 @@
       </el-col>
     </el-row>
 
-    <el-table
-      v-loading="loading"
-      :data="jobList"
-      @selectionChange="handleSelectionChange"
-    >
+    <el-table v-loading="loading" :data="jobList" @selectionChange="handleSelectionChange">
       <el-table-column type="selection" width="55" align="center" />
       <el-table-column label="任务编号" width="100" align="center" prop="jobId" />
       <el-table-column
@@ -269,12 +265,9 @@
           <el-col :span="12">
             <el-form-item label="状态">
               <el-radio-group v-model="form.status">
-                <el-radio
-                  v-for="dict in sys_job_status"
-                  :key="dict.value"
-                  :label="dict.value"
-                  >{{ dict.label }}</el-radio
-                >
+                <el-radio v-for="dict in sys_job_status" :key="dict.value" :label="dict.value">{{
+                  dict.label
+                }}</el-radio>
               </el-radio-group>
             </el-form-item>
           </el-col>
@@ -287,12 +280,7 @@
         </div>
       </template>
     </el-dialog>
-    <el-dialog
-      v-model="openCron"
-      title="Cron表达式生成器"
-      append-to-body
-      destroy-on-close
-    >
+    <el-dialog v-model="openCron" title="Cron表达式生成器" append-to-body destroy-on-close>
       <crontab
         ref="crontabRef"
         :expression="expression"
@@ -316,9 +304,7 @@
             <el-form-item label="cron表达式：">{{ form.cronExpression }}</el-form-item>
           </el-col>
           <el-col :span="12">
-            <el-form-item label="下次执行时间：">{{
-              parseTime(form.nextValidTime)
-            }}</el-form-item>
+            <el-form-item label="下次执行时间：">{{ parseTime(form.nextValidTime) }}</el-form-item>
           </el-col>
           <el-col :span="24">
             <el-form-item label="调用目标方法：">{{ form.invokeTarget }}</el-form-item>
@@ -364,23 +350,14 @@ import {
   updateJob,
   runJob,
   changeJobStatus,
-} from "@/api/monitor/job";
-import { parseTime } from "@/utils/ruoyi";
-import {
-  getCurrentInstance,
-  ComponentInternalInstance,
-  ref,
-  reactive,
-  toRefs,
-} from "vue";
-import { useRouter } from "vue-router";
-import Crontab from "@/components/Crontab/index.vue";
+} from '@/api/monitor/job';
+import { parseTime } from '@/utils/ruoyi';
+import { getCurrentInstance, ComponentInternalInstance, ref, reactive, toRefs } from 'vue';
+import { useRouter } from 'vue-router';
+import Crontab from '@/components/Crontab/index.vue';
 const router = useRouter();
 const { proxy } = getCurrentInstance() as ComponentInternalInstance;
-const { sys_job_group, sys_job_status } = proxy!.useDict(
-  "sys_job_group",
-  "sys_job_status"
-);
+const { sys_job_group, sys_job_status } = proxy!.useDict('sys_job_group', 'sys_job_status');
 
 const jobList = ref<any[]>([]);
 const open = ref(false);
@@ -390,10 +367,10 @@ const ids = ref<number[]>([]);
 const single = ref(true);
 const multiple = ref(true);
 const total = ref(0);
-const title = ref("");
+const title = ref('');
 const openView = ref(false);
 const openCron = ref(false);
-const expression = ref("");
+const expression = ref('');
 
 const data = reactive<{
   form: any;
@@ -409,13 +386,9 @@ const data = reactive<{
     status: undefined,
   },
   rules: {
-    jobName: [{ required: true, message: "任务名称不能为空", trigger: "blur" }],
-    invokeTarget: [
-      { required: true, message: "调用目标字符串不能为空", trigger: "blur" },
-    ],
-    cronExpression: [
-      { required: true, message: "cron执行表达式不能为空", trigger: "change" },
-    ],
+    jobName: [{ required: true, message: '任务名称不能为空', trigger: 'blur' }],
+    invokeTarget: [{ required: true, message: '调用目标字符串不能为空', trigger: 'blur' }],
+    cronExpression: [{ required: true, message: 'cron执行表达式不能为空', trigger: 'change' }],
   },
 });
 
@@ -449,9 +422,9 @@ function reset() {
     cronExpression: undefined,
     misfirePolicy: 1,
     concurrent: 1,
-    status: "0",
+    status: '0',
   };
-  proxy!.resetForm("jobRef");
+  proxy!.resetForm('jobRef');
 }
 /** 搜索按钮操作 */
 function handleQuery() {
@@ -460,25 +433,25 @@ function handleQuery() {
 }
 /** 重置按钮操作 */
 function resetQuery() {
-  proxy!.resetForm("queryRef");
+  proxy!.resetForm('queryRef');
   handleQuery();
 }
 // 多选框选中数据
 function handleSelectionChange(selection: any[]) {
-  ids.value = selection.map((item) => item.jobId);
+  ids.value = selection.map(item => item.jobId);
   single.value = selection.length !== 1;
   multiple.value = !selection.length;
 }
 // 更多操作触发
 function handleCommand(command: any, row: any) {
   switch (command) {
-    case "handleRun":
+    case 'handleRun':
       handleRun(row);
       break;
-    case "handleView":
+    case 'handleView':
       handleView(row);
       break;
-    case "handleJobLog":
+    case 'handleJobLog':
       handleJobLog(row);
       break;
     default:
@@ -487,17 +460,17 @@ function handleCommand(command: any, row: any) {
 }
 // 任务状态修改
 function handleStatusChange(row: any) {
-  let text = row.status === "0" ? "启用" : "停用";
+  let text = row.status === '0' ? '启用' : '停用';
   proxy!.$modal
     .confirm('确认要"' + text + '""' + row.jobName + '"任务吗?')
     .then(function () {
       return changeJobStatus(row.jobId, row.status);
     })
     .then(() => {
-      proxy!.$modal.msgSuccess(text + "成功");
+      proxy!.$modal.msgSuccess(text + '成功');
     })
     .catch(function () {
-      row.status = row.status === "0" ? "1" : "0";
+      row.status = row.status === '0' ? '1' : '0';
     });
 }
 /* 立即执行一次 */
@@ -508,13 +481,13 @@ function handleRun(row: any) {
       return runJob(row.jobId, row.jobGroup);
     })
     .then(() => {
-      proxy!.$modal.msgSuccess("执行成功");
+      proxy!.$modal.msgSuccess('执行成功');
     });
   //   .catch(() => {});
 }
 /** 任务详细信息 */
 function handleView(row: any) {
-  getJob(row.jobId).then((response) => {
+  getJob(row.jobId).then(response => {
     form.value = response.data;
     openView.value = true;
   });
@@ -531,37 +504,37 @@ function crontabFill(value: any) {
 /** 任务日志列表查询 */
 function handleJobLog(row: any) {
   const jobId = row.jobId || 0;
-  router.push("/monitor/job-log/index/" + jobId);
+  router.push('/monitor/job-log/index/' + jobId);
 }
 /** 新增按钮操作 */
 function handleAdd() {
   reset();
   open.value = true;
-  title.value = "添加任务";
+  title.value = '添加任务';
 }
 /** 修改按钮操作 */
 function handleUpdate(row: any) {
   reset();
   const jobId = row.jobId || ids.value;
-  getJob(jobId).then((response) => {
+  getJob(jobId).then(response => {
     form.value = response.data;
     open.value = true;
-    title.value = "修改任务";
+    title.value = '修改任务';
   });
 }
 /** 提交按钮 */
 function submitForm() {
-  (proxy!.$refs["jobRef"] as any).validate((valid: any) => {
+  (proxy!.$refs['jobRef'] as any).validate((valid: any) => {
     if (valid) {
       if (form.value.jobId !== undefined) {
-        updateJob(form.value).then((response) => {
-          proxy!.$modal.msgSuccess("修改成功");
+        updateJob(form.value).then(response => {
+          proxy!.$modal.msgSuccess('修改成功');
           open.value = false;
           getList();
         });
       } else {
-        addJob(form.value).then((response) => {
-          proxy!.$modal.msgSuccess("新增成功");
+        addJob(form.value).then(response => {
+          proxy!.$modal.msgSuccess('新增成功');
           open.value = false;
           getList();
         });
@@ -579,18 +552,18 @@ function handleDelete(row: any) {
     })
     .then(() => {
       getList();
-      proxy!.$modal.msgSuccess("删除成功");
+      proxy!.$modal.msgSuccess('删除成功');
     });
   //   .catch(() => {});
 }
 /** 导出按钮操作 */
 function handleExport() {
   proxy!.download(
-    "monitor/job/export",
+    'monitor/job/export',
     {
       ...queryParams.value,
     },
-    `job_${new Date().getTime()}.xlsx`
+    `job_${new Date().getTime()}.xlsx`,
   );
 }
 

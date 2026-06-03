@@ -65,10 +65,7 @@
               range-separator="-"
               start-placeholder="开始日期"
               end-placeholder="结束日期"
-              :default-time="[
-                new Date(2000, 1, 1, 0, 0, 0),
-                new Date(2000, 1, 1, 23, 59, 59),
-              ]"
+              :default-time="[new Date(2000, 1, 1, 0, 0, 0), new Date(2000, 1, 1, 23, 59, 59)]"
               style="width: 240px"
             ></el-date-picker>
           </el-form-item>
@@ -118,12 +115,7 @@
     >
       <el-table-column type="selection" width="50" align="center" />
       <el-table-column label="日志编号" align="center" prop="operId" />
-      <el-table-column
-        label="系统模块"
-        align="center"
-        prop="title"
-        :show-overflow-tooltip="true"
-      />
+      <el-table-column label="系统模块" align="center" prop="title" :show-overflow-tooltip="true" />
       <el-table-column label="操作类型" align="center" prop="businessType">
         <template #default="scope">
           <dict-tag :options="sys_oper_type" :value="scope.row.businessType" />
@@ -205,8 +197,7 @@
               >{{ form.title }} / {{ typeFormat(form) }}</el-form-item
             >
             <el-form-item label="登录信息："
-              >{{ form.operName }} / {{ form.operIp }} /
-              {{ form.operLocation }}</el-form-item
+              >{{ form.operName }} / {{ form.operIp }} / {{ form.operLocation }}</el-form-item
             >
           </el-col>
           <el-col :span="12">
@@ -252,22 +243,13 @@
 
 <script setup name="Operlog" lang="ts">
 /* eslint-disable camelcase */
-import { list, delOperlog, cleanOperlog } from "@/api/monitor/operlog";
-import { downLoadExcel, parseTime } from "@/utils/ruoyi";
-import { Sort } from "element-plus";
-import {
-  getCurrentInstance,
-  ComponentInternalInstance,
-  ref,
-  reactive,
-  toRefs,
-} from "vue";
+import { list, delOperlog, cleanOperlog } from '@/api/monitor/operlog';
+import { downLoadExcel, parseTime } from '@/utils/ruoyi';
+import { Sort } from 'element-plus';
+import { getCurrentInstance, ComponentInternalInstance, ref, reactive, toRefs } from 'vue';
 
 const { proxy } = getCurrentInstance() as ComponentInternalInstance;
-const { sys_oper_type, sys_common_status } = proxy!.useDict(
-  "sys_oper_type",
-  "sys_common_status"
-);
+const { sys_oper_type, sys_common_status } = proxy!.useDict('sys_oper_type', 'sys_common_status');
 
 const operlogList = ref<any[]>([]);
 const open = ref(false);
@@ -277,9 +259,9 @@ const ids = ref<number[]>([]);
 const single = ref(true);
 const multiple = ref(true);
 const total = ref(0);
-const title = ref("");
+const title = ref('');
 const dateRange = ref<any>([]);
-const defaultSort = ref<Sort>({ prop: "operTime", order: "descending" });
+const defaultSort = ref<Sort>({ prop: 'operTime', order: 'descending' });
 
 const data = reactive<{
   form: any;
@@ -319,16 +301,13 @@ function handleQuery() {
 /** 重置按钮操作 */
 function resetQuery() {
   dateRange.value = [];
-  proxy!.resetForm("queryRef");
+  proxy!.resetForm('queryRef');
   queryParams.value.pageNum = 1;
-  (proxy!.$refs["operlogRef"] as any).sort(
-    defaultSort.value.prop,
-    defaultSort.value.order
-  );
+  (proxy!.$refs['operlogRef'] as any).sort(defaultSort.value.prop, defaultSort.value.order);
 }
 /** 多选框选中数据 */
 function handleSelectionChange(selection: any[]) {
-  ids.value = selection.map((item) => item.operId);
+  ids.value = selection.map(item => item.operId);
   multiple.value = !selection.length;
 }
 /** 排序触发事件 */
@@ -352,31 +331,31 @@ function handleDelete(row: any) {
     })
     .then(() => {
       getList();
-      proxy!.$modal.msgSuccess("删除成功");
+      proxy!.$modal.msgSuccess('删除成功');
     });
   //   .catch(() => {});
 }
 /** 清空按钮操作 */
 function handleClean() {
   proxy!.$modal
-    .confirm("是否确认清空所有操作日志数据项?")
+    .confirm('是否确认清空所有操作日志数据项?')
     .then(function () {
       return cleanOperlog();
     })
     .then(() => {
       getList();
-      proxy!.$modal.msgSuccess("清空成功");
+      proxy!.$modal.msgSuccess('清空成功');
     });
   //   .catch(() => {});
 }
 /** 导出按钮操作 */
 function handleExport() {
   downLoadExcel(
-    "monitor/operlog/export",
+    'monitor/operlog/export',
     {
       ...queryParams.value,
     },
-    `operlog_${new Date().getTime()}.xlsx`
+    `operlog_${new Date().getTime()}.xlsx`,
   );
 }
 

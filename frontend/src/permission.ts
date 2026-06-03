@@ -12,43 +12,43 @@ NProgress.configure({ showSpinner: false });
 const whiteList = ['/login'];
 
 router.beforeEach((to, from, next) => {
-    NProgress.start();
-    if (getToken()) {
-        to.meta.title && useSettingsStore().setTitle(to.meta.title);
-        if (to.path === '/login') {
-            next({ path: '/' });
-            NProgress.done();
-        } else {
-            if (useUserStore().roles.length === 0) {
-                isRelogin.show = true;
-                useUserStore()
-                    .getInfo()
-                    .then(() => {
-                        isRelogin.show = false;
-                        next({ ...to, replace: true });
-                    })
-                    .catch(err => {
-                        useUserStore()
-                            .logOut()
-                            .then(() => {
-                                ElMessage.error(err);
-                                next({ path: '/' });
-                            });
-                    });
-            } else {
-                next();
-            }
-        }
+  NProgress.start();
+  if (getToken()) {
+    to.meta.title && useSettingsStore().setTitle(to.meta.title);
+    if (to.path === '/login') {
+      next({ path: '/' });
+      NProgress.done();
     } else {
-        if (whiteList.indexOf(to.path) !== -1) {
-            next();
-        } else {
-            next(`/login?redirect=${to.fullPath}`);
-            NProgress.done();
-        }
+      if (useUserStore().roles.length === 0) {
+        isRelogin.show = true;
+        useUserStore()
+          .getInfo()
+          .then(() => {
+            isRelogin.show = false;
+            next({ ...to, replace: true });
+          })
+          .catch(err => {
+            useUserStore()
+              .logOut()
+              .then(() => {
+                ElMessage.error(err);
+                next({ path: '/' });
+              });
+          });
+      } else {
+        next();
+      }
     }
+  } else {
+    if (whiteList.indexOf(to.path) !== -1) {
+      next();
+    } else {
+      next(`/login?redirect=${to.fullPath}`);
+      NProgress.done();
+    }
+  }
 });
 
 router.afterEach(() => {
-    NProgress.done();
+  NProgress.done();
 });

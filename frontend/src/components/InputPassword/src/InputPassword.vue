@@ -14,7 +14,7 @@ const prefixCls = getPrefixCls('input-password');
 const props = defineProps({
   // 是否显示密码强度
   strength: VueTypes.bool.def(false),
-  modelValue: VueTypes.string.def('')
+  modelValue: VueTypes.string.def(''),
 });
 
 watch(
@@ -22,7 +22,7 @@ watch(
   (val: string) => {
     if (val === unref(valueRef)) return;
     valueRef.value = val;
-  }
+  },
 );
 
 const { configGlobal } = useConfigGlobal();
@@ -44,7 +44,7 @@ watch(
   () => valueRef.value,
   (val: string) => {
     emit('update:modelValue', val);
-  }
+  },
 );
 
 // 获取密码强度
@@ -55,7 +55,7 @@ const getPasswordStrength = computed(() => {
 });
 
 const getIconName = computed(() =>
-  unref(textType) === 'password' ? 'ant-design:eye-invisible-outlined' : 'ant-design:eye-outlined'
+  unref(textType) === 'password' ? 'ant-design:eye-invisible-outlined' : 'ant-design:eye-outlined',
 );
 </script>
 
@@ -116,7 +116,9 @@ $prefix-cls: '#{namespace}-input-password';
       height: inherit;
       background-color: transparent;
       border-radius: inherit;
-      transition: width 0.5s ease-in-out, background 0.25s;
+      transition:
+        width 0.5s ease-in-out,
+        background 0.25s;
 
       &[data-score='0'] {
         width: 20%;

@@ -17,3 +17,49 @@ export function listCameras(building?: string) {
     params: building ? { building } : undefined,
   });
 }
+
+/** 查询人脸记录列表 */
+export function listFaces(page = 1, size = 20) {
+  return request({
+    url: '/sims/dorm/faces',
+    method: 'get',
+    params: { page, size },
+  });
+}
+
+/** 新增人脸记录 */
+export function addFace(data: { student_id: string; name: string; room_number?: string }) {
+  return request({
+    url: '/sims/dorm/faces',
+    method: 'post',
+    data,
+  });
+}
+
+/** 修改人脸记录 */
+export function updateFace(id: number, data: { name?: string; room_number?: string }) {
+  return request({
+    url: `/sims/dorm/faces/${id}`,
+    method: 'put',
+    data,
+  });
+}
+
+/** 删除人脸记录 */
+export function deleteFace(id: number) {
+  return request({
+    url: `/sims/dorm/faces/${id}`,
+    method: 'delete',
+  });
+}
+
+/** 批量导入人脸记录 */
+export function batchImportFaces(
+  students: { student_id: string; name: string; room_number?: string }[],
+) {
+  return request({
+    url: '/sims/dorm/faces/batch-import',
+    method: 'post',
+    data: { students },
+  });
+}

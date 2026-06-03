@@ -11,5 +11,5 @@ export default {
   },
   unmounted(el: any) {
     el.removeEventListener('focus', fun);
-  }
+  },
 };

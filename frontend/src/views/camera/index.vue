@@ -19,12 +19,7 @@
           class="cv-filter-bar__select"
           @change="handleQuery"
         >
-          <el-option
-            v-for="b in buildingOptions"
-            :key="b"
-            :label="b"
-            :value="b"
-          />
+          <el-option v-for="b in buildingOptions" :key="b" :label="b" :value="b" />
         </el-select>
         <el-select
           v-model="statusFilter"
@@ -98,7 +93,9 @@
         </el-table-column>
         <el-table-column label="最后在线时间" min-width="160" align="center">
           <template #default="{ row }">
-            <span class="cv-cell-text cv-cell-text--secondary">{{ row.last_heartbeat || '-' }}</span>
+            <span class="cv-cell-text cv-cell-text--secondary">{{
+              row.last_heartbeat || '-'
+            }}</span>
           </template>
         </el-table-column>
         <el-table-column label="启用" prop="enabled" min-width="80" align="center">
@@ -150,14 +147,16 @@
     </div>
 
     <!-- 新增/编辑对话框 (preserved) -->
-    <el-dialog v-model="dialogVisible" :title="dialogTitle" width="560px" append-to-body class="cv-dialog">
+    <el-dialog
+      v-model="dialogVisible"
+      :title="dialogTitle"
+      width="560px"
+      append-to-body
+      class="cv-dialog"
+    >
       <el-form ref="formRef" :model="form" :rules="rules" label-width="100px">
         <el-form-item label="摄像头ID" prop="camera_id">
-          <el-input
-            v-model="form.camera_id"
-            placeholder="请输入摄像头ID"
-            :disabled="isEdit"
-          />
+          <el-input v-model="form.camera_id" placeholder="请输入摄像头ID" :disabled="isEdit" />
         </el-form-item>
         <el-form-item label="名称" prop="name">
           <el-input v-model="form.name" placeholder="请输入摄像头名称" />
@@ -179,12 +178,7 @@
           <el-input v-model="form.resolution" placeholder="例如 1920x1080" />
         </el-form-item>
         <el-form-item label="备注" prop="remark">
-          <el-input
-            v-model="form.remark"
-            type="textarea"
-            :rows="3"
-            placeholder="请输入备注"
-          />
+          <el-input v-model="form.remark" type="textarea" :rows="3" placeholder="请输入备注" />
         </el-form-item>
       </el-form>
       <template #footer>
@@ -268,13 +262,11 @@ const filteredCameraList = computed(() => {
   if (searchKeyword.value) {
     const kw = searchKeyword.value.toLowerCase();
     list = list.filter(
-      (c) =>
-        c.name.toLowerCase().includes(kw) ||
-        c.camera_id.toLowerCase().includes(kw),
+      c => c.name.toLowerCase().includes(kw) || c.camera_id.toLowerCase().includes(kw),
     );
   }
   if (statusFilter.value) {
-    list = list.filter((c) => c.status === statusFilter.value);
+    list = list.filter(c => c.status === statusFilter.value);
   }
   return list;
 });
@@ -354,15 +346,11 @@ function handleHealthCheck(row: Camera) {
 
 // ==================== 删除 ====================
 function handleDelete(row: Camera) {
-  ElMessageBox.confirm(
-    `是否确认删除摄像头「${row.name}」(${row.camera_id})？`,
-    '警告',
-    {
-      confirmButtonText: '确定',
-      cancelButtonText: '取消',
-      type: 'warning',
-    },
-  )
+  ElMessageBox.confirm(`是否确认删除摄像头「${row.name}」(${row.camera_id})？`, '警告', {
+    confirmButtonText: '确定',
+    cancelButtonText: '取消',
+    type: 'warning',
+  })
     .then(() => {
       return deleteCamera(row.camera_id);
     })
@@ -493,15 +481,15 @@ onMounted(() => {
 
 <style lang="scss" scoped>
 // Theme variables
-$primary-color: #1890FF;
-$success-color: #52C41A;
-$danger-color: #FF4D4F;
-$warning-color: #FAAD14;
-$page-bg: #F0F2F5;
-$card-bg: #FFFFFF;
+$primary-color: #1890ff;
+$success-color: #52c41a;
+$danger-color: #ff4d4f;
+$warning-color: #faad14;
+$page-bg: #f0f2f5;
+$card-bg: #ffffff;
 $text-primary: #262626;
-$text-secondary: #8C8C8C;
-$border-color: #F0F0F0;
+$text-secondary: #8c8c8c;
+$border-color: #f0f0f0;
 
 .cv-camera-page {
   padding: 20px;
@@ -558,7 +546,7 @@ $border-color: #F0F0F0;
     transition: background-color 0.2s ease;
 
     &:hover > td {
-      background-color: #E6F7FF !important;
+      background-color: #e6f7ff !important;
     }
   }
 
@@ -644,8 +632,8 @@ $border-color: #F0F0F0;
     color: $text-secondary;
 
     .cv-status__dot {
-      background-color: #BFBFBF;
-      box-shadow: 0 0 0 3px rgba(#BFBFBF, 0.15);
+      background-color: #bfbfbf;
+      box-shadow: 0 0 0 3px rgba(#bfbfbf, 0.15);
     }
   }
 

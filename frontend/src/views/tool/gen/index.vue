@@ -81,17 +81,11 @@
       </el-col>
     </el-row>
 
-    <el-table
-      v-loading="loading"
-      :data="tableList"
-      @selectionChange="handleSelectionChange"
-    >
+    <el-table v-loading="loading" :data="tableList" @selectionChange="handleSelectionChange">
       <el-table-column type="selection" align="center" width="55"></el-table-column>
       <el-table-column label="序号" type="index" width="50" align="center">
         <template #default="scope">
-          <span>{{
-            (queryParams.pageNum - 1) * queryParams.pageSize + scope.$index + 1
-          }}</span>
+          <span>{{ (queryParams.pageNum - 1) * queryParams.pageSize + scope.$index + 1 }}</span>
         </template>
       </el-table-column>
       <el-table-column
@@ -106,12 +100,7 @@
         prop="tableComment"
         :show-overflow-tooltip="true"
       />
-      <el-table-column
-        label="实体"
-        align="center"
-        prop="className"
-        :show-overflow-tooltip="true"
-      />
+      <el-table-column label="实体" align="center" prop="className" :show-overflow-tooltip="true" />
       <el-table-column label="创建时间" align="center" prop="createTime" width="180" />
       <el-table-column label="更新时间" align="center" prop="updateTime" width="180" />
       <el-table-column
@@ -210,9 +199,9 @@
 </template>
 
 <script setup name="Gen" lang="ts">
-import { listTable, previewTable, delTable, genCode, synchDb } from "@/api/tool/gen";
-import router from "@/router";
-import { oneOf } from "@zeronejs/utils";
+import { listTable, previewTable, delTable, genCode, synchDb } from '@/api/tool/gen';
+import router from '@/router';
+import { oneOf } from '@zeronejs/utils';
 import {
   getCurrentInstance,
   ComponentInternalInstance,
@@ -220,9 +209,9 @@ import {
   reactive,
   toRefs,
   onActivated,
-} from "vue";
-import { useRoute } from "vue-router";
-import importTable from "./importTable.vue";
+} from 'vue';
+import { useRoute } from 'vue-router';
+import importTable from './importTable.vue';
 
 const route = useRoute();
 const { proxy } = getCurrentInstance() as ComponentInternalInstance;
@@ -236,7 +225,7 @@ const multiple = ref(true);
 const total = ref(0);
 const tableNames = ref<any[]>([]);
 const dateRange = ref<any>([]);
-const uniqueId = ref("");
+const uniqueId = ref('');
 
 const data = reactive<{
   queryParams: any;
@@ -255,9 +244,9 @@ const data = reactive<{
   },
   preview: {
     open: false,
-    title: "代码预览",
+    title: '代码预览',
     data: {},
-    activeName: "domain.java",
+    activeName: 'domain.java',
   },
 });
 
@@ -269,7 +258,7 @@ onActivated(() => {
     uniqueId.value = time;
     queryParams.value.pageNum = Number(route.query.pageNum);
     dateRange.value = [];
-    proxy?.resetForm("queryForm");
+    proxy?.resetForm('queryForm');
     getList();
   }
 });
@@ -277,13 +266,11 @@ onActivated(() => {
 /** 查询表集合 */
 function getList() {
   loading.value = true;
-  listTable(proxy?.addDateRange(queryParams.value, dateRange.value)).then(
-    (response: any) => {
-      tableList.value = response.rows;
-      total.value = response.total;
-      loading.value = false;
-    }
-  );
+  listTable(proxy?.addDateRange(queryParams.value, dateRange.value)).then((response: any) => {
+    tableList.value = response.rows;
+    total.value = response.total;
+    loading.value = false;
+  });
 }
 /** 搜索按钮操作 */
 function handleQuery() {
@@ -293,16 +280,16 @@ function handleQuery() {
 /** 生成代码操作 */
 function handleGenTable(row: any) {
   const tbNames = row.tableName || tableNames.value;
-  if (tbNames === "") {
-    proxy?.$modal.msgError("请选择要生成的数据");
+  if (tbNames === '') {
+    proxy?.$modal.msgError('请选择要生成的数据');
     return;
   }
-  if (row.genType === "1") {
-    genCode(row.tableName).then((response) => {
-      proxy?.$modal.msgSuccess("成功生成到自定义路径：" + row.genPath);
+  if (row.genType === '1') {
+    genCode(row.tableName).then(response => {
+      proxy?.$modal.msgSuccess('成功生成到自定义路径：' + row.genPath);
     });
   } else {
-    proxy?.$download.zip("/tool/gen/batchGenCode?tables=" + tbNames, "ruoyi.zip");
+    proxy?.$download.zip('/tool/gen/batchGenCode?tables=' + tbNames, 'ruoyi.zip');
   }
 }
 /** 同步数据库操作 */
@@ -314,7 +301,7 @@ function handleSynchDb(row: any) {
       return synchDb(tableName);
     })
     .then(() => {
-      proxy!.$modal.msgSuccess("同步成功");
+      proxy!.$modal.msgSuccess('同步成功');
     })
     .catch((e: any) => {
       console.log(e);
@@ -322,30 +309,30 @@ function handleSynchDb(row: any) {
 }
 /** 打开导入表弹窗 */
 function openImportTable() {
-  (proxy?.$refs["importRef"] as any).show();
+  (proxy?.$refs['importRef'] as any).show();
 }
 /** 重置按钮操作 */
 function resetQuery() {
   dateRange.value = [];
-  proxy?.resetForm("queryRef");
+  proxy?.resetForm('queryRef');
   handleQuery();
 }
 /** 预览按钮 */
 function handlePreview(row: any) {
-  previewTable(row.tableId).then((response) => {
+  previewTable(row.tableId).then(response => {
     preview.value.data = response.data;
     preview.value.open = true;
-    preview.value.activeName = "domain.java";
+    preview.value.activeName = 'domain.java';
   });
 }
 /** 复制代码成功 */
 function copyTextSuccess() {
-  proxy?.$modal.msgSuccess("复制成功");
+  proxy?.$modal.msgSuccess('复制成功');
 }
 // 多选框选中数据
 function handleSelectionChange(selection: any[]) {
-  ids.value = selection.map((item) => item.tableId);
-  tableNames.value = selection.map((item) => item.tableName);
+  ids.value = selection.map(item => item.tableId);
+  tableNames.value = selection.map(item => item.tableName);
   single.value = selection.length !== 1;
   multiple.value = !selection.length;
 }
@@ -353,7 +340,7 @@ function handleSelectionChange(selection: any[]) {
 function handleEditTable(row: any) {
   const tableId = row.tableId || ids.value[0];
   router.push({
-    path: "/tool/gen-edit/index/" + tableId,
+    path: '/tool/gen-edit/index/' + tableId,
     query: { pageNum: queryParams.value.pageNum },
   });
 }
@@ -367,7 +354,7 @@ function handleDelete(row: any) {
     })
     .then(() => {
       getList();
-      proxy!.$modal.msgSuccess("删除成功");
+      proxy!.$modal.msgSuccess('删除成功');
     })
     .catch((e: any) => {
       console.log(e);

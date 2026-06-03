@@ -57,5 +57,9 @@ export function healthCheck(id: string) {
 
 /** 查询摄像头快照列表 */
 export function getCameraSnapshots(id: string, page: number, size: number) {
-  return request({ url: `/sims/dorm/cameras/${id}/snapshots`, method: 'get', params: { page, size } });
+  return request({
+    url: `/sims/dorm/cameras/${id}/snapshots`,
+    method: 'get',
+    params: { page, size },
+  });
 }

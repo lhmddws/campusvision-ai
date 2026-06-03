@@ -5,12 +5,12 @@ import { defineStore } from 'pinia';
 
 const useUserStore = defineStore('user', {
   state: (): {
-        token?: string;
-        name: string;
-        avatar: string;
-        roles: any[];
-        permissions: string[];
-    } => ({
+    token?: string;
+    name: string;
+    avatar: string;
+    roles: any[];
+    permissions: string[];
+  } => ({
     token: getToken(),
     name: '',
     avatar: '',
@@ -40,9 +40,9 @@ const useUserStore = defineStore('user', {
           .then((res: any) => {
             const user = res.data.user;
             const avatar =
-                            user.avatar === '' || user.avatar == null
-                              ? defAva
-                              : import.meta.env.VITE_APP_BASE_API + user.avatar;
+              user.avatar === '' || user.avatar == null
+                ? defAva
+                : import.meta.env.VITE_APP_BASE_API + user.avatar;
 
             if (res.data.roles && res.data.roles.length > 0) {
               // 验证返回的roles是否是一个非空数组

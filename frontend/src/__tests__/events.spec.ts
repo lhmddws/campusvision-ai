@@ -38,7 +38,7 @@ vi.mock('@/api/events', () => ({
         page: 1,
         size: 20,
       },
-    })
+    }),
   ),
 }));
 
@@ -91,8 +91,8 @@ describe('Events Page', () => {
 
     // Event type select has entry/exit options
     const options = wrapper.findAllComponents({ name: 'ElOption' });
-    const entryOption = options.find((o) => o.props('value') === 'entry');
-    const exitOption = options.find((o) => o.props('value') === 'exit');
+    const entryOption = options.find(o => o.props('value') === 'entry');
+    const exitOption = options.find(o => o.props('value') === 'exit');
     expect(entryOption).toBeTruthy();
     expect(exitOption).toBeTruthy();
 
@@ -134,7 +134,7 @@ describe('Events Page', () => {
     expect(tags.length).toBeGreaterThan(0);
 
     // Check that direction tags exist with correct types
-    const directionTags = tags.filter((t) => {
+    const directionTags = tags.filter(t => {
       const type = t.props('type');
       return type === 'success' || type === 'warning';
     });

@@ -61,22 +61,14 @@
             @click="handleDelete"
             >删除</el-button
           >
-          <el-button
-            v-hasPermi="['system:post:export']"
-            plain
-            icon="Download"
-            @click="handleExport"
+          <el-button v-hasPermi="['system:post:export']" plain icon="Download" @click="handleExport"
             >导出</el-button
           >
         </ElCol>
       </ElRow>
     </el-form>
 
-    <el-table
-      v-loading="loading"
-      :data="postList"
-      @selectionChange="handleSelectionChange"
-    >
+    <el-table v-loading="loading" :data="postList" @selectionChange="handleSelectionChange">
       <el-table-column type="selection" width="55" align="center" />
       <el-table-column label="岗位编号" align="center" prop="postId" />
       <el-table-column label="岗位编码" align="center" prop="postCode" />
@@ -135,12 +127,9 @@
         </el-form-item>
         <el-form-item label="岗位状态" prop="status">
           <el-radio-group v-model="form.status">
-            <el-radio
-              v-for="dict in sys_normal_disable"
-              :key="dict.value"
-              :label="dict.value"
-              >{{ dict.label }}</el-radio
-            >
+            <el-radio v-for="dict in sys_normal_disable" :key="dict.value" :label="dict.value">{{
+              dict.label
+            }}</el-radio>
           </el-radio-group>
         </el-form-item>
         <el-form-item label="备注" prop="remark">
@@ -159,19 +148,13 @@
 
 <script setup name="Post" lang="ts">
 /* eslint-disable camelcase */
-import { listPost, addPost, delPost, getPost, updatePost } from "@/api/system/post";
-import { downLoadExcel, parseTime } from "@/utils/ruoyi";
-import {
-  getCurrentInstance,
-  ComponentInternalInstance,
-  ref,
-  reactive,
-  toRefs,
-} from "vue";
+import { listPost, addPost, delPost, getPost, updatePost } from '@/api/system/post';
+import { downLoadExcel, parseTime } from '@/utils/ruoyi';
+import { getCurrentInstance, ComponentInternalInstance, ref, reactive, toRefs } from 'vue';
 
 const { proxy } = getCurrentInstance() as ComponentInternalInstance;
 
-const { sys_normal_disable } = proxy!.useDict("sys_normal_disable");
+const { sys_normal_disable } = proxy!.useDict('sys_normal_disable');
 
 const postList = ref<any[]>([]);
 const open = ref(false);
@@ -181,7 +164,7 @@ const ids = ref<number[]>([]);
 const single = ref(true);
 const multiple = ref(true);
 const total = ref(0);
-const title = ref("");
+const title = ref('');
 
 const data = reactive<{
   form: any;
@@ -197,9 +180,9 @@ const data = reactive<{
     status: undefined,
   },
   rules: {
-    postName: [{ required: true, message: "岗位名称不能为空", trigger: "blur" }],
-    postCode: [{ required: true, message: "岗位编码不能为空", trigger: "blur" }],
-    postSort: [{ required: true, message: "岗位顺序不能为空", trigger: "blur" }],
+    postName: [{ required: true, message: '岗位名称不能为空', trigger: 'blur' }],
+    postCode: [{ required: true, message: '岗位编码不能为空', trigger: 'blur' }],
+    postSort: [{ required: true, message: '岗位顺序不能为空', trigger: 'blur' }],
   },
 });
 
@@ -226,10 +209,10 @@ function reset() {
     postCode: undefined,
     postName: undefined,
     postSort: 0,
-    status: "0",
+    status: '0',
     remark: undefined,
   };
-  proxy!.resetForm("postRef");
+  proxy!.resetForm('postRef');
 }
 /** 搜索按钮操作 */
 function handleQuery() {
@@ -238,12 +221,12 @@ function handleQuery() {
 }
 /** 重置按钮操作 */
 function resetQuery() {
-  proxy!.resetForm("queryRef");
+  proxy!.resetForm('queryRef');
   handleQuery();
 }
 /** 多选框选中数据 */
 function handleSelectionChange(selection: any[]) {
-  ids.value = selection.map((item) => item.postId);
+  ids.value = selection.map(item => item.postId);
   single.value = selection.length !== 1;
   multiple.value = !selection.length;
 }
@@ -251,32 +234,32 @@ function handleSelectionChange(selection: any[]) {
 function handleAdd() {
   reset();
   open.value = true;
-  title.value = "添加岗位";
+  title.value = '添加岗位';
 }
 /** 修改按钮操作 */
 function handleUpdate(row: any) {
   reset();
   const postId = row.postId || ids.value;
-  getPost(postId).then((response) => {
+  getPost(postId).then(response => {
     form.value = response.data;
     form.value.postSort = Number(form.value.postSort);
     open.value = true;
-    title.value = "修改岗位";
+    title.value = '修改岗位';
   });
 }
 /** 提交按钮 */
 function submitForm() {
-  (proxy?.$refs["postRef"] as any).validate((valid: any) => {
+  (proxy?.$refs['postRef'] as any).validate((valid: any) => {
     if (valid) {
       if (form.value.postId !== undefined) {
-        updatePost(form.value).then((response) => {
-          proxy!.$modal.msgSuccess("修改成功");
+        updatePost(form.value).then(response => {
+          proxy!.$modal.msgSuccess('修改成功');
           open.value = false;
           getList();
         });
       } else {
-        addPost(form.value).then((response) => {
-          proxy!.$modal.msgSuccess("新增成功");
+        addPost(form.value).then(response => {
+          proxy!.$modal.msgSuccess('新增成功');
           open.value = false;
           getList();
         });
@@ -294,7 +277,7 @@ function handleDelete(row: any) {
     })
     .then(() => {
       getList();
-      proxy!.$modal.msgSuccess("删除成功");
+      proxy!.$modal.msgSuccess('删除成功');
     })
     .catch((e: any) => {
       console.log(e);
@@ -303,11 +286,11 @@ function handleDelete(row: any) {
 /** 导出按钮操作 */
 function handleExport() {
   downLoadExcel(
-    "system/post/export",
+    'system/post/export',
     {
       ...queryParams.value,
     },
-    `post_${new Date().getTime()}.xlsx`
+    `post_${new Date().getTime()}.xlsx`,
   );
 }
 

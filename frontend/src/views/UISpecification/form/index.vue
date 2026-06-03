@@ -1,10 +1,6 @@
 <template>
   <ContentWrap>
-
-    <BasicForm ref="formRef" :schema="schema" labelPosition="top" >
-
-    </BasicForm>
-
+    <BasicForm ref="formRef" :schema="schema" labelPosition="top"> </BasicForm>
   </ContentWrap>
 </template>
 
@@ -28,10 +24,10 @@ const schema = reactive<FormSchema[]>([
     },
     componentProps: {
       style: {
-        width: '200px'
+        width: '200px',
       },
-      placeholder: '请输入内容'
-    }
+      placeholder: '请输入内容',
+    },
   },
   {
     field: 'field2',
@@ -49,7 +45,7 @@ const schema = reactive<FormSchema[]>([
         },
       ],
       style: {
-        width: '200px'
+        width: '200px',
       },
       placeholder: '请输入内容',
       onChange: (value: string) => {
@@ -77,7 +73,7 @@ const schema = reactive<FormSchema[]>([
     component: 'TreeSelect',
     componentProps: {
       placeholder: t('formDemo.treeSelect'),
-      data:[
+      data: [
         {
           value: '1',
           label: 'Level one 1',
@@ -120,10 +116,8 @@ const schema = reactive<FormSchema[]>([
             },
           ],
         },
-      ]
+      ],
     },
   },
 ]);
-
-
 </script>

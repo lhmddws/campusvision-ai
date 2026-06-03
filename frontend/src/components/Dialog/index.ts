@@ -1,3 +1,3 @@
-import Dialog from './src/Dialog.vue'
+import Dialog from './src/Dialog.vue';
 
-export { Dialog }
+export { Dialog };

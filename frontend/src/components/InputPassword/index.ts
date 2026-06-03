@@ -1,3 +1,3 @@
-import InputPassword from './src/InputPassword.vue'
+import InputPassword from './src/InputPassword.vue';
 
-export { InputPassword }
+export { InputPassword };

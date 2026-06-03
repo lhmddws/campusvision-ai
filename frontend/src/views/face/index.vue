@@ -134,7 +134,7 @@
           class="cv-preview__img"
         >
           <template #error>
-            <div class="cv-face-card__placeholder" style="height: 360px;">
+            <div class="cv-face-card__placeholder" style="height: 360px">
               <el-icon :size="64"><Picture /></el-icon>
             </div>
           </template>
@@ -223,7 +223,9 @@
       <template #footer>
         <div class="cv-dialog-footer">
           <el-button @click="batchDialogVisible = false">取 消</el-button>
-          <el-button type="primary" :disabled="!batchFile" @click="submitBatchImport">开始导入</el-button>
+          <el-button type="primary" :disabled="!batchFile" @click="submitBatchImport"
+            >开始导入</el-button
+          >
         </div>
       </template>
     </el-dialog>
@@ -235,7 +237,14 @@ import { ref, reactive, computed, onMounted } from 'vue';
 import { ElMessage, ElMessageBox } from 'element-plus';
 import type { FormInstance, FormRules } from 'element-plus';
 import { Picture, Plus, Upload } from '@element-plus/icons-vue';
-import { getSnapshots, listCameras } from '@/api/face';
+import {
+  getSnapshots,
+  listCameras,
+  addFace,
+  updateFace,
+  deleteFace,
+  batchImportFaces,
+} from '@/api/face';
 
 // ── 类型定义 ──────────────────────────────────────────
 
@@ -251,6 +260,8 @@ interface Snapshot {
   id: number;
   snapshot_path: string;
   student_id: string;
+  name?: string;
+  room_number?: string;
   confidence: number;
   event_time: string;
 }
@@ -319,10 +330,7 @@ const filteredSnapshots = computed(() => {
   let list = snapshots.value;
   if (searchKeyword.value) {
     const kw = searchKeyword.value.toLowerCase();
-    list = list.filter(
-      (s) =>
-        (s.student_id && s.student_id.toLowerCase().includes(kw)),
-    );
+    list = list.filter(s => s.student_id && s.student_id.toLowerCase().includes(kw));
   }
   return list;
 });
@@ -394,8 +402,8 @@ function handleEdit(snap: Snapshot) {
   isEdit.value = true;
   dialogTitle.value = '编辑人脸';
   form.student_id = snap.student_id || '';
-  form.name = '';
-  form.room_number = '';
+  form.name = snap.name || '';
+  form.room_number = snap.room_number || '';
   dialogVisible.value = true;
 }
 
@@ -410,10 +418,32 @@ function handlePhotoRemove() {
 function submitForm() {
   formRef.value?.validate((valid: boolean) => {
     if (!valid) return;
-    // TODO: Call face CRUD API when available
-    ElMessage.success(isEdit.value ? '修改成功' : '添加成功');
-    dialogVisible.value = false;
-    fetchSnapshots();
+    const payload = {
+      student_id: form.student_id,
+      name: form.name,
+      room_number: form.room_number,
+    };
+    if (isEdit.value) {
+      updateFace(form.student_id as any, { name: form.name, room_number: form.room_number })
+        .then(() => {
+          ElMessage.success('修改成功');
+          dialogVisible.value = false;
+          fetchSnapshots();
+        })
+        .catch(() => {
+          ElMessage.error('修改失败');
+        });
+    } else {
+      addFace(payload)
+        .then(() => {
+          ElMessage.success('添加成功');
+          dialogVisible.value = false;
+          fetchSnapshots();
+        })
+        .catch(() => {
+          ElMessage.error('添加失败');
+        });
+    }
   });
 }
 
@@ -425,17 +455,15 @@ function cancelForm() {
 // ── 删除 ───────────────────────────────────────────────
 
 function handleDelete(snap: Snapshot) {
-  ElMessageBox.confirm(
-    `是否确认删除学号「${snap.student_id || snap.id}」的人脸记录？`,
-    '警告',
-    {
-      confirmButtonText: '确定',
-      cancelButtonText: '取消',
-      type: 'warning',
-    },
-  )
+  ElMessageBox.confirm(`是否确认删除学号「${snap.student_id || snap.id}」的人脸记录？`, '警告', {
+    confirmButtonText: '确定',
+    cancelButtonText: '取消',
+    type: 'warning',
+  })
     .then(() => {
-      // TODO: Call face delete API when available
+      return deleteFace(snap.id);
+    })
+    .then(() => {
       ElMessage.success('删除成功');
       fetchSnapshots();
     })
@@ -462,10 +490,39 @@ function handleBatchFileChange(file: any) {
 
 function submitBatchImport() {
   if (!batchFile.value) return;
-  // TODO: Call batch import API when available
-  ElMessage.success('批量导入已提交');
-  batchDialogVisible.value = false;
-  fetchSnapshots();
+  const reader = new FileReader();
+  reader.onload = e => {
+    const text = e.target?.result as string;
+    const lines = text.split('\n').filter(l => l.trim());
+    if (lines.length < 2) {
+      ElMessage.error('文件内容不足，至少需要标题行和一行数据');
+      return;
+    }
+    const students: { student_id: string; name: string; room_number?: string }[] = [];
+    for (let i = 1; i < lines.length; i++) {
+      const cols = lines[i].split(',').map(c => c.trim());
+      if (cols.length >= 2 && cols[0] && cols[1]) {
+        students.push({ student_id: cols[0], name: cols[1], room_number: cols[2] || '' });
+      }
+    }
+    if (students.length === 0) {
+      ElMessage.error('未解析到有效数据，请检查文件格式（CSV: 学号,姓名,房间号）');
+      return;
+    }
+    batchImportFaces(students)
+      .then((res: any) => {
+        const data = res.data;
+        ElMessage.success(
+          `导入完成：成功 ${data.created || students.length} 条，重复跳过 ${data.duplicates || 0} 条`,
+        );
+        batchDialogVisible.value = false;
+        fetchSnapshots();
+      })
+      .catch(() => {
+        ElMessage.error('批量导入失败');
+      });
+  };
+  reader.readAsText(batchFile.value);
 }
 
 // ── 初始化 ─────────────────────────────────────────────
@@ -477,15 +534,15 @@ onMounted(() => {
 
 <style lang="scss" scoped>
 // ── Theme Variables ──────────────────────────────────────
-$primary-color: #1890FF;
-$success-color: #52C41A;
-$danger-color: #FF4D4F;
-$warning-color: #FAAD14;
-$page-bg: #F0F2F5;
-$card-bg: #FFFFFF;
+$primary-color: #1890ff;
+$success-color: #52c41a;
+$danger-color: #ff4d4f;
+$warning-color: #faad14;
+$page-bg: #f0f2f5;
+$card-bg: #ffffff;
 $text-primary: #262626;
-$text-secondary: #8C8C8C;
-$border-color: #F0F0F0;
+$text-secondary: #8c8c8c;
+$border-color: #f0f0f0;
 $shadow-sm: 0 1px 4px rgba(0, 0, 0, 0.04);
 $shadow-md: 0 4px 12px rgba(0, 0, 0, 0.08);
 $shadow-hover: 0 8px 24px rgba(0, 0, 0, 0.12);
@@ -550,7 +607,9 @@ $radius-md: 12px;
   overflow: hidden;
   box-shadow: $shadow-sm;
   cursor: pointer;
-  transition: transform 0.25s ease, box-shadow 0.25s ease;
+  transition:
+    transform 0.25s ease,
+    box-shadow 0.25s ease;
 
   &:hover {
     transform: translateY(-4px);
@@ -562,7 +621,7 @@ $radius-md: 12px;
     width: 100%;
     height: 220px;
     overflow: hidden;
-    background: #F5F5F5;
+    background: #f5f5f5;
   }
 
   &__img {
@@ -576,8 +635,8 @@ $radius-md: 12px;
     justify-content: center;
     width: 100%;
     height: 100%;
-    color: #D9D9D9;
-    background: linear-gradient(135deg, #FAFAFA 0%, #F0F0F0 100%);
+    color: #d9d9d9;
+    background: linear-gradient(135deg, #fafafa 0%, #f0f0f0 100%);
   }
 
   &__overlay {

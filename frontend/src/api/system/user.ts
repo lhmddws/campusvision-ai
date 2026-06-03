@@ -2,7 +2,8 @@ import request from '@/utils/request';
 import { parseStrEmpty } from '@/utils/ruoyi';
 
 // 查询用户列表
-export const listUser = (params: any): Promise<IResponse> => request({ url: '/system/user/list',method: 'get', params }) as unknown as Promise<IResponse>;
+export const listUser = (params: any): Promise<IResponse> =>
+  request({ url: '/system/user/list', method: 'get', params }) as unknown as Promise<IResponse>;
 
 // 查询用户详细
 export function getUser(userId?: any) {

@@ -18,9 +18,9 @@ const props = defineProps({
   height: VueTypes.oneOfType([Number, String]).def('500px'),
   editorConfig: {
     type: Object as PropType<IEditorConfig>,
-    default: () => undefined
+    default: () => undefined,
   },
-  modelValue: VueTypes.string.def('')
+  modelValue: VueTypes.string.def(''),
 });
 
 const emit = defineEmits(['change', 'update:modelValue']);
@@ -37,8 +37,8 @@ watch(
     valueHtml.value = val;
   },
   {
-    immediate: true
-  }
+    immediate: true,
+  },
 );
 
 // 监听
@@ -46,7 +46,7 @@ watch(
   () => valueHtml.value,
   (val: string) => {
     emit('update:modelValue', val);
-  }
+  },
 );
 
 const handleCreated = (editor: IDomEditor) => {
@@ -79,15 +79,15 @@ const editorConfig = computed((): IEditorConfig => {
       },
       autoFocus: false,
       scroll: true,
-      uploadImgShowBase64: true
+      uploadImgShowBase64: true,
     },
-    props.editorConfig || {}
+    props.editorConfig || {},
   );
 });
 
 const editorStyle = computed(() => {
   return {
-    height: isNumber(props.height) ? `${props.height}px` : props.height
+    height: isNumber(props.height) ? `${props.height}px` : props.height,
   };
 });
 
@@ -111,7 +111,7 @@ const getEditorRef = async (): Promise<IDomEditor> => {
 };
 
 defineExpose({
-  getEditorRef
+  getEditorRef,
 });
 </script>
 

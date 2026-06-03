@@ -56,7 +56,7 @@ vi.mock('@/api/alerts', () => ({
         page: 1,
         size: 20,
       },
-    })
+    }),
   ),
   acknowledgeAlert: vi.fn(() => Promise.resolve({ data: { success: true } })),
   getAlertStats: vi.fn(() =>
@@ -68,7 +68,7 @@ vi.mock('@/api/alerts', () => ({
         by_type: { stranger: 3, late_return: 5, absence: 2 },
         by_severity: { high: 2, medium: 5, low: 3 },
       },
-    })
+    }),
   ),
 }));
 
@@ -152,7 +152,7 @@ describe('Alerts Page', () => {
     const options = wrapper.findAllComponents({ name: 'ElOption' });
     const severityValues = ['high', 'medium', 'low'];
     for (const val of severityValues) {
-      const opt = options.find((o) => o.props('value') === val);
+      const opt = options.find(o => o.props('value') === val);
       expect(opt).toBeTruthy();
     }
   });
@@ -183,10 +183,8 @@ describe('Alerts Page', () => {
 
     // Should have severity badges (high=danger, medium=warning, low=info)
     const severityTags = tags.filter(
-      (t) =>
-        t.props('type') === 'danger' ||
-        t.props('type') === 'warning' ||
-        t.props('type') === 'info'
+      t =>
+        t.props('type') === 'danger' || t.props('type') === 'warning' || t.props('type') === 'info',
     );
     expect(severityTags.length).toBeGreaterThan(0);
   });
@@ -200,8 +198,8 @@ describe('Alerts Page', () => {
     const tags = wrapper.findAllComponents({ name: 'ElTag' });
 
     // Should have success tags (已确认) and warning tags (待处理)
-    const successTags = tags.filter((t) => t.props('type') === 'success');
-    const warningTags = tags.filter((t) => t.props('type') === 'warning');
+    const successTags = tags.filter(t => t.props('type') === 'success');
+    const warningTags = tags.filter(t => t.props('type') === 'warning');
     expect(successTags.length + warningTags.length).toBeGreaterThan(0);
   });
 
@@ -216,7 +214,7 @@ describe('Alerts Page', () => {
 
     // Should have acknowledge (确认) and detail (查看详情) buttons in action column
     const actionButtons = buttons.filter(
-      (b) => b.text().includes('确认') || b.text().includes('查看详情')
+      b => b.text().includes('确认') || b.text().includes('查看详情'),
     );
     expect(actionButtons.length).toBeGreaterThan(0);
   });

@@ -1,8 +1,11 @@
 <template>
   <div
-class="sidebar-logo-container" :class="{ collapse: collapse }" :style="{
-  backgroundColor: '#001529',
-}">
+    class="sidebar-logo-container"
+    :class="{ collapse: collapse }"
+    :style="{
+      backgroundColor: '#001529',
+    }"
+  >
     <transition name="sidebarLogoFade">
       <router-link v-if="collapse" key="collapse" class="sidebar-logo-link" to="/">
         <img v-if="logo" :src="logo" class="sidebar-logo" />

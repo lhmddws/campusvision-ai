@@ -6,28 +6,24 @@
 import { ref, toRefs, watch } from 'vue';
 import { Echart } from '../../index';
 
-
 const props = defineProps({
   options: {
     type: Object,
-    default: () => ({})
+    default: () => ({}),
   },
   height: {
     type: Number,
-    default: 300
-  }
+    default: 300,
+  },
 });
 
-const {options} = toRefs(props);
+const { options } = toRefs(props);
 
 const pieOptions = ref(options.value);
 
-watch(options, (data)=>{
+watch(options, data => {
   pieOptions.value = data;
 });
-
 </script>
 
-<style scoped>
-
-</style>
+<style scoped></style>

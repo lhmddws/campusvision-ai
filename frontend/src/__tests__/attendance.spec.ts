@@ -9,7 +9,7 @@ vi.mock('@/api/attendance', () => ({
   getAttendanceStats: vi.fn(() =>
     Promise.resolve({
       data: { total: 200, present: 180, absent: 15, late: 5, stranger: 3, rate: 0.9 },
-    })
+    }),
   ),
   getDailySummary: vi.fn(() =>
     Promise.resolve({
@@ -22,7 +22,7 @@ vi.mock('@/api/attendance', () => ({
         { date: '2026-05-27', building_name: 'A栋', checkin_rate: 0.78 },
         { date: '2026-05-28', building_name: 'A栋', checkin_rate: 0.9 },
       ],
-    })
+    }),
   ),
   getInspectionList: vi.fn(() => Promise.resolve({ data: [] })),
 }));

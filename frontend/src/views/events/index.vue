@@ -3,12 +3,7 @@
     <!-- Filter Bar -->
     <div class="filter-bar">
       <div class="filter-bar-inner">
-        <el-form
-          ref="queryRef"
-          :model="queryParams"
-          :inline="true"
-          class="filter-form"
-        >
+        <el-form ref="queryRef" :model="queryParams" :inline="true" class="filter-form">
           <el-form-item label="日期范围" prop="dateRange">
             <el-date-picker
               v-model="dateRange"
@@ -132,7 +127,11 @@
 
         <el-table-column label="置信度" align="center" prop="confidence" min-width="90">
           <template #default="scope">
-            <span v-if="scope.row.confidence != null" class="cell-confidence" :style="{ color: confidenceColor(scope.row.confidence) }">
+            <span
+              v-if="scope.row.confidence != null"
+              class="cell-confidence"
+              :style="{ color: confidenceColor(scope.row.confidence) }"
+            >
               {{ (scope.row.confidence * 100).toFixed(1) }}%
             </span>
             <span v-else class="cell-dash">—</span>
@@ -141,12 +140,7 @@
 
         <el-table-column label="识别方式" align="center" min-width="100">
           <template #default="scope">
-            <el-tag
-              v-if="scope.row.is_stranger"
-              type="danger"
-              size="small"
-              effect="plain"
-            >
+            <el-tag v-if="scope.row.is_stranger" type="danger" size="small" effect="plain">
               陌生人
             </el-tag>
             <el-tag
@@ -157,14 +151,7 @@
             >
               人脸识别
             </el-tag>
-            <el-tag
-              v-else
-              type="info"
-              size="small"
-              effect="plain"
-            >
-              待确认
-            </el-tag>
+            <el-tag v-else type="info" size="small" effect="plain"> 待确认 </el-tag>
           </template>
         </el-table-column>
 
@@ -194,11 +181,7 @@
                 </div>
               </template>
               <div class="photo-preview">
-                <el-image
-                  :src="scope.row.snapshot_path"
-                  fit="contain"
-                  class="photo-preview-img"
-                >
+                <el-image :src="scope.row.snapshot_path" fit="contain" class="photo-preview-img">
                   <template #error>
                     <div class="photo-preview-fallback">图片加载失败</div>
                   </template>
@@ -254,7 +237,7 @@ const queryRef = ref<FormInstance>();
 /** 格式化时间 */
 function formatTime(time: string | null): string {
   if (!time) return '-';
-  return parseTime(time) as string || '-';
+  return (parseTime(time) as string) || '-';
 }
 
 /** 置信度颜色 */
@@ -317,16 +300,16 @@ onMounted(() => {
 </script>
 
 <style scoped lang="scss">
-$primary-color: #1890FF;
-$card-bg: #FFFFFF;
-$page-bg: #F0F2F5;
+$primary-color: #1890ff;
+$card-bg: #ffffff;
+$page-bg: #f0f2f5;
 $text-primary: #262626;
-$text-secondary: #8C8C8C;
-$success-color: #52C41A;
-$warning-color: #FAAD14;
-$danger-color: #FF4D4F;
-$border-color: #E8E8E8;
-$hover-bg: #E6F7FF;
+$text-secondary: #8c8c8c;
+$success-color: #52c41a;
+$warning-color: #faad14;
+$danger-color: #ff4d4f;
+$border-color: #e8e8e8;
+$hover-bg: #e6f7ff;
 
 .events-page {
   min-height: 100%;
@@ -441,7 +424,7 @@ $hover-bg: #E6F7FF;
   align-items: center;
   justify-content: space-between;
   padding: 16px 20px 12px;
-  border-bottom: 1px solid #F5F5F5;
+  border-bottom: 1px solid #f5f5f5;
 }
 
 .table-title {
@@ -470,7 +453,7 @@ $hover-bg: #E6F7FF;
     font-size: 13px;
     color: $text-secondary;
     font-weight: 500;
-    background: #FAFAFA !important;
+    background: #fafafa !important;
   }
 
   :deep(.el-table__row) {
@@ -482,7 +465,7 @@ $hover-bg: #E6F7FF;
   }
 
   :deep(.el-table__body td) {
-    border-bottom: 1px solid #F5F5F5;
+    border-bottom: 1px solid #f5f5f5;
   }
 
   :deep(.el-table__empty-block) {
@@ -517,7 +500,7 @@ $hover-bg: #E6F7FF;
 }
 
 .cell-dash {
-  color: #D9D9D9;
+  color: #d9d9d9;
   font-size: 13px;
 }
 
@@ -550,9 +533,11 @@ $hover-bg: #E6F7FF;
   height: 48px;
   border-radius: 6px;
   overflow: hidden;
-  border: 1px solid #F0F0F0;
+  border: 1px solid #f0f0f0;
   cursor: pointer;
-  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+  transition:
+    border-color 0.2s ease,
+    box-shadow 0.2s ease;
 
   &:hover {
     border-color: $primary-color;
@@ -572,8 +557,8 @@ $hover-bg: #E6F7FF;
   display: flex;
   align-items: center;
   justify-content: center;
-  background: #F5F5F5;
-  color: #BFBFBF;
+  background: #f5f5f5;
+  color: #bfbfbf;
   border-radius: 6px;
 }
 
@@ -596,8 +581,8 @@ $hover-bg: #E6F7FF;
   display: flex;
   align-items: center;
   justify-content: center;
-  background: #F5F5F5;
-  color: #8C8C8C;
+  background: #f5f5f5;
+  color: #8c8c8c;
   font-size: 14px;
   border-radius: 4px;
 }
@@ -609,7 +594,7 @@ $hover-bg: #E6F7FF;
   display: flex;
   justify-content: flex-end;
   background: $card-bg;
-  border-top: 1px solid #F5F5F5;
+  border-top: 1px solid #f5f5f5;
 
   :deep(.el-pagination) {
     padding: 0;

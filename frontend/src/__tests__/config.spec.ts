@@ -104,14 +104,17 @@ vi.mock('@/api/config', () => ({
   getConfigGroups: vi.fn(() => Promise.resolve({ data: mockGroups })),
   batchUpdateConfigs: vi.fn(() => Promise.resolve({ data: {} })),
   resetConfig: vi.fn((key: string) => {
-    const cfg = mockConfigs.find((c) => c.config_key === key);
+    const cfg = mockConfigs.find(c => c.config_key === key);
     return Promise.resolve({ data: cfg });
   }),
 }));
 
 // Mock ElMessageBox to avoid real dialogs
 vi.mock('element-plus', async () => {
-  const actual: Record<string, any> = await vi.importActual('element-plus') as Record<string, any>;
+  const actual: Record<string, any> = (await vi.importActual('element-plus')) as Record<
+    string,
+    any
+  >;
   return {
     ...actual,
     ElMessageBox: {
@@ -214,16 +217,16 @@ describe('Config Page', () => {
     expect(badges.length).toBe(mockConfigs.length);
 
     // Check specific type badge classes
-    const booleanBadge = badges.filter((b) => b.classes().includes('cv-config__type-badge--boolean'));
+    const booleanBadge = badges.filter(b => b.classes().includes('cv-config__type-badge--boolean'));
     expect(booleanBadge.length).toBe(2); // behavior_enabled, alert_notify_enabled
 
-    const numberBadge = badges.filter((b) => b.classes().includes('cv-config__type-badge--number'));
+    const numberBadge = badges.filter(b => b.classes().includes('cv-config__type-badge--number'));
     expect(numberBadge.length).toBe(3); // fps_day, fps_night, motion_threshold
 
-    const jsonBadge = badges.filter((b) => b.classes().includes('cv-config__type-badge--json'));
+    const jsonBadge = badges.filter(b => b.classes().includes('cv-config__type-badge--json'));
     expect(jsonBadge.length).toBe(1); // redis_config
 
-    const stringBadge = badges.filter((b) => b.classes().includes('cv-config__type-badge--string'));
+    const stringBadge = badges.filter(b => b.classes().includes('cv-config__type-badge--string'));
     expect(stringBadge.length).toBe(2); // snapshot_path, kafka_brokers
   });
 

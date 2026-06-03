@@ -20,12 +20,7 @@
           class="filter-bar__select"
           @change="handleQuery"
         >
-          <el-option
-            v-for="b in buildings"
-            :key="b.value"
-            :label="b.label"
-            :value="b.value"
-          />
+          <el-option v-for="b in buildings" :key="b.value" :label="b.label" :value="b.value" />
         </el-select>
       </div>
       <div class="filter-bar__right">
@@ -286,8 +281,8 @@ function updateTrendChart() {
   if (!trendChart || dailySummary.value.length === 0) return;
 
   const sorted = [...dailySummary.value].sort((a, b) => a.date.localeCompare(b.date));
-  const dates = sorted.map((item) => item.date);
-  const rates = sorted.map((item) => Math.round((item.checkin_rate ?? 0) * 100));
+  const dates = sorted.map(item => item.date);
+  const rates = sorted.map(item => Math.round((item.checkin_rate ?? 0) * 100));
 
   trendChart.setOption(
     {
@@ -351,7 +346,7 @@ function updateTrendChart() {
         },
       ],
     },
-    true
+    true,
   );
 }
 
@@ -376,9 +371,13 @@ onBeforeUnmount(() => {
   }
 });
 
-watch(dailySummary, () => {
-  updateTrendChart();
-}, { deep: true });
+watch(
+  dailySummary,
+  () => {
+    updateTrendChart();
+  },
+  { deep: true },
+);
 </script>
 
 <style scoped lang="scss">
@@ -450,7 +449,9 @@ $cv-text-secondary: $text-secondary;
   align-items: center;
   gap: 16px;
   box-shadow: 0 1px 4px rgba(0, 0, 0, 0.06);
-  transition: transform 0.2s ease, box-shadow 0.2s ease;
+  transition:
+    transform 0.2s ease,
+    box-shadow 0.2s ease;
   position: relative;
   overflow: hidden;
 

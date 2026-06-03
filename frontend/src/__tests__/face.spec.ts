@@ -6,13 +6,18 @@ import FacePage from '@/views/face/index.vue';
 
 // Mock the face API module
 vi.mock('@/api/face', () => ({
-  getSnapshots: vi.fn(() => Promise.resolve({ data: { items: mockSnapshots, total: mockSnapshots.length } })),
+  getSnapshots: vi.fn(() =>
+    Promise.resolve({ data: { items: mockSnapshots, total: mockSnapshots.length } }),
+  ),
   listCameras: vi.fn(() => Promise.resolve({ data: { items: mockCameras } })),
 }));
 
 // Mock ElMessageBox to avoid real dialogs
 vi.mock('element-plus', async () => {
-  const actual: Record<string, any> = await vi.importActual('element-plus') as Record<string, any>;
+  const actual: Record<string, any> = (await vi.importActual('element-plus')) as Record<
+    string,
+    any
+  >;
   return {
     ...actual,
     ElMessageBox: {
@@ -101,14 +106,14 @@ describe('Face Page', () => {
   it('renders the add face button', () => {
     const wrapper = createWrapper();
     const buttons = wrapper.findAll('.cv-filter-bar__right .el-button');
-    const addBtn = buttons.find((b) => b.text().includes('添加人脸'));
+    const addBtn = buttons.find(b => b.text().includes('添加人脸'));
     expect(addBtn).toBeDefined();
   });
 
   it('renders the batch import button', () => {
     const wrapper = createWrapper();
     const buttons = wrapper.findAll('.cv-filter-bar__right .el-button');
-    const importBtn = buttons.find((b) => b.text().includes('批量导入'));
+    const importBtn = buttons.find(b => b.text().includes('批量导入'));
     expect(importBtn).toBeDefined();
   });
 

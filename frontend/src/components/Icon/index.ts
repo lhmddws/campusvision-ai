@@ -1,5 +1,5 @@
-import { defineComponent, h } from 'vue'
-import * as ElementPlusIconsVue from '@element-plus/icons-vue'
+import { defineComponent, h } from 'vue';
+import * as ElementPlusIconsVue from '@element-plus/icons-vue';
 
 export const Icon = defineComponent({
   name: 'Icon',
@@ -20,15 +20,15 @@ export const Icon = defineComponent({
   setup(props) {
     return () => {
       if (props.icon && props.icon.startsWith('ep:')) {
-        const iconName = props.icon.replace('ep:', '')
-        const component = (ElementPlusIconsVue as Record<string, any>)[iconName]
+        const iconName = props.icon.replace('ep:', '');
+        const component = (ElementPlusIconsVue as Record<string, any>)[iconName];
         if (component) {
           return h(component, {
             style: {
               fontSize: `${props.size}px`,
               color: props.color || undefined,
             },
-          })
+          });
         }
       }
       return h('i', {
@@ -37,9 +37,9 @@ export const Icon = defineComponent({
           fontSize: `${props.size}px`,
           color: props.color || undefined,
         },
-      })
-    }
+      });
+    };
   },
-})
+});
 
-export default Icon
+export default Icon;

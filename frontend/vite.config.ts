@@ -20,10 +20,10 @@ export default defineConfig(({ mode, command }) => {
       port: 3000,
       host: true,
       open: true,
-      hmr:true,
+      hmr: true,
       proxy: {
         '/dev-api': {
-          target: 'http://localhost:8083',
+          target: process.env.VITE_API_TARGET || 'http://localhost:8083',
           changeOrigin: true,
           rewrite: p => p.replace(/^\/dev-api/, ''),
         },
@@ -34,23 +34,23 @@ export default defineConfig(({ mode, command }) => {
       alias: [
         {
           find: 'vue-i18n',
-          replacement: 'vue-i18n/dist/vue-i18n.cjs.js'
+          replacement: 'vue-i18n/dist/vue-i18n.cjs.js',
         },
         {
           find: /\@\//,
-          replacement: `${pathResolve('src')}/`
+          replacement: `${pathResolve('src')}/`,
         },
         {
           find: /\~\//,
-          replacement: `/`
+          replacement: `/`,
         },
-      ]
+      ],
     },
     css: {
       preprocessorOptions: {
         scss: {
           additionalData: `@use "./src/assets/styles/element-ui.scss" as *;`,
-          javascriptEnabled: true
+          javascriptEnabled: true,
         },
       },
     },

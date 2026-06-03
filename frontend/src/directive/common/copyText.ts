@@ -36,7 +36,8 @@ function copyTextToClipboard(input: any, { target = document.body } = {}) {
   element.style.fontSize = '12pt'; // Prevent zooming on iOS
 
   const selection = document.getSelection();
-  const originalRange = selection?.rangeCount && selection.rangeCount > 0 && selection.getRangeAt(0);
+  const originalRange =
+    selection?.rangeCount && selection.rangeCount > 0 && selection.getRangeAt(0);
 
   target.append(element);
   element.select();
@@ -48,7 +49,7 @@ function copyTextToClipboard(input: any, { target = document.body } = {}) {
   let isSuccess = false;
   try {
     isSuccess = document.execCommand('copy');
-  } catch { }
+  } catch {}
 
   element.remove();
 

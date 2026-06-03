@@ -11,11 +11,7 @@
       id="breadcrumb-container"
       class="breadcrumb-container"
     />
-    <top-nav
-      v-if="settingsStore.topNav"
-      id="topmenu-container"
-      class="topmenu-container"
-    />
+    <top-nav v-if="settingsStore.topNav" id="topmenu-container" class="topmenu-container" />
 
     <div class="right-menu">
       <template v-if="appStore.device !== 'mobile'">
@@ -30,11 +26,7 @@
         </el-tooltip>
       </template>
       <div class="avatar-container">
-        <el-dropdown
-          class="right-menu-item hover-effect"
-          trigger="click"
-          @command="handleCommand"
-        >
+        <el-dropdown class="right-menu-item hover-effect" trigger="click" @command="handleCommand">
           <div class="avatar-wrapper">
             <img :src="userStore.avatar" class="user-avatar" />
             <el-icon><caret-bottom /></el-icon>
@@ -59,16 +51,16 @@
 </template>
 
 <script setup lang="ts">
-import { ElMessageBox } from "element-plus";
-import { Bell } from "@element-plus/icons-vue";
-import Breadcrumb from "@/components/Breadcrumb/index.vue";
-import TopNav from "@/components/TopNav/index.vue";
-import Hamburger from "@/components/Hamburger/index.vue";
-import Screenfull from "@/components/Screenfull/index.vue";
-import useAppStore from "@/store/modules/app";
-import useUserStore from "@/store/modules/user";
-import useSettingsStore from "@/store/modules/settings";
-import logo from "@/assets/logo/logo.png";
+import { ElMessageBox } from 'element-plus';
+import { Bell } from '@element-plus/icons-vue';
+import Breadcrumb from '@/components/Breadcrumb/index.vue';
+import TopNav from '@/components/TopNav/index.vue';
+import Hamburger from '@/components/Hamburger/index.vue';
+import Screenfull from '@/components/Screenfull/index.vue';
+import useAppStore from '@/store/modules/app';
+import useUserStore from '@/store/modules/user';
+import useSettingsStore from '@/store/modules/settings';
+import logo from '@/assets/logo/logo.png';
 
 const appStore = useAppStore();
 const userStore = useUserStore();
@@ -80,10 +72,10 @@ function toggleSideBar() {
 
 function handleCommand(command: any) {
   switch (command) {
-    case "setLayout":
+    case 'setLayout':
       setLayout();
       break;
-    case "logout":
+    case 'logout':
       logout();
       break;
     default:
@@ -92,21 +84,21 @@ function handleCommand(command: any) {
 }
 
 function logout() {
-  ElMessageBox.confirm("确定注销并退出系统吗？", "提示", {
-    confirmButtonText: "确定",
-    cancelButtonText: "取消",
-    type: "warning",
+  ElMessageBox.confirm('确定注销并退出系统吗？', '提示', {
+    confirmButtonText: '确定',
+    cancelButtonText: '取消',
+    type: 'warning',
   }).then(() => {
     userStore.logOut().then(() => {
-      location.href = "/index";
+      location.href = '/index';
     });
   });
   // .catch(() => {});
 }
 
-const emits = defineEmits(["setLayout"]);
+const emits = defineEmits(['setLayout']);
 function setLayout() {
-  emits("setLayout");
+  emits('setLayout');
 }
 </script>
 

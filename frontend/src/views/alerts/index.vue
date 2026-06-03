@@ -54,12 +54,7 @@
           <el-option label="缺勤" value="absence" />
           <el-option label="异常" value="abnormal" />
         </el-select>
-        <el-select
-          v-model="severityFilter"
-          placeholder="级别"
-          clearable
-          class="filter-select"
-        >
+        <el-select v-model="severityFilter" placeholder="级别" clearable class="filter-select">
           <el-option label="高危" value="high" />
           <el-option label="中等" value="medium" />
           <el-option label="低" value="low" />
@@ -83,9 +78,17 @@
         />
       </div>
       <div class="filter-bar__right">
-        <el-button type="primary" icon="Search" class="filter-btn-primary" @click="handleQuery">搜索</el-button>
+        <el-button type="primary" icon="Search" class="filter-btn-primary" @click="handleQuery"
+          >搜索</el-button
+        >
         <el-button icon="Refresh" class="filter-btn-reset" @click="resetQuery">重置</el-button>
-        <el-button type="warning" icon="Check" class="filter-btn-batch" @click="handleBatchAcknowledge">全部确认</el-button>
+        <el-button
+          type="warning"
+          icon="Check"
+          class="filter-btn-batch"
+          @click="handleBatchAcknowledge"
+          >全部确认</el-button
+        >
       </div>
     </div>
 
@@ -159,12 +162,7 @@
             >
               确认
             </el-button>
-            <el-button
-              type="info"
-              text
-              size="small"
-              @click="handleDetail(row)"
-            >
+            <el-button type="info" text size="small" @click="handleDetail(row)">
               查看详情
             </el-button>
           </template>
@@ -274,7 +272,7 @@ function severityLabel(severity: string): string {
 /** 客户端级别筛选 */
 const filteredList = computed(() => {
   if (!severityFilter.value) return alertList.value;
-  return alertList.value.filter((a) => a.severity === severityFilter.value);
+  return alertList.value.filter(a => a.severity === severityFilter.value);
 });
 
 /** 获取告警列表 */
@@ -347,7 +345,7 @@ function handleAcknowledge(row: Alert) {
 
 /** 批量确认 */
 function handleBatchAcknowledge() {
-  const unresolved = alertList.value.filter((a) => !a.is_resolved);
+  const unresolved = alertList.value.filter(a => !a.is_resolved);
   if (unresolved.length === 0) {
     ElMessage.info('没有待处理的告警');
     return;
@@ -424,7 +422,9 @@ $hover-bg: #e6f7ff;
   align-items: center;
   gap: 16px;
   box-shadow: 0 1px 4px rgba(0, 0, 0, 0.06);
-  transition: box-shadow 0.2s, transform 0.2s;
+  transition:
+    box-shadow 0.2s,
+    transform 0.2s;
 
   &:hover {
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);

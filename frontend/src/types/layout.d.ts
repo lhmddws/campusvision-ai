@@ -1,1 +1,1 @@
-export type LayoutType = 'classic' | 'topLeft' | 'top' | 'cutMenu'
+export type LayoutType = 'classic' | 'topLeft' | 'top' | 'cutMenu';

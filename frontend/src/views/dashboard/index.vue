@@ -7,12 +7,20 @@
           <el-icon :size="28"><VideoCamera /></el-icon>
         </div>
         <div class="kpi-body">
-          <div class="kpi-value">{{ cameraStatus.online }}<span class="kpi-unit"> / {{ cameraStatus.total }}</span></div>
+          <div class="kpi-value">
+            {{ cameraStatus.online }}<span class="kpi-unit"> / {{ cameraStatus.total }}</span>
+          </div>
           <div class="kpi-label">在线摄像头</div>
         </div>
         <div class="kpi-trend trend-up">
           <el-icon :size="12"><Top /></el-icon>
-          <span>{{ cameraStatus.total > 0 ? ((cameraStatus.online / cameraStatus.total) * 100).toFixed(1) : 0 }}%</span>
+          <span
+            >{{
+              cameraStatus.total > 0
+                ? ((cameraStatus.online / cameraStatus.total) * 100).toFixed(1)
+                : 0
+            }}%</span
+          >
         </div>
       </div>
 
@@ -38,8 +46,16 @@
           <div class="kpi-label">告警未处理</div>
         </div>
         <div class="kpi-trend" :class="(alertStats.unread ?? 0) > 0 ? 'trend-down' : 'trend-up'">
-          <el-icon :size="12"><Top v-if="(alertStats.unread ?? 0) === 0" /><Bottom v-else /></el-icon>
-          <span>{{ alertStats.total > 0 ? ((alertStats.unread ?? 0) / alertStats.total * 100).toFixed(1) : 0 }}%</span>
+          <el-icon :size="12"
+            ><Top v-if="(alertStats.unread ?? 0) === 0" /><Bottom v-else
+          /></el-icon>
+          <span
+            >{{
+              alertStats.total > 0
+                ? (((alertStats.unread ?? 0) / alertStats.total) * 100).toFixed(1)
+                : 0
+            }}%</span
+          >
         </div>
       </div>
 
@@ -87,7 +103,10 @@
           <div class="activity-dot" :class="eventDotClass(event.event_type)"></div>
           <div class="activity-info">
             <div class="activity-type">{{ formatEventType(event.event_type) }}</div>
-            <div class="activity-meta">{{ event.building ?? event.building_name ?? '—' }} · {{ event.camera ?? event.camera_name ?? '—' }}</div>
+            <div class="activity-meta">
+              {{ event.building ?? event.building_name ?? '—' }} ·
+              {{ event.camera ?? event.camera_name ?? '—' }}
+            </div>
           </div>
           <div class="activity-student">{{ event.student ?? event.student_name ?? '—' }}</div>
           <div class="activity-time">{{ formatTime(event.event_time ?? event.created_at) }}</div>
@@ -100,7 +119,12 @@
 <script setup lang="ts">
 import { ref, reactive, onMounted, onBeforeUnmount, watch, nextTick } from 'vue';
 import { VideoCamera, Bell, UserFilled, Top, Bottom, Sort } from '@element-plus/icons-vue';
-import { getCamerasStatus, getAlertStats, getAttendanceStats, getRecentEvents } from '@/api/dashboard';
+import {
+  getCamerasStatus,
+  getAlertStats,
+  getAttendanceStats,
+  getRecentEvents,
+} from '@/api/dashboard';
 import echarts from '@/plugins/echarts';
 
 // ─── TypeScript Interfaces ───
@@ -467,46 +491,49 @@ function updateTrendChart() {
     }
   }
 
-  trendChart.setOption({
-    tooltip: {
-      trigger: 'axis',
-      axisPointer: { type: 'shadow' },
-    },
-    grid: {
-      left: '3%',
-      right: '4%',
-      bottom: '3%',
-      top: '12%',
-      containLabel: true,
-    },
-    xAxis: {
-      type: 'category',
-      data: labels,
-      axisLabel: { color: '#8C8C8C', fontSize: 12 },
-      axisLine: { lineStyle: { color: '#E8E8E8' } },
-      axisTick: { show: false },
-    },
-    yAxis: {
-      type: 'value',
-      axisLabel: { color: '#8C8C8C', fontSize: 12 },
-      splitLine: { lineStyle: { color: '#F0F0F0', type: 'dashed' } },
-      axisLine: { show: false },
-      axisTick: { show: false },
-    },
-    series: [
-      {
-        type: 'bar',
-        data: values.map((v, i) => ({
-          value: v,
-          itemStyle: { color: colors[i], borderRadius: [4, 4, 0, 0] },
-        })),
-        barWidth: '45%',
-        emphasis: {
-          itemStyle: { shadowBlur: 10, shadowOffsetX: 0, shadowColor: 'rgba(0,0,0,0.1)' },
-        },
+  trendChart.setOption(
+    {
+      tooltip: {
+        trigger: 'axis',
+        axisPointer: { type: 'shadow' },
       },
-    ],
-  }, true);
+      grid: {
+        left: '3%',
+        right: '4%',
+        bottom: '3%',
+        top: '12%',
+        containLabel: true,
+      },
+      xAxis: {
+        type: 'category',
+        data: labels,
+        axisLabel: { color: '#8C8C8C', fontSize: 12 },
+        axisLine: { lineStyle: { color: '#E8E8E8' } },
+        axisTick: { show: false },
+      },
+      yAxis: {
+        type: 'value',
+        axisLabel: { color: '#8C8C8C', fontSize: 12 },
+        splitLine: { lineStyle: { color: '#F0F0F0', type: 'dashed' } },
+        axisLine: { show: false },
+        axisTick: { show: false },
+      },
+      series: [
+        {
+          type: 'bar',
+          data: values.map((v, i) => ({
+            value: v,
+            itemStyle: { color: colors[i], borderRadius: [4, 4, 0, 0] },
+          })),
+          barWidth: '45%',
+          emphasis: {
+            itemStyle: { shadowBlur: 10, shadowOffsetX: 0, shadowColor: 'rgba(0,0,0,0.1)' },
+          },
+        },
+      ],
+    },
+    true,
+  );
 }
 
 function updateAlertChart() {
@@ -520,35 +547,38 @@ function updateAlertChart() {
     { value: severity.low ?? 0, name: '低级', itemStyle: { color: '#8C8C8C' } },
   ];
 
-  alertChart.setOption({
-    tooltip: {
-      trigger: 'item',
-      formatter: '{b}: {c} ({d}%)',
-    },
-    legend: {
-      orient: 'vertical',
-      right: '5%',
-      top: 'center',
-      textStyle: { color: '#8C8C8C', fontSize: 12 },
-      itemWidth: 12,
-      itemHeight: 12,
-      itemGap: 16,
-    },
-    series: [
-      {
-        type: 'pie',
-        radius: ['45%', '70%'],
-        center: ['35%', '50%'],
-        avoidLabelOverlap: false,
-        label: { show: false },
-        emphasis: {
-          label: { show: true, fontSize: 14, fontWeight: 'bold' },
-        },
-        labelLine: { show: false },
-        data,
+  alertChart.setOption(
+    {
+      tooltip: {
+        trigger: 'item',
+        formatter: '{b}: {c} ({d}%)',
       },
-    ],
-  }, true);
+      legend: {
+        orient: 'vertical',
+        right: '5%',
+        top: 'center',
+        textStyle: { color: '#8C8C8C', fontSize: 12 },
+        itemWidth: 12,
+        itemHeight: 12,
+        itemGap: 16,
+      },
+      series: [
+        {
+          type: 'pie',
+          radius: ['45%', '70%'],
+          center: ['35%', '50%'],
+          avoidLabelOverlap: false,
+          label: { show: false },
+          emphasis: {
+            label: { show: true, fontSize: 14, fontWeight: 'bold' },
+          },
+          labelLine: { show: false },
+          data,
+        },
+      ],
+    },
+    true,
+  );
 }
 
 function updateCharts() {
@@ -586,9 +616,13 @@ onBeforeUnmount(() => {
   }
 });
 
-watch(alertStats, () => {
-  updateCharts();
-}, { deep: true });
+watch(
+  alertStats,
+  () => {
+    updateCharts();
+  },
+  { deep: true },
+);
 </script>
 
 <style scoped lang="scss">
@@ -627,7 +661,9 @@ $cv-text-secondary: $text-secondary;
   align-items: center;
   gap: 16px;
   box-shadow: 0 1px 4px rgba(0, 0, 0, 0.06);
-  transition: transform 0.2s ease, box-shadow 0.2s ease;
+  transition:
+    transform 0.2s ease,
+    box-shadow 0.2s ease;
   position: relative;
 
   &:hover {

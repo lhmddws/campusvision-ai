@@ -14,7 +14,10 @@
           class="select-none outer-most"
           :style="{ color: variables.menuSubColor }"
         >
-          <svg-icon v-if="!isNest" :icon-class="onlyOneChild.meta.icon || (item.meta && item.meta.icon)" />
+          <svg-icon
+            v-if="!isNest"
+            :icon-class="onlyOneChild.meta.icon || (item.meta && item.meta.icon)"
+          />
           <template #title>
             <span
               class="menu-title"

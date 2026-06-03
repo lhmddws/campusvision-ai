@@ -33,7 +33,7 @@ vi.mock('@/api/attendance', () => ({
           ],
         },
       ],
-    })
+    }),
   ),
 }));
 
@@ -77,9 +77,9 @@ describe('Inspection Page', () => {
   it('renders export buttons', () => {
     wrapper = createWrapper();
     const buttons = wrapper.findAll('button');
-    const buttonTexts = buttons.map((b) => b.text());
-    expect(buttonTexts.some((t) => t.includes('导出 Excel'))).toBe(true);
-    expect(buttonTexts.some((t) => t.includes('导出 PDF'))).toBe(true);
+    const buttonTexts = buttons.map(b => b.text());
+    expect(buttonTexts.some(t => t.includes('导出 Excel'))).toBe(true);
+    expect(buttonTexts.some(t => t.includes('导出 PDF'))).toBe(true);
   });
 
   it('renders table after data loads', async () => {
@@ -93,7 +93,7 @@ describe('Inspection Page', () => {
     wrapper = createWrapper();
     await vi.dynamicImportSettled();
     const cells = wrapper.findAll('.el-table__body-wrapper .cell');
-    const allText = cells.map((c) => c.text()).join(' ');
+    const allText = cells.map(c => c.text()).join(' ');
     expect(allText).toContain('A-101');
     expect(allText).toContain('A-102');
   });
