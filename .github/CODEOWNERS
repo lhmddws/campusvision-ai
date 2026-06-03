@@ -1,0 +1,9 @@
+# Code ownership for CampusVision AI monorepo
+
+* @lhmddws
+/stream-gateway/ @lhmddws
+/face-recognition/ @lhmddws
+/dormitory-service-go/ @lhmddws
+/frontend/ @lhmddws
+/doc/ @lhmddws
+/infra/ @lhmddws
