@@ -1,5 +1,16 @@
 # CampusVision AI
 
+<p align="center">
+  <img src="https://img.shields.io/badge/Go-1.26-00ADD8?logo=go" alt="Go">
+  <img src="https://img.shields.io/badge/Python-3.11-3776AB?logo=python" alt="Python">
+  <img src="https://img.shields.io/badge/Vue-3.2-4FC08D?logo=vue.js" alt="Vue">
+  <img src="https://img.shields.io/badge/TypeScript-5-3176C8?logo=typescript" alt="TypeScript">
+  <img src="https://img.shields.io/badge/Kafka-7.6-231F20?logo=apache-kafka" alt="Kafka">
+  <img src="https://img.shields.io/badge/license-MIT-green" alt="License">
+</p>
+
+[![CI](https://github.com/lhmddws/campusvision-ai/actions/workflows/ci.yml/badge.svg)](https://github.com/lhmddws/campusvision-ai/actions/workflows/ci.yml)
+
 AI-powered dormitory surveillance system with multi-camera RTSP streaming, real-time face recognition, automated attendance & alerting, and a Vue 3 SPA dashboard.
 
 ```
@@ -119,6 +130,17 @@ docker compose build \
 - **Event deduplication** via Redis (3600s TTL)
 - **Vue 3 SPA dashboard** — monitoring, camera management, events, alerts, attendance, face records, system config
 
+## Repository
+
+| Resource        | Link                                                       |
+| --------------- | ---------------------------------------------------------- |
+| Issue Tracker   | [GitHub Issues](https://github.com/lhmddws/campusvision-ai/issues) |
+| Pull Requests   | [GitHub Pulls](https://github.com/lhmddws/campusvision-ai/pulls)   |
+| API Docs        | [`doc/api/`](doc/api/)                                           |
+| Design Docs     | [`doc/design/`](doc/design/)                              |
+| PRDs            | [`doc/prd/`](doc/prd/)                                     |
+| License         | [MIT](LICENSE)                                             |
+
 ## Development
 
 See [AGENTS.md](AGENTS.md) for detailed architecture docs, cross-module gotchas, team division, and CI setup.
@@ -140,3 +162,10 @@ cd frontend && npx vitest run
 
 - **ONNX models**: Model files are gitignored (`*.onnx`). Download via `python -m app.download_models` or Docker build.
 - **Haar Cascade path**: Fixed in f6a24e0 — uses `cv2.data.haarcascades` (portable) in detector.py.
+
+## Related
+
+- [stream-gateway](stream-gateway/) — RTSP stream ingestion
+- [face-recognition](face-recognition/) — Face detection & recognition
+- [dormitory-service-go](dormitory-service-go/) — Business API
+- [frontend](frontend/) — Vue 3 SPA dashboard
