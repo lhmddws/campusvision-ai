@@ -98,18 +98,19 @@ func main() {
 	configRepo := repository.NewConfigRepository(db)
 	cameraLogRepo := repository.NewCameraLogRepository(db)
 	buildingRepo := repository.NewBuildingRepository(db)
+	faceRepo := repository.NewFaceRepository(db)
 
 	// Initialize push client for stream-gateway notifications
 	pushBaseURL := os.Getenv("CAMERA_MANAGEMENT_BASE_URL")
 	if pushBaseURL == "" {
-		pushBaseURL = "http://localhost:8080"
+		pushBaseURL = cfg.Gateway.URL
 	}
 	pushAPIKey := os.Getenv("CAMERA_MANAGEMENT_API_KEY")
 	pushClient := client.NewPushClient(pushBaseURL, pushAPIKey)
 
 	gatewayURL := os.Getenv("STREAM_GATEWAY_URL")
 	if gatewayURL == "" {
-		gatewayURL = "http://localhost:8080"
+		gatewayURL = cfg.Gateway.URL
 	}
 
 	// Initialize services
@@ -117,6 +118,7 @@ func main() {
 	recordSvc := service.NewRecordService(eventLogRepo, studentRepo, buildingRepo, logger)
 	alertSvc := service.NewAlertService(alertRepo, strangerRecordRepo, logger)
 	configSvc := service.NewConfigService(configRepo, logger)
+	faceSvc := service.NewFaceService(faceRepo, logger)
 
 	// Initialize handlers
 	h := handler.NewHandler(cameraSvc, recordSvc, alertSvc, configSvc, db, cfg.Face.MatchThreshold, cfg.Face.MatchKey)
@@ -124,6 +126,7 @@ func main() {
 	recordHandler := handler.NewRecordHandler(recordSvc)
 	alertHandler := handler.NewAlertHandler(alertSvc)
 	configHandler := handler.NewConfigHandler(configSvc)
+	faceHandler := handler.NewFaceHandler(faceSvc)
 
 	// Initialize Kafka event consumer
 	eventConsumer := consumer.NewEventConsumer(
@@ -148,6 +151,7 @@ func main() {
 	// Setup scheduler manager
 	schedulerManager := scheduler.NewManager(logger)
 	schedulerManager.AddJob("0 */5 * * * *", scheduler.NewHealthCheckJob(logger, cameraSvc))
+	schedulerManager.AddJob("0 0 23 * * *", scheduler.NewGenerateNightlyReport(logger))
 
 	// Setup Gin router
 	ginMode := gin.ReleaseMode
@@ -261,6 +265,17 @@ func main() {
 		configs.PUT("/:key", configHandler.UpdateConfig)
 		configs.PUT("/batch", configHandler.BatchUpdate)
 		configs.POST("/:key/reset", configHandler.ResetConfig)
+	}
+
+	// Face CRUD routes (JWT-protected)
+	faces := router.Group("/sims/dorm/faces")
+	faces.Use(jwtMiddleware.RequireAuth())
+	{
+		faces.GET("", faceHandler.List)
+		faces.POST("", faceHandler.Create)
+		faces.PUT("/:id", faceHandler.Update)
+		faces.DELETE("/:id", faceHandler.Delete)
+		faces.POST("/batch-import", faceHandler.BatchImport)
 	}
 
 	// Face routes — /api/face/match is internal (called by face-recognition service, no JWT)

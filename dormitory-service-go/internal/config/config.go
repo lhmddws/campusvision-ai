@@ -18,6 +18,7 @@ type Config struct {
 	Auth     AuthConfig     `mapstructure:"auth"`
 	Face     FaceConfig     `mapstructure:"face"`
 	Camera   CameraConfig   `mapstructure:"camera"`
+	Gateway  GatewayConfig  `mapstructure:"gateway"`
 	Log      LogConfig      `mapstructure:"log"`
 }
 
@@ -74,6 +75,11 @@ type CameraConfig struct {
 	MaxCameras int `mapstructure:"max_cameras"`
 }
 
+// GatewayConfig holds stream-gateway connection settings.
+type GatewayConfig struct {
+	URL string `mapstructure:"url"`
+}
+
 // LogConfig holds logging settings.
 type LogConfig struct {
 	Level string `mapstructure:"level"`
@@ -110,6 +116,7 @@ func Load(configPath string) (*Config, error) {
 	v.SetDefault("face.match_threshold", 0.65)
 	v.SetDefault("face.match_key", "")
 	v.SetDefault("camera.max_cameras", 50)
+	v.SetDefault("gateway.url", "http://localhost:8080")
 	v.SetDefault("log.level", "info")
 
 	// --- Config file ---
