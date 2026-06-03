@@ -13,11 +13,11 @@ RTSP Cameras (A/B/C/D)
   → Kafka Producer → t_dorm_frame (hash by building, Snappy)
 ```
 
-| Property | Value |
-|---|---|
-| Language | Go 1.26 |
-| Ports | 8080 (health), 8081 (management API) |
-| Entrypoint | `cmd/main.go` |
+| Property    | Value                                                                 |
+| ----------- | --------------------------------------------------------------------- |
+| Language    | Go 1.26                                                               |
+| Ports       | 8080 (health), 8081 (management API)                                  |
+| Entrypoint  | `cmd/main.go`                                                         |
 | Kafka Topic | `t_dorm_frame` (4 partitions, hash by `building`, Snappy compression) |
 
 ## Directory Structure
@@ -68,13 +68,13 @@ docker compose up -d stream-gateway
 
 ```yaml
 frame:
-  fps_day: 5              # Daytime frame rate
-  fps_night: 1            # Nighttime frame rate
+  fps_day: 5 # Daytime frame rate
+  fps_night: 1 # Nighttime frame rate
   jpeg_quality: 80
   width: 1280
   height: 720
   dynamic_extraction: true # Enable motion-based dynamic frame extraction
-  motion_threshold: 0.05   # Motion threshold (160×90 Y-plane mean absolute differential)
+  motion_threshold: 0.05 # Motion threshold (160×90 Y-plane mean absolute differential)
 
 kafka:
   brokers: ["localhost:9092"]
@@ -85,7 +85,7 @@ kafka:
 rtsp:
   reconnect_interval: 5s
   read_timeout: 10s
-  max_reconnect_attempts: 0  # 0 = infinite retry
+  max_reconnect_attempts: 0 # 0 = infinite retry
 
 health:
   port: 8080
@@ -93,18 +93,18 @@ health:
 management:
   port: 8081
   bind_address: "127.0.0.1"
-  management_key: ""         # Empty = no auth
+  management_key: "" # Empty = no auth
 
 database:
   dsn: "root:root@tcp(localhost:3306)/dormitory"
   driver: "mysql"
-  poll_interval: 30s         # DB polling interval
+  poll_interval: 30s # DB polling interval
 ```
 
 ### Environment Variables
 
-| Variable | Description |
-|---|---|
+| Variable                | Description                                                                                   |
+| ----------------------- | --------------------------------------------------------------------------------------------- |
 | `CAMERA_ENCRYPTION_KEY` | 32-byte AES-256-GCM key for RTSP password decryption. Falls back to built-in dev key if unset |
 
 > **Note**: `CAMERA_ENCRYPTION_KEY` must match the one in `dormitory-service-go`, otherwise cross-module password decryption will fail.
@@ -138,29 +138,29 @@ Signal → stop all camera goroutines → HTTP server Shutdown → context cance
 cd stream-gateway && go test ./...
 ```
 
-| Test File | Coverage |
-|---|---|
-| `internal/health/handler_test.go` | Health check handler |
-| `internal/management/handler_test.go` | Management API handler |
-| `internal/config/camera_config_test.go` | Config parsing |
-| `internal/crypto/service_test.go` | AES-256-GCM encryption/decryption |
+| Test File                               | Coverage                          |
+| --------------------------------------- | --------------------------------- |
+| `internal/health/handler_test.go`       | Health check handler              |
+| `internal/management/handler_test.go`   | Management API handler            |
+| `internal/config/camera_config_test.go` | Config parsing                    |
+| `internal/crypto/service_test.go`       | AES-256-GCM encryption/decryption |
 
 ## API
 
 ### Health Check (port 8080)
 
-| Method | Path | Description |
-|---|---|---|
-| GET | `/health` | Service health status |
+| Method | Path      | Description           |
+| ------ | --------- | --------------------- |
+| GET    | `/health` | Service health status |
 
 ### Management API (port 8081)
 
-| Method | Path | Description |
-|---|---|---|
-| GET | `/cameras` | List all cameras |
-| POST | `/cameras` | Add camera |
-| DELETE | `/cameras/:id` | Remove camera |
-| GET | `/status` | Gateway runtime status |
+| Method | Path           | Description            |
+| ------ | -------------- | ---------------------- |
+| GET    | `/cameras`     | List all cameras       |
+| POST   | `/cameras`     | Add camera             |
+| DELETE | `/cameras/:id` | Remove camera          |
+| GET    | `/status`      | Gateway runtime status |
 
 > Management API requires `management.management_key` configured and `X-Management-Key` header in requests.
 

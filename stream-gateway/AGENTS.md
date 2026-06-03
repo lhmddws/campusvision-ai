@@ -1,4 +1,5 @@
 # stream-gateway — AGENTS.md
+
 RTSP video ingestion service that decodes camera streams via ffmpeg and publishes frames to Kafka.
 
 ## Architecture
@@ -9,6 +10,7 @@ RTSP cameras → internal/decoder (ffmpeg subprocess) → YUV420P frames
 ```
 
 **9 internal packages, strict unidirectional deps, zero interfaces:**
+
 - `cmd/main.go` → `camera` → `decoder` + `frame` + `kafka`
 - `camera` manages per-camera goroutines with dual cancellation (`ctx` + `stopCh`)
 - `decoder/ffmpeg.go` spawns ffmpeg, reads raw YUV420P from stdout
@@ -18,6 +20,7 @@ RTSP cameras → internal/decoder (ffmpeg subprocess) → YUV420P frames
 ## Entry Point
 
 `cmd/main.go` (lines 25-108):
+
 - Config loaded via CLI `--config` flag (not env var like other modules)
 - Graceful shutdown: signal → `camManager.Stop()` → server `Shutdown(ctx)` → `cancel()`
 - **Dual cancellation paths**: `dbPollLoop` watches `ctx.Done()`, camera streams watch `stopCh`
@@ -25,15 +28,15 @@ RTSP cameras → internal/decoder (ffmpeg subprocess) → YUV420P frames
 
 ## Key Packages
 
-| Package | Purpose | Gotchas |
-|---------|---------|---------|
-| `internal/decoder` | ffmpeg subprocess management | Frame size hardcoded `width*height*3/2` (decoder.go:46); no retry on crash |
-| `internal/kafka` | Kafka producer wrapper | No backpressure/retry; `KAFKA_BROKERS` mentioned in config.yaml comments but never read in code |
-| `internal/health` | Health check HTTP handler | `ServeHTTP()` dead code (handler.go:35, never called); status throttled to every 30 frames or 5s |
-| `internal/frame` | Motion detection + dynamic extraction | 160×90 downsampled Y-plane diff (extractor.go:48); threshold from config |
-| `internal/camera` | Camera config + DB sync | `DiffAndSync` set-diff has race window during sync (manager.go:134-166) |
-| `internal/crypto` | AES-256-GCM encryption | Dev keys differ from dormitory-service-go — cross-module decrypt fails |
-| `internal/config` | YAML config structs | `LogConfig.Level` defined but unused (all stdlib `log.Printf`) |
+| Package            | Purpose                               | Gotchas                                                                                          |
+| ------------------ | ------------------------------------- | ------------------------------------------------------------------------------------------------ |
+| `internal/decoder` | ffmpeg subprocess management          | Frame size hardcoded `width*height*3/2` (decoder.go:46); no retry on crash                       |
+| `internal/kafka`   | Kafka producer wrapper                | No backpressure/retry; `KAFKA_BROKERS` mentioned in config.yaml comments but never read in code  |
+| `internal/health`  | Health check HTTP handler             | `ServeHTTP()` dead code (handler.go:35, never called); status throttled to every 30 frames or 5s |
+| `internal/frame`   | Motion detection + dynamic extraction | 160×90 downsampled Y-plane diff (extractor.go:48); threshold from config                         |
+| `internal/camera`  | Camera config + DB sync               | `DiffAndSync` set-diff has race window during sync (manager.go:134-166)                          |
+| `internal/crypto`  | AES-256-GCM encryption                | Dev keys differ from dormitory-service-go — cross-module decrypt fails                           |
+| `internal/config`  | YAML config structs                   | `LogConfig.Level` defined but unused (all stdlib `log.Printf`)                                   |
 
 ## Critical Gotchas
 
@@ -48,6 +51,7 @@ RTSP cameras → internal/decoder (ffmpeg subprocess) → YUV420P frames
 ## Testing
 
 **4 test files** (white-box, same package):
+
 - `internal/health/handler_test.go` — health handler
 - `internal/management/handler_test.go` — mgmt handler with X-Management-Key auth
 - `internal/config/camera_config_test.go` — camera config parsing
@@ -60,6 +64,7 @@ RTSP cameras → internal/decoder (ffmpeg subprocess) → YUV420P frames
 ## Configuration
 
 **config.yaml fields:**
+
 - `cameras[]`: static camera list (empty by default, DB polling preferred)
 - `kafka.brokers`: `["localhost:9092"]` (Docker: `kafka:9092`)
 - `kafka.topic`: `t_dorm_frame`
@@ -68,12 +73,14 @@ RTSP cameras → internal/decoder (ffmpeg subprocess) → YUV420P frames
 - `log.level`: defined but unused
 
 **Env vars:**
+
 - `CAMERA_ENCRYPTION_KEY`: 32-byte AES-256-GCM key for RTSP password decryption
 - `KAFKA_BROKERS`: documented in config.yaml comments but NOT implemented
 
 **Docker override**: `config.docker.yaml` bind-mounted, overrides ports/hosts for container networking.
 
 **Dynamic frame extraction** (config.yaml:10-17):
+
 - `fps_day: 5`, `fps_night: 1`
 - `motion_threshold: 0.05` (160×90 Y-plane mean abs diff)
 - `dynamic_extraction: true` (gates motion-based capture)

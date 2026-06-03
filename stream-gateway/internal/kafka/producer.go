@@ -12,15 +12,15 @@ import (
 )
 
 type FrameMessage struct {
-	CameraID       string `json:"camera_id"`
-	Building       string `json:"building"`
-	Timestamp      int64  `json:"timestamp"`
-	FrameSequence  int64  `json:"frame_sequence"`
-	FrameData      string `json:"frame_data"`
-	FrameWidth     int    `json:"frame_width"`
-	FrameHeight    int    `json:"frame_height"`
-	JPEGQuality    int    `json:"jpeg_quality"`
-	IsDynamic      bool   `json:"is_dynamic"`
+	CameraID      string `json:"camera_id"`
+	Building      string `json:"building"`
+	Timestamp     int64  `json:"timestamp"`
+	FrameSequence int64  `json:"frame_sequence"`
+	FrameData     string `json:"frame_data"`
+	FrameWidth    int    `json:"frame_width"`
+	FrameHeight   int    `json:"frame_height"`
+	JPEGQuality   int    `json:"jpeg_quality"`
+	IsDynamic     bool   `json:"is_dynamic"`
 }
 
 type Producer struct {
@@ -39,7 +39,7 @@ func NewProducer(cfg config.KafkaConfig) *Producer {
 	writer := &kafka.Writer{
 		Addr:         kafka.TCP(cfg.Brokers...),
 		Topic:        cfg.Topic,
-		Balancer:     &kafka.Hash{},  // same building → same partition
+		Balancer:     &kafka.Hash{}, // same building → same partition
 		Compression:  compression,
 		BatchSize:    cfg.BatchSize,
 		BatchTimeout: 50 * time.Millisecond,

@@ -19,13 +19,13 @@ t_dorm_frame (Kafka)
   → t_dorm_event (Kafka, raw JSON)
 ```
 
-| Property | Value |
-|---|---|
-| Language | Python 3.11 |
-| Port | None (pure Kafka consumer/producer) |
+| Property   | Value                                     |
+| ---------- | ----------------------------------------- |
+| Language   | Python 3.11                               |
+| Port       | None (pure Kafka consumer/producer)       |
 | Entrypoint | `python -m app.main --config config.yaml` |
-| Consumes | `t_dorm_frame` |
-| Produces | `t_dorm_event` |
+| Consumes   | `t_dorm_frame`                            |
+| Produces   | `t_dorm_event`                            |
 
 ## Directory Structure
 
@@ -117,7 +117,7 @@ kafka:
   group_id: "face-recognition-group"
 
 detection:
-  model_path: "app/models/retinaface-R50.onnx"  # Empty string → Haar Cascade fallback
+  model_path: "app/models/retinaface-R50.onnx" # Empty string → Haar Cascade fallback
   confidence_threshold: 0.6
   input_size: [640, 640]
   min_face_size: 80
@@ -132,7 +132,7 @@ match:
   sims_api_url: "http://localhost:8083/api/face/match"
   sims_api_timeout: 3.0
   match_threshold: 0.65
-  fallback_to_cache: true    # Fall back to Redis cache scan on API failure
+  fallback_to_cache: true # Fall back to Redis cache scan on API failure
 
 redis:
   host: "localhost"
@@ -140,7 +140,7 @@ redis:
   db: 0
 
 behavior:
-  enabled: false             # Behavior analysis disabled by default
+  enabled: false # Behavior analysis disabled by default
 ```
 
 Full configuration reference: `config.yaml` and the 12 dataclasses in `app/config.py`.
@@ -149,10 +149,10 @@ Full configuration reference: `config.yaml` and the 12 dataclasses in `app/confi
 
 ### Dual Detection Strategy
 
-| Mode | Model | Trigger |
-|---|---|---|
-| Primary | RetinaFace ONNX | `detection.model_path` points to valid `.onnx` file |
-| Fallback | Haar Cascade (OpenCV) | `model_path` empty or file not found |
+| Mode     | Model                 | Trigger                                             |
+| -------- | --------------------- | --------------------------------------------------- |
+| Primary  | RetinaFace ONNX       | `detection.model_path` points to valid `.onnx` file |
+| Fallback | Haar Cascade (OpenCV) | `model_path` empty or file not found                |
 
 ### Identity Matching Flow
 
@@ -168,12 +168,12 @@ Redis key format: `dedup:{student_id}:{direction}:{camera_id}`, TTL controlled b
 
 Set `behavior.enabled: true` to enable. Supported behaviors:
 
-| Behavior | Threshold Config |
-|---|---|
-| Loitering | `loitering_threshold_seconds`, `loitering_radius_px` |
-| Running | `running_speed_threshold_px_per_sec` |
-| Zone Intrusion | `zones[]` polygon definitions |
-| Crowd Gathering | `crowd_threshold_count`, `crowd_debounce_frames` |
+| Behavior        | Threshold Config                                     |
+| --------------- | ---------------------------------------------------- |
+| Loitering       | `loitering_threshold_seconds`, `loitering_radius_px` |
+| Running         | `running_speed_threshold_px_per_sec`                 |
+| Zone Intrusion  | `zones[]` polygon definitions                        |
+| Crowd Gathering | `crowd_threshold_count`, `crowd_debounce_frames`     |
 
 ## Testing
 
@@ -183,13 +183,13 @@ cd face-recognition && pytest tests/
 
 Tests use Haar Cascade fallback (no ONNX models required):
 
-| Test File | Coverage |
-|---|---|
-| `test_detector.py` | Haar fallback detection, blur filtering |
-| `test_behavior.py` | Loitering/running/zone intrusion/crowd detection |
-| `test_tracker.py` | IoU tracking, trajectory expiration |
-| `test_event_publisher.py` | Behavior event Kafka publishing |
-| `test_integration.py` | End-to-end pipeline (mock Kafka) |
+| Test File                 | Coverage                                         |
+| ------------------------- | ------------------------------------------------ |
+| `test_detector.py`        | Haar fallback detection, blur filtering          |
+| `test_behavior.py`        | Loitering/running/zone intrusion/crowd detection |
+| `test_tracker.py`         | IoU tracking, trajectory expiration              |
+| `test_event_publisher.py` | Behavior event Kafka publishing                  |
+| `test_integration.py`     | End-to-end pipeline (mock Kafka)                 |
 
 ## Kafka Message Formats
 

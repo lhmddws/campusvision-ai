@@ -13,13 +13,13 @@ t_dorm_alert (Kafka) → AlertConsumer → (skeleton, not yet implemented)
 Frontend SPA → Gin HTTP API (:8083) → MariaDB + Redis
 ```
 
-| Property | Value |
-|---|---|
-| Language | Go 1.26 |
-| Port | 8083 |
+| Property   | Value                           |
+| ---------- | ------------------------------- |
+| Language   | Go 1.26                         |
+| Port       | 8083                            |
 | Entrypoint | `cmd/dormitory-service/main.go` |
-| Framework | Gin + sqlx + go-redis + Viper |
-| Consumes | `t_dorm_event`, `t_dorm_alert` |
+| Framework  | Gin + sqlx + go-redis + Viper   |
+| Consumes   | `t_dorm_event`, `t_dorm_alert`  |
 
 ## Directory Structure
 
@@ -106,11 +106,11 @@ log:
 
 ### Environment Variables
 
-| Variable | Description |
-|---|---|
-| `CONFIG_PATH` | Config file path (default `config.yaml`) |
-| `JWT_SECRET` | JWT signing key — must be set in production, must match main backend |
-| `CAMERA_ENCRYPTION_KEY` | 32-byte AES-256-GCM key — must match stream-gateway |
+| Variable                | Description                                                          |
+| ----------------------- | -------------------------------------------------------------------- |
+| `CONFIG_PATH`           | Config file path (default `config.yaml`)                             |
+| `JWT_SECRET`            | JWT signing key — must be set in production, must match main backend |
+| `CAMERA_ENCRYPTION_KEY` | 32-byte AES-256-GCM key — must match stream-gateway                  |
 
 > Config loading priority: defaults < config.yaml < environment variables. Supports Spring Boot-style env vars (`SPRING_DATASOURCE_URL`, `KAFKA_BOOTSTRAP_SERVERS`, etc.).
 
@@ -120,42 +120,42 @@ All endpoints return a unified `{code, message, data}` envelope.
 
 ### Camera Management
 
-| Method | Path | Description |
-|---|---|---|
-| GET | `/api/cameras` | List cameras |
-| POST | `/api/cameras` | Register camera |
-| PUT | `/api/cameras/:id` | Update camera |
-| DELETE | `/api/cameras/:id` | Delete camera |
-| GET | `/api/cameras/:id/status` | Camera status |
+| Method | Path                      | Description     |
+| ------ | ------------------------- | --------------- |
+| GET    | `/api/cameras`            | List cameras    |
+| POST   | `/api/cameras`            | Register camera |
+| PUT    | `/api/cameras/:id`        | Update camera   |
+| DELETE | `/api/cameras/:id`        | Delete camera   |
+| GET    | `/api/cameras/:id/status` | Camera status   |
 
 ### Attendance & Events
 
-| Method | Path | Description |
-|---|---|---|
-| GET | `/api/records` | Entry/exit records |
-| GET | `/api/events` | Event list |
-| GET | `/api/attendance` | Attendance statistics |
+| Method | Path              | Description           |
+| ------ | ----------------- | --------------------- |
+| GET    | `/api/records`    | Entry/exit records    |
+| GET    | `/api/events`     | Event list            |
+| GET    | `/api/attendance` | Attendance statistics |
 
 ### Alerts
 
-| Method | Path | Description |
-|---|---|---|
-| GET | `/api/alerts` | Alert list |
-| PUT | `/api/alerts/:id/handle` | Handle alert |
+| Method | Path                     | Description  |
+| ------ | ------------------------ | ------------ |
+| GET    | `/api/alerts`            | Alert list   |
+| PUT    | `/api/alerts/:id/handle` | Handle alert |
 
 ### Face
 
-| Method | Path | Description |
-|---|---|---|
-| POST | `/api/face/match` | Face feature matching (cosine similarity) |
-| POST | `/api/face/embed` | Face feature extraction (skeleton, returns null) |
+| Method | Path              | Description                                      |
+| ------ | ----------------- | ------------------------------------------------ |
+| POST   | `/api/face/match` | Face feature matching (cosine similarity)        |
+| POST   | `/api/face/embed` | Face feature extraction (skeleton, returns null) |
 
 ### System Config
 
-| Method | Path | Description |
-|---|---|---|
-| GET | `/api/configs` | System config list |
-| PUT | `/api/configs/:key` | Update config item |
+| Method | Path                | Description        |
+| ------ | ------------------- | ------------------ |
+| GET    | `/api/configs`      | System config list |
+| PUT    | `/api/configs/:key` | Update config item |
 
 Full API spec: [`doc/api/dormitory-service-api.json`](../doc/api/dormitory-service-api.json).
 
@@ -173,10 +173,10 @@ EventConsumer reads from `t_dorm_event` and calls the repository layer directly 
 
 ### Scheduled Tasks
 
-| Task | Schedule | Description |
-|---|---|---|
+| Task                      | Schedule    | Description                                  |
+| ------------------------- | ----------- | -------------------------------------------- |
 | Nightly attendance report | Daily 23:00 | Generate daily attendance summary (skeleton) |
-| Camera health check | Every 5 min | Poll stream-gateway health endpoint |
+| Camera health check       | Every 5 min | Poll stream-gateway health endpoint          |
 
 ### Generic Repository
 

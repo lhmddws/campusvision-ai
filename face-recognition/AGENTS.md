@@ -1,12 +1,15 @@
 # face-recognition — AGENTS.md
+
 Python service for real-time face detection, recognition, and behavior analysis from Kafka frame streams.
 
 ## Architecture
+
 ```
 t_dorm_frame (Kafka) → frame decode → face detect → embed → match → behavior analyze → t_dorm_event (Kafka)
 ```
 
 **11-step pipeline:**
+
 1. Kafka consumer polls `t_dorm_frame` (partition keyed by `building`)
 2. Base64 decode `frame_data` → JPEG → BGR numpy array
 3. Night-mode enhancement (CLAHE) when `night_mode.enabled` and hour in range
@@ -24,25 +27,28 @@ t_dorm_frame (Kafka) → frame decode → face detect → embed → match → be
 **Dual embedding:** ONNX ArcFace (primary) → zero-vector fallback (returns null embedding when model missing)
 
 ## Entry Points
+
 - `python -m app.main --config config.yaml` — main service (Kafka consumer/producer loop, no HTTP port)
 - `python -m app.download_models` — downloads ONNX models from `app/models/model_urls.yaml` with SHA256 verification
 - **Docker CMD gap:** `CMD ["python", "-m", "app.main"]` (line 24) omits `--config` flag — relies on bind-mounted `config.docker.yaml`
 
 ## Key Modules
-| Module | Purpose | Gotchas |
-|--------|---------|---------|
-| `app/main.py` | Service entry point, Kafka consumer/producer loop | Argparse `--config` flag (default: `config.yaml`); behavior components (tracker, analyzer, publisher) only initialized when `cfg.behavior.enabled` |
-| `app/detector.py` | Face detection (ONNX + Haar fallback) | Haar uses `cv2.data.haarcascades` — fails on non-macOS or different OpenCV versions; tests rely on this fallback |
-| `app/embedder.py` | Face embedding (ONNX + zero-vector fallback) | Returns null embedding when model missing; batch extraction for all faces in frame |
-| `app/matcher.py` | Identity matching via external API + Redis cache | Calls `POST /api/face/match` on dormitory-service-go:8083; falls back to Redis cache scan when `fallback_to_cache: true` and API fails |
-| `app/behavior.py` | Behavior analysis (loitering, running, zone intrusion, crowd) | Gated by `behavior.enabled: false` in config — tracker, analyzer, publisher all inert when disabled |
-| `app/download_models.py` | ONNX model downloader with SHA256 verification | `PLACEHOLDER_SHA256` sentinel (line 30) is dead code — models in `model_urls.yaml` have real hashes |
-| `app/config.py` | 12 dataclass config definitions | All fields have defaults; YAML overrides; nested `BehaviorEventConfig` in `BehaviorConfig`; loaded via `load_config()` |
-| `app/tracker.py` | Face tracking across frames (IoU-based) | Only initialized when behavior analysis enabled; generates `track_id` for behavior events |
-| `app/dedup.py` | Redis-based event deduplication | Key format: `dedup:{student_id}:{direction}:{camera_id}`; TTL from `dedup.window_seconds` |
-| `app/direction.py` | Entry/exit determination via ROI line crossing | Uses `roi_line_x` (default 0.5 = center vertical line); tracks face centroid crossing |
+
+| Module                   | Purpose                                                       | Gotchas                                                                                                                                            |
+| ------------------------ | ------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `app/main.py`            | Service entry point, Kafka consumer/producer loop             | Argparse `--config` flag (default: `config.yaml`); behavior components (tracker, analyzer, publisher) only initialized when `cfg.behavior.enabled` |
+| `app/detector.py`        | Face detection (ONNX + Haar fallback)                         | Haar uses `cv2.data.haarcascades` — fails on non-macOS or different OpenCV versions; tests rely on this fallback                                   |
+| `app/embedder.py`        | Face embedding (ONNX + zero-vector fallback)                  | Returns null embedding when model missing; batch extraction for all faces in frame                                                                 |
+| `app/matcher.py`         | Identity matching via external API + Redis cache              | Calls `POST /api/face/match` on dormitory-service-go:8083; falls back to Redis cache scan when `fallback_to_cache: true` and API fails             |
+| `app/behavior.py`        | Behavior analysis (loitering, running, zone intrusion, crowd) | Gated by `behavior.enabled: false` in config — tracker, analyzer, publisher all inert when disabled                                                |
+| `app/download_models.py` | ONNX model downloader with SHA256 verification                | `PLACEHOLDER_SHA256` sentinel (line 30) is dead code — models in `model_urls.yaml` have real hashes                                                |
+| `app/config.py`          | 12 dataclass config definitions                               | All fields have defaults; YAML overrides; nested `BehaviorEventConfig` in `BehaviorConfig`; loaded via `load_config()`                             |
+| `app/tracker.py`         | Face tracking across frames (IoU-based)                       | Only initialized when behavior analysis enabled; generates `track_id` for behavior events                                                          |
+| `app/dedup.py`           | Redis-based event deduplication                               | Key format: `dedup:{student_id}:{direction}:{camera_id}`; TTL from `dedup.window_seconds`                                                          |
+| `app/direction.py`       | Entry/exit determination via ROI line crossing                | Uses `roi_line_x` (default 0.5 = center vertical line); tracks face centroid crossing                                                              |
 
 ## Critical Gotchas
+
 1. **Haar Cascade path**: `detector.py:255-257` uses `cv2.data.haarcascades + "haarcascade_frontalface_default.xml"` — OpenCV-bundled path, not hardcoded Homebrew; tests rely on this fallback when ONNX unavailable.
 2. **Docker CMD missing --config**: Dockerfile line 24 lacks `--config` flag — relies on bind-mounted `config.docker.yaml` (copied at build time) or default `config.yaml`.
 3. **External API dependency**: `matcher.py:80-97` calls `POST /api/face/match` on dormitory-service-go:8083. Falls back to Redis cache scan when `fallback_to_cache: true` and API fails (timeout, connection error).
@@ -53,7 +59,9 @@ t_dorm_frame (Kafka) → frame decode → face detect → embed → match → be
 8. **Matcher API URL**: `match.sims_api_url` defaults to empty string — must be set in config or via env; uses `httpx` with `match.sims_api_timeout` (default 3.0s).
 
 ## Testing
+
 **7 test files** under `tests/`:
+
 - `conftest.py` — session-scoped fixtures (`face_detector`, `synthetic_image`, `blurry_image`)
 - `test_detector.py` — Haar fallback detection, blur filtering
 - `test_behavior.py` — loitering, running, zone intrusion, crowd detection
@@ -71,7 +79,9 @@ t_dorm_frame (Kafka) → frame decode → face detect → embed → match → be
 **Coverage:** All `app/` modules have tests. `manual_qa.py` exists but is not pytest — manual verification script for QA testing.
 
 ## Configuration
+
 **`config.yaml` fields:**
+
 - `kafka.brokers`, `kafka.frame_topic`, `kafka.event_topic`, `kafka.group_id`, `kafka.max_poll_records`
 - `redis.host`, `redis.port`, `redis.db`, `redis.socket_timeout`
 - `detection.model_path`, `detection.confidence_threshold`, `detection.input_size`, `detection.min_face_size`, `detection.blur_threshold`, `detection.nms_iou_threshold`

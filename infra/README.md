@@ -18,12 +18,12 @@ infra/
 
 ## Database
 
-| Property | Value |
-|---|---|
-| Engine | MariaDB |
-| Database | `dormitory` |
-| Charset | utf8mb4 / utf8mb4_unicode_ci |
-| Port | 3306 |
+| Property | Value                        |
+| -------- | ---------------------------- |
+| Engine   | MariaDB                      |
+| Database | `dormitory`                  |
+| Charset  | utf8mb4 / utf8mb4_unicode_ci |
+| Port     | 3306                         |
 
 ## Initialization Script (init.sql)
 
@@ -31,24 +31,24 @@ Auto-executed by the `mariadb` Docker Compose service on first startup. Creates 
 
 ### Core Business Tables
 
-| Table | Description |
-|---|---|
+| Table                     | Description                                                           |
+| ------------------------- | --------------------------------------------------------------------- |
 | `dorm_student_assignment` | Student dormitory assignments (synced from student management system) |
-| `dorm_student_status` | Real-time on-campus student status |
-| `dorm_entry_exit_event` | Entry/exit event log (core) |
-| `dorm_camera` | Camera registration and configuration |
-| `dorm_face_embedding` | Face feature vector storage |
-| `dorm_alert` | Alert records |
-| `dorm_attendance_record` | Daily attendance records |
-| `dorm_attendance_report` | Attendance summary reports |
+| `dorm_student_status`     | Real-time on-campus student status                                    |
+| `dorm_entry_exit_event`   | Entry/exit event log (core)                                           |
+| `dorm_camera`             | Camera registration and configuration                                 |
+| `dorm_face_embedding`     | Face feature vector storage                                           |
+| `dorm_alert`              | Alert records                                                         |
+| `dorm_attendance_record`  | Daily attendance records                                              |
+| `dorm_attendance_report`  | Attendance summary reports                                            |
 
 ### System Configuration Tables
 
-| Table | Description |
-|---|---|
-| `dorm_system_config` | System parameter configuration |
-| `dorm_behavior_event` | Behavior analysis events |
-| `dorm_stranger_record` | Stranger records |
+| Table                  | Description                    |
+| ---------------------- | ------------------------------ |
+| `dorm_system_config`   | System parameter configuration |
+| `dorm_behavior_event`  | Behavior analysis events       |
+| `dorm_stranger_record` | Stranger records               |
 
 ### Design Conventions
 
@@ -105,13 +105,13 @@ mariadb:
 
 The full infrastructure stack managed by Docker Compose:
 
-| Service | Port | Description |
-|---|---|---|
-| Zookeeper | 2181 | Kafka dependency |
-| Kafka | 9092 | Message broker (3 topics) |
-| Redis | 6379 | Event dedup + caching |
-| MariaDB | 3306 | Business data storage |
-| MinIO | 9000/9001 | Object storage (currently unused) |
+| Service   | Port      | Description                       |
+| --------- | --------- | --------------------------------- |
+| Zookeeper | 2181      | Kafka dependency                  |
+| Kafka     | 9092      | Message broker (3 topics)         |
+| Redis     | 6379      | Event dedup + caching             |
+| MariaDB   | 3306      | Business data storage             |
+| MinIO     | 9000/9001 | Object storage (currently unused) |
 
 Quick start minimal dev environment:
 

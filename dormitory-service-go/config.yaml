@@ -1,30 +1,30 @@
 server:
-  port: 8083
+    port: 8083
 
 database:
-  dsn: "root:root_dev@tcp(localhost:3306)/dormitory?charset=utf8mb4&parseTime=True&loc=Asia%2FShanghai"
-  driver: mysql
-  max_open_conns: 25
-  max_idle_conns: 10
+    dsn: "root:root_dev@tcp(localhost:3306)/dormitory?charset=utf8mb4&parseTime=True&loc=Asia%2FShanghai"
+    driver: mysql
+    max_open_conns: 25
+    max_idle_conns: 10
 
 redis:
-  host: "127.0.0.1"
-  port: 6379
-  db: 0
-  password: ""
+    host: "127.0.0.1"
+    port: 6379
+    db: 0
+    password: ""
 
 kafka:
-  brokers:
-    - "localhost:9092"
-  event_topic: "t_dorm_event"
-  alert_topic: "t_dorm_alert"
-  group_id: "dormitory-service-group"
-  max_poll_records: 500
+    brokers:
+        - "localhost:9092"
+    event_topic: "t_dorm_event"
+    alert_topic: "t_dorm_alert"
+    group_id: "dormitory-service-group"
+    max_poll_records: 500
 
 jwt:
-  # ⚠ SECURITY: Change this secret in production! The default value is for dev only.
-  secret: "${JWT_SECRET:your-256-bit-secret}"  # Override via JWT_SECRET env var; set to match main backend's signing key in production
-  expiration_hours: 24
+    # ⚠ SECURITY: Change this secret in production! The default value is for dev only.
+    secret: "${JWT_SECRET:your-256-bit-secret}" # Override via JWT_SECRET env var; set to match main backend's signing key in production
+    expiration_hours: 24
 
 log:
-  level: "info"
+    level: "info"
