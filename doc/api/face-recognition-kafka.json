@@ -66,7 +66,7 @@
         "component": "FaceDetector",
         "file": "app/detector.py",
         "algorithm": "RetinaFace-ResNet50 ONNX → NMS",
-        "fallback": "Haar Cascade (macOS OpenCV hardcoded path)",
+        "fallback": "Haar Cascade (cv2.data.haarcascades, portable)",
         "description": "Detects faces: filters by confidence, min_size, blur threshold (Laplacian variance)."
       },
       {
@@ -423,7 +423,7 @@
       },
       "StrangerConfig": {
         "type": "object",
-        "description": "⚠️ Defined in config but NOT wired in main.py — stranger logic is hardcoded.",
+        "description": "Stranger detection: when no match exceeds match_threshold, is_stranger=true and confidence=0.0. The alert_threshold in this config is defined but alert publishing is handled by dormitory-service-go.",
         "properties": {
           "enabled": { "type": "boolean", "default": true },
           "alert_threshold": {

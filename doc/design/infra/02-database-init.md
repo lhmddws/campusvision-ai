@@ -34,84 +34,84 @@ dorm_config            # 系统配置
 
 ### dorm_building（楼栋）
 
-| 字段 | 类型 | 说明 |
-|------|------|------|
-| id | BIGINT PK | 自增主键 |
-| name | VARCHAR(50) | 楼栋名称（A/B/C/D） |
-| code | VARCHAR(20) UNIQUE | 楼栋编码 |
-| floor_count | INT | 楼层数 |
-| room_count | INT | 房间数 |
-| camera_id | VARCHAR(50) | 关联摄像头 |
-| status | TINYINT | 状态：1启用 0禁用 |
+| 字段        | 类型               | 说明                |
+| ----------- | ------------------ | ------------------- |
+| id          | BIGINT PK          | 自增主键            |
+| name        | VARCHAR(50)        | 楼栋名称（A/B/C/D） |
+| code        | VARCHAR(20) UNIQUE | 楼栋编码            |
+| floor_count | INT                | 楼层数              |
+| room_count  | INT                | 房间数              |
+| camera_id   | VARCHAR(50)        | 关联摄像头          |
+| status      | TINYINT            | 状态：1启用 0禁用   |
 
 ### dorm_student（住宿学生）
 
-| 字段 | 类型 | 说明 |
-|------|------|------|
-| id | BIGINT PK | 自增主键 |
-| student_id | VARCHAR(50) UNIQUE | 学号 |
-| name | VARCHAR(100) | 姓名 |
-| gender | TINYINT | 性别：1男 2女 |
-| building_id | BIGINT FK | 所属楼栋 |
-| room_id | BIGINT FK | 所属房间 |
-| class_name | VARCHAR(100) | 班级 |
-| status | TINYINT | 状态：1在校 0离校 |
+| 字段        | 类型               | 说明              |
+| ----------- | ------------------ | ----------------- |
+| id          | BIGINT PK          | 自增主键          |
+| student_id  | VARCHAR(50) UNIQUE | 学号              |
+| name        | VARCHAR(100)       | 姓名              |
+| gender      | TINYINT            | 性别：1男 2女     |
+| building_id | BIGINT FK          | 所属楼栋          |
+| room_id     | BIGINT FK          | 所属房间          |
+| class_name  | VARCHAR(100)       | 班级              |
+| status      | TINYINT            | 状态：1在校 0离校 |
 
 ### dorm_event_log（事件日志）
 
-| 字段 | 类型 | 说明 |
-|------|------|------|
-| id | BIGINT PK | 自增主键 |
-| event_id | VARCHAR(100) | 事件唯一 ID |
-| camera_id | VARCHAR(50) | 摄像头 ID |
-| building | VARCHAR(20) | 楼栋 |
-| student_id | VARCHAR(50) | 学号（陌生人=null） |
-| event_type | VARCHAR(20) | entry/exit/unknown |
-| confidence | DECIMAL(5,4) | 置信度 |
-| is_stranger | TINYINT | 是否陌生人 |
-| snapshot_path | VARCHAR(500) | 抓拍图 MinIO 路径 |
-| occurred_at | DATETIME | 事件时间 |
+| 字段          | 类型         | 说明                |
+| ------------- | ------------ | ------------------- |
+| id            | BIGINT PK    | 自增主键            |
+| event_id      | VARCHAR(100) | 事件唯一 ID         |
+| camera_id     | VARCHAR(50)  | 摄像头 ID           |
+| building      | VARCHAR(20)  | 楼栋                |
+| student_id    | VARCHAR(50)  | 学号（陌生人=null） |
+| event_type    | VARCHAR(20)  | entry/exit/unknown  |
+| confidence    | DECIMAL(5,4) | 置信度              |
+| is_stranger   | TINYINT      | 是否陌生人          |
+| snapshot_path | VARCHAR(500) | 抓拍图 MinIO 路径   |
+| occurred_at   | DATETIME     | 事件时间            |
 
 **索引**: `(building, occurred_at)`, `(student_id, occurred_at)`, `(event_id)`
 
 ### dorm_nightly_report（查宿报告）
 
-| 字段 | 类型 | 说明 |
-|------|------|------|
-| id | BIGINT PK | 自增主键 |
-| report_date | DATE | 报告日期 |
-| building_id | BIGINT FK | 楼栋 |
-| total_students | INT | 应到人数 |
-| present_count | INT | 已归人数 |
-| absent_count | INT | 未归人数 |
-| late_count | INT | 晚归人数 |
-| stranger_count | INT | 陌生人次数 |
-| report_time | DATETIME | 生成时间 |
+| 字段           | 类型      | 说明       |
+| -------------- | --------- | ---------- |
+| id             | BIGINT PK | 自增主键   |
+| report_date    | DATE      | 报告日期   |
+| building_id    | BIGINT FK | 楼栋       |
+| total_students | INT       | 应到人数   |
+| present_count  | INT       | 已归人数   |
+| absent_count   | INT       | 未归人数   |
+| late_count     | INT       | 晚归人数   |
+| stranger_count | INT       | 陌生人次数 |
+| report_time    | DATETIME  | 生成时间   |
 
 **索引**: `(report_date, building_id)` 唯一索引
 
 ### dorm_alert（告警记录）
 
-| 字段 | 类型 | 说明 |
-|------|------|------|
-| id | BIGINT PK | 自增主键 |
-| alert_type | VARCHAR(50) | 告警类型 |
-| building_id | BIGINT FK | 楼栋 |
-| student_id | VARCHAR(50) | 相关学号 |
-| description | TEXT | 告警描述 |
-| status | TINYINT | 0未处理 1已处理 |
-| created_at | DATETIME | 创建时间 |
-| handled_at | DATETIME | 处理时间 |
+| 字段        | 类型        | 说明            |
+| ----------- | ----------- | --------------- |
+| id          | BIGINT PK   | 自增主键        |
+| alert_type  | VARCHAR(50) | 告警类型        |
+| building_id | BIGINT FK   | 楼栋            |
+| student_id  | VARCHAR(50) | 相关学号        |
+| description | TEXT        | 告警描述        |
+| status      | TINYINT     | 0未处理 1已处理 |
+| created_at  | DATETIME    | 创建时间        |
+| handled_at  | DATETIME    | 处理时间        |
 
 ### dorm_config（系统配置）
 
-| 字段 | 类型 | 说明 |
-|------|------|------|
-| id | BIGINT PK | 自增主键 |
-| config_key | VARCHAR(100) UNIQUE | 配置键 |
-| config_value | TEXT | 配置值 |
-| description | VARCHAR(500) | 描述 |
-| updated_at | DATETIME | 更新时间 |
+| 字段         | 类型                | 说明     |
+| ------------ | ------------------- | -------- |
+| id           | BIGINT PK           | 自增主键 |
+| config_key   | VARCHAR(100) UNIQUE | 配置键   |
+| config_value | TEXT                | 配置值   |
+| description  | VARCHAR(500)        | 描述     |
+| updated_at   | DATETIME            | 更新时间 |
 
 ---
 

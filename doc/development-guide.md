@@ -20,22 +20,22 @@
 
 ### 1.1 推荐工具
 
-| 工具 | 版本要求 | 用途 |
-|------|---------|------|
-| Python | ≥ 3.11 | AI Engine |
-| Go | ≥ 1.22 | Stream Gateway |
-| Node.js | ≥ 20 | Web 前端 |
-| Docker | ≥ 24 | 本地基础设施 |
-| NVIDIA Driver | ≥ 545 | GPU 推理 |
-| CUDA | ≥ 12.4 | GPU 加速 |
-| VSCode / IDEA | - | IDE |
+| 工具          | 版本要求 | 用途                              |
+| ------------- | -------- | --------------------------------- |
+| Python        | ≥ 3.11   | Face Recognition                  |
+| Go            | ≥ 1.26   | Stream Gateway, Dormitory Service |
+| Node.js       | ≥ 20     | Web 前端                          |
+| Docker        | ≥ 24     | 本地基础设施                      |
+| NVIDIA Driver | ≥ 545    | GPU 推理                          |
+| CUDA          | ≥ 12.4   | GPU 加速                          |
+| VSCode / IDEA | -        | IDE                               |
 
 ### 1.2 检查清单
 
 ```bash
 # 确认各工具已安装
 python3 --version      # ≥ 3.11
-go version             # ≥ 1.22
+go version             # ≥ 1.26
 node --version         # ≥ 20
 docker --version       # ≥ 24
 nvidia-smi             # GPU 驱动正常
@@ -48,12 +48,19 @@ nvcc --version         # CUDA ≥ 12.4
 
 ### 2.1 克隆仓库
 
+本项目为 monorepo 结构，所有模块在同一仓库中：
+
 ```bash
 git clone http://192.168.113.82/lhmddws/campusvision-ai.git
-git clone http://192.168.113.82/lhmddws/campusvision-ai-engine.git
-git clone http://192.168.113.82/lhmddws/campusvision-stream-gateway.git
-git clone http://192.168.113.82/lhmddws/campusvision-web.git
+cd campusvision-ai
 ```
+
+各模块路径：
+
+- `stream-gateway/` — Go RTSP 流处理
+- `face-recognition/` — Python 人脸识别
+- `dormitory-service-go/` — Go 业务服务
+- `frontend/` — Vue 3 前端
 
 ### 2.2 启动基础设施
 
@@ -70,35 +77,36 @@ docker compose ps
 docker compose logs -f
 ```
 
-### 2.3 AI Engine
+### 2.3 Face Recognition
 
 ```bash
-cd campusvision-ai-engine
+cd face-recognition
 
-# Python 虚拟环境
+# Python 虚拟环境 (推荐 uv)
 python3 -m venv .venv
 source .venv/bin/activate
 
 # 安装依赖
 pip install -r requirements.txt
+# 或使用 uv: uv pip install -r requirements.txt
 
-# 下载模型权重
-# 将 YOLO、InsightFace 等权重放入 weights/ 目录
+# 下载 ONNX 模型
+python -m app.download_models
 
 # 启动开发服务
-python app/main.py --config config.dev.yaml
+python -m app.main --config config.yaml
 ```
 
 ### 2.4 Stream Gateway
 
 ```bash
-cd campusvision-stream-gateway
+cd stream-gateway
 
 # 安装依赖
 go mod download
 
 # 启动
-go run cmd/gateway/main.go --config config.dev.yaml
+go run cmd/main.go --config config.yaml
 
 # 热重载（安装 air）
 go install github.com/air-verse/air@latest
@@ -108,29 +116,29 @@ air --config .air.toml
 ### 2.5 Web 前端
 
 ```bash
-cd campusvision-web
+cd frontend
 
-npm install
-npm run dev     # 开发服务器，默认 http://localhost:5173
+pnpm install
+pnpm dev     # 开发服务器，默认 http://localhost:80
 ```
 
 ### 2.7 环境变量参考
 
 每个子仓库的 `config.dev.yaml` 或 `application-dev.yml` 中包含完整配置项。关键变量：
 
-| 变量 | 说明 | 默认值 |
-|------|------|--------|
-| `KAFKA_BROKERS` | Kafka 地址 | `localhost:9092` |
-| `REDIS_URL` | Redis 地址 | `redis://localhost:6379` |
-| `MARIADB_DSN` | 数据库连接 | `mariadb://localhost:3306/campusvision` |
-| `MINIO_ENDPOINT` | MinIO 地址 | `http://localhost:9000` |
-| `CUDA_VISIBLE_DEVICES` | GPU 设备号 | `0` |
+| 变量                   | 说明       | 默认值                                  |
+| ---------------------- | ---------- | --------------------------------------- |
+| `KAFKA_BROKERS`        | Kafka 地址 | `localhost:9092`                        |
+| `REDIS_URL`            | Redis 地址 | `redis://localhost:6379`                |
+| `MARIADB_DSN`          | 数据库连接 | `mariadb://localhost:3306/campusvision` |
+| `MINIO_ENDPOINT`       | MinIO 地址 | `http://localhost:9000`                 |
+| `CUDA_VISIBLE_DEVICES` | GPU 设备号 | `0`                                     |
 
 ---
 
 ## 3. 编码规范
 
-### 3.1 Python (AI Engine)
+### 3.1 Python (Face Recognition)
 
 - **格式化**: Black (`black .`)
 - **Lint**: Ruff (`ruff check .`)
@@ -186,10 +194,10 @@ func NewGateway(cfg *Config) *Gateway {
 
 ```typescript
 // ✅ 正确示例
-const cameraList = ref<Camera[]>([])
+const cameraList = ref<Camera[]>([]);
 
 async function fetchCameras() {
-  cameraList.value = await cameraApi.list(queryParams)
+  cameraList.value = await cameraApi.list(queryParams);
 }
 ```
 
@@ -271,27 +279,32 @@ style:     格式调整（不影响逻辑）
 
 ### 5.1 测试要求
 
-| 层级 | 覆盖率要求 | 框架 |
-|------|-----------|------|
-| AI Engine 单元测试 | ≥ 70% | pytest |
-| Stream Gateway 单元测试 | ≥ 60% | go test |
-| Web 组件测试 | - | Vitest |
-| E2E | 核心流程 | Playwright |
+| 层级                       | 覆盖率要求 | 框架       |
+| -------------------------- | ---------- | ---------- |
+| Face Recognition 单元测试  | ≥ 70%      | pytest     |
+| Stream Gateway 单元测试    | ≥ 60%      | go test    |
+| Dormitory Service 单元测试 | -          | go test    |
+| Web 组件测试               | -          | Vitest     |
+| E2E                        | 核心流程   | Playwright |
 
 ### 5.2 运行测试
 
 ```bash
-# AI Engine
-cd campusvision-ai-engine
+# Face Recognition
+cd face-recognition
 pytest --cov=app --cov-report=term
 
 # Stream Gateway
-cd campusvision-stream-gateway
+cd stream-gateway
+go test ./... -cover
+
+# Dormitory Service
+cd dormitory-service-go
 go test ./... -cover
 
 # Web
-cd campusvision-web
-npm run test
+cd frontend
+pnpm test
 ```
 
 ### 5.3 测试数据

@@ -2,7 +2,7 @@
 
 > **文档归属**: 摄像头功能实现 → 技术设计  
 > **对应 PRD**: PRD-005 (摄像头功能实现)  
-> **版本**: v1.1 · **更新**: 2026-05-18  
+> **版本**: v1.1 · **更新**: 2026-05-18
 
 ---
 
@@ -66,12 +66,12 @@
 
 ### 2.2 依赖关系
 
-| 依赖 | 方向 | 说明 |
-|------|------|------|
-| Stream Gateway health API | 本模块 → 感知层 | 定时拉取摄像头状态 |
-| `t_dorm_event` (Kafka) | 本模块消费 | 通过事件时间判断摄像头 idle |
-| `dorm_student_assignment` | 本模块查询 | 从 building 关联楼栋名 |
-| `dorm_entry_exit_event` | 本模块查询 | 按 camera_id 查抓拍历史 |
+| 依赖                      | 方向            | 说明                        |
+| ------------------------- | --------------- | --------------------------- |
+| Stream Gateway health API | 本模块 → 感知层 | 定时拉取摄像头状态          |
+| `t_dorm_event` (Kafka)    | 本模块消费      | 通过事件时间判断摄像头 idle |
+| `dorm_student_assignment` | 本模块查询      | 从 building 关联楼栋名      |
+| `dorm_entry_exit_event`   | 本模块查询      | 按 camera_id 查抓拍历史     |
 
 ---
 
@@ -213,12 +213,12 @@ private void checkIdleCameras() {
 
 ### 4.1 告警触发条件
 
-| 场景 | 检测方式 | 延迟 |
-|------|---------|------|
-| 摄像头硬件断连 | Stream Gateway health API 连续 3 次失败 | ~90 秒 (30s×3) |
-| 摄像头卡顿/fps=0 | health API 返回 fps=0 | ~30 秒 |
-| 摄像头画面静止无事件 | Kafka 消费无事件超过 5 分钟 | ~5 分钟 |
-| Stream Gateway 进程挂 | health API HTTP 连接拒绝 | ~90 秒 |
+| 场景                  | 检测方式                                | 延迟           |
+| --------------------- | --------------------------------------- | -------------- |
+| 摄像头硬件断连        | Stream Gateway health API 连续 3 次失败 | ~90 秒 (30s×3) |
+| 摄像头卡顿/fps=0      | health API 返回 fps=0                   | ~30 秒         |
+| 摄像头画面静止无事件  | Kafka 消费无事件超过 5 分钟             | ~5 分钟        |
+| Stream Gateway 进程挂 | health API HTTP 连接拒绝                | ~90 秒         |
 
 ### 4.2 告警联动
 
@@ -640,22 +640,22 @@ Response:
 
 ### 8.2 字段映射
 
-| Stream Gateway 返回字段 | Camera 实体字段 | 说明 |
-|------------------------|----------------|------|
-| `camera_id` | `cameraId` | 匹配标识 |
-| `connected` | `status` | true→online, false→offline |
-| `fps` | `fpsCurrent` | 实时帧率 |
-| `last_frame_time` | `lastHeartbeat` | 最后帧时间 |
-| `frames_sent` | `totalFrames` | 累积帧数 |
+| Stream Gateway 返回字段 | Camera 实体字段 | 说明                       |
+| ----------------------- | --------------- | -------------------------- |
+| `camera_id`             | `cameraId`      | 匹配标识                   |
+| `connected`             | `status`        | true→online, false→offline |
+| `fps`                   | `fpsCurrent`    | 实时帧率                   |
+| `last_frame_time`       | `lastHeartbeat` | 最后帧时间                 |
+| `frames_sent`           | `totalFrames`   | 累积帧数                   |
 
 ### 8.3 部署注意事项
 
-| 注意点 | 说明 |
-|--------|------|
-| 网络可达 | 本模块必须能 HTTP 访问 `http://stream-gateway:8080` |
-| 超时设置 | HTTP 超时 5 秒（不可达时快速失败） |
-| camera_id 对齐 | 两个服务使用相同的 camera_id 体系（cam-a/b/c/d） |
-| 启动顺序 | Stream Gateway 先启动，再启动本模块 |
+| 注意点         | 说明                                                |
+| -------------- | --------------------------------------------------- |
+| 网络可达       | 本模块必须能 HTTP 访问 `http://stream-gateway:8080` |
+| 超时设置       | HTTP 超时 5 秒（不可达时快速失败）                  |
+| camera_id 对齐 | 两个服务使用相同的 camera_id 体系（cam-a/b/c/d）    |
+| 启动顺序       | Stream Gateway 先启动，再启动本模块                 |
 
 ---
 

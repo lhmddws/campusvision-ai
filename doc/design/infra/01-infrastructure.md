@@ -10,27 +10,27 @@
 ```yaml
 # docker-compose.yml 位于项目根目录
 services:
-  zookeeper:  confluentinc/cp-zookeeper:7.6.1  # Kafka 依赖
-  kafka:      confluentinc/cp-kafka:7.6.1       # 消息队列
-  kafka-init:                                    # Topic 初始化
-  redis:      redis:7-alpine                     # 缓存
-  mariadb:    mariadb:10.11                      # 持久化数据库
-  minio:      minio/minio:latest                 # 对象存储
+  zookeeper: confluentinc/cp-zookeeper:7.6.1 # Kafka 依赖
+  kafka: confluentinc/cp-kafka:7.6.1 # 消息队列
+  kafka-init: # Topic 初始化
+  redis: redis:7-alpine # 缓存
+  mariadb: mariadb:10.11 # 持久化数据库
+  minio: minio/minio:latest # 对象存储
 ```
 
 ---
 
 ## 2. 端口映射
 
-| 服务 | 内部端口 | 外部端口 | 用途 |
-|------|---------|---------|------|
-| ZooKeeper | 2181 | 2181 | Kafka 协调 |
-| Kafka | 9092 | 9092 | 消息队列（外部访问） |
-| Kafka | 9101 | 9101 | JMX 监控 |
-| Redis | 6379 | 6379 | 缓存 |
-| MariaDB | 3306 | 3306 | 数据库 |
-| MinIO API | 9000 | 9000 | 对象存储 API |
-| MinIO Console | 9001 | 9001 | 管理控制台 |
+| 服务          | 内部端口 | 外部端口 | 用途                 |
+| ------------- | -------- | -------- | -------------------- |
+| ZooKeeper     | 2181     | 2181     | Kafka 协调           |
+| Kafka         | 9092     | 9092     | 消息队列（外部访问） |
+| Kafka         | 9101     | 9101     | JMX 监控             |
+| Redis         | 6379     | 6379     | 缓存                 |
+| MariaDB       | 3306     | 3306     | 数据库               |
+| MinIO API     | 9000     | 9000     | 对象存储 API         |
+| MinIO Console | 9001     | 9001     | 管理控制台           |
 
 ---
 
@@ -54,19 +54,19 @@ campusvision (bridge)
 ### 关键配置
 
 ```yaml
-KAFKA_MESSAGE_MAX_BYTES: 5242880        # 5MB，容纳 JPEG 帧
+KAFKA_MESSAGE_MAX_BYTES: 5242880 # 5MB，容纳 JPEG 帧
 KAFKA_REPLICA_FETCH_MAX_BYTES: 5242880
 KAFKA_AUTO_CREATE_TOPICS_ENABLE: "true" # 允许自动创建
-KAFKA_LOG_RETENTION_HOURS: 48           # 帧数据保留 48h
+KAFKA_LOG_RETENTION_HOURS: 48 # 帧数据保留 48h
 ```
 
 ### Topic 初始化 (kafka-init)
 
-| Topic | 分区 | 保留时间 | 最大消息 | 压缩 | 用途 |
-|-------|------|---------|---------|------|------|
-| `t_dorm_frame` | 4 | 12h | 5MB | producer | 帧数据 |
-| `t_dorm_event` | 2 | 7d | 1MB | producer | 事件数据 |
-| `t_dorm_alert` | 1 | 7d | 1MB | — | 告警数据 |
+| Topic          | 分区 | 保留时间 | 最大消息 | 压缩     | 用途     |
+| -------------- | ---- | -------- | -------- | -------- | -------- |
+| `t_dorm_frame` | 4    | 12h      | 5MB      | producer | 帧数据   |
+| `t_dorm_event` | 2    | 7d       | 1MB      | producer | 事件数据 |
+| `t_dorm_alert` | 1    | 7d       | 1MB      | —        | 告警数据 |
 
 ### 分区策略
 
@@ -90,11 +90,11 @@ redis:7-alpine
 
 ### Key 设计（由 Dormitory Service 管理）
 
-| Key 模式 | 用途 | TTL |
-|----------|------|-----|
-| `dorm:student:{id}` | 学生实时状态 | 无（永久） |
-| `dorm:building:{bld}:status` | 楼栋概览 | 无 |
-| `face:match:{id}` | 人脸特征缓存 | 3600s |
+| Key 模式                     | 用途         | TTL        |
+| ---------------------------- | ------------ | ---------- |
+| `dorm:student:{id}`          | 学生实时状态 | 无（永久） |
+| `dorm:building:{bld}:status` | 楼栋概览     | 无         |
+| `face:match:{id}`            | 人脸特征缓存 | 3600s      |
 
 ---
 
@@ -128,10 +128,10 @@ minio/minio:latest
 
 ### 存储策略
 
-| Bucket | 用途 | 文件有效期 |
-|--------|------|-----------|
-| `face-snapshots` | 人脸抓拍 JPEG | 7 天 |
-| `event-evidence` | 事件证据图 | 30 天 |
+| Bucket           | 用途          | 文件有效期 |
+| ---------------- | ------------- | ---------- |
+| `face-snapshots` | 人脸抓拍 JPEG | 7 天       |
+| `event-evidence` | 事件证据图    | 30 天      |
 
 ---
 
@@ -139,12 +139,12 @@ minio/minio:latest
 
 每个服务配置了 Docker healthcheck：
 
-| 服务 | 检查命令 | 间隔 |
-|------|---------|------|
-| Kafka | `kafka-topics --list` | 10s |
-| Redis | `redis-cli ping` | 5s |
-| MariaDB | `mysqladmin ping` | 5s |
-| MinIO | `curl /minio/health/live` | 10s |
+| 服务    | 检查命令                  | 间隔 |
+| ------- | ------------------------- | ---- |
+| Kafka   | `kafka-topics --list`     | 10s  |
+| Redis   | `redis-cli ping`          | 5s   |
+| MariaDB | `mysqladmin ping`         | 5s   |
+| MinIO   | `curl /minio/health/live` | 10s  |
 
 ---
 
@@ -180,6 +180,7 @@ zookeeper → kafka → kafka-init
 ```
 
 所有基础服务启动后，即可启动业务服务：
+
 1. `stream-gateway`（Go）
 2. `face-recognition`（Python）
 3. `dormitory-service`（Java JAR）

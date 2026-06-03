@@ -15,24 +15,24 @@ RTSP cameras (A/B/C/D)
 
 **Perception pipeline:**
 
-| Layer | Language | Service | Role |
-|---|---|---|---|
-| Stream ingest | Go | `stream-gateway` | RTSP capture → Kafka frame producer (hash-partitioned by building) |
-| Recognition | Python | `face-recognition` | Face detection/recognition → event producer |
-| Business API | Go | `dormitory-service-go` | Event processing, alerts, attendance, reports, HTTP API |
-| Frontend | Vue 3 | `frontend/` | SPA dashboard built on RuoYi-Vue3-ts (Element Plus + Vite) |
+| Layer         | Language | Service                | Role                                                               |
+| ------------- | -------- | ---------------------- | ------------------------------------------------------------------ |
+| Stream ingest | Go       | `stream-gateway`       | RTSP capture → Kafka frame producer (hash-partitioned by building) |
+| Recognition   | Python   | `face-recognition`     | Face detection/recognition → event producer                        |
+| Business API  | Go       | `dormitory-service-go` | Event processing, alerts, attendance, reports, HTTP API            |
+| Frontend      | Vue 3    | `frontend/`            | SPA dashboard built on RuoYi-Vue3-ts (Element Plus + Vite)         |
 
 **Infrastructure** (Docker Compose): Zookeeper, Kafka (3 topics), Redis, MariaDB, MinIO
 
 ## Modules
 
-| Directory | Language | Entrypoint | Port |
-|---|---|---|---|
-| `stream-gateway/` | Go 1.26 | `go run cmd/main.go --config config.yaml` | 8080 (health), 8081 (mgmt) |
-| `face-recognition/` | Python 3.11 | `python -m app.main --config config.yaml` | — |
-| `dormitory-service-go/` | Go 1.26 | `CONFIG_PATH=config.yaml go run ./cmd/dormitory-service/` | 8083 |
-| `frontend/` | Vue 3.2 + TS | `pnpm dev` | 80 (dev) |
-| `infra/` | — | `docker compose up -d` | — |
+| Directory               | Language     | Entrypoint                                                | Port                       |
+| ----------------------- | ------------ | --------------------------------------------------------- | -------------------------- |
+| `stream-gateway/`       | Go 1.26      | `go run cmd/main.go --config config.yaml`                 | 8080 (health), 8081 (mgmt) |
+| `face-recognition/`     | Python 3.11  | `python -m app.main --config config.yaml`                 | —                          |
+| `dormitory-service-go/` | Go 1.26      | `CONFIG_PATH=config.yaml go run ./cmd/dormitory-service/` | 8083                       |
+| `frontend/`             | Vue 3.2 + TS | `pnpm dev`                                                | 80 (dev)                   |
+| `infra/`                | —            | `docker compose up -d`                                    | —                          |
 
 ## Quick Start
 
@@ -84,11 +84,11 @@ docker compose build \
 
 ## Kafka Topics
 
-| Topic | Partitions | Retention | Producer → Consumer |
-|---|---|---|---|
-| `t_dorm_frame` | 4 | 12h | stream-gateway → face-recognition |
-| `t_dorm_event` | 2 | 7d | face-recognition → dormitory-service-go |
-| `t_dorm_alert` | 1 | 7d | dormitory-service-go → (future) |
+| Topic          | Partitions | Retention | Producer → Consumer                     |
+| -------------- | ---------- | --------- | --------------------------------------- |
+| `t_dorm_frame` | 4          | 12h       | stream-gateway → face-recognition       |
+| `t_dorm_event` | 2          | 7d        | face-recognition → dormitory-service-go |
+| `t_dorm_alert` | 1          | 7d        | dormitory-service-go → (future)         |
 
 - `t_dorm_frame` uses **hash partitioner** (`kafka.Hash{}`) keyed by `building`.
 - Compression: **Snappy** for `t_dorm_frame`.
@@ -96,24 +96,24 @@ docker compose build \
 
 ## Docker Compose Services
 
-| Service | Depends on | Notes |
-|---|---|---|
-| `zookeeper` | — | `user: root` (permission fix) |
-| `kafka` | zookeeper | `user: root`; topics auto-created by `kafka-init` |
-| `kafka-init` | kafka (healthy) | One-shot: creates `t_dorm_frame`(4p), `t_dorm_event`(2p), `t_dorm_alert`(1p) |
-| `redis` | — | db=0, shared by face-recognition and dormitory-service-go |
-| `mariadb` | — | Initialized with `infra/mariadb/init.sql` (11 tables) |
-| `minio` | — | Snapshot storage (currently unused — snapshot_path is always `""`) |
-| `stream-gateway` | kafka, kafka-init, mariadb | Docker override via `config.docker.yaml` |
-| `face-recognition` | kafka, redis, stream-gateway | ONNX models: preload, build-time, or runtime download |
-| `dormitory-service-go` | kafka, mariadb, redis | Go HTTP API on port 8083 |
+| Service                | Depends on                   | Notes                                                                        |
+| ---------------------- | ---------------------------- | ---------------------------------------------------------------------------- |
+| `zookeeper`            | —                            | `user: root` (permission fix)                                                |
+| `kafka`                | zookeeper                    | `user: root`; topics auto-created by `kafka-init`                            |
+| `kafka-init`           | kafka (healthy)              | One-shot: creates `t_dorm_frame`(4p), `t_dorm_event`(2p), `t_dorm_alert`(1p) |
+| `redis`                | —                            | db=0, shared by face-recognition and dormitory-service-go                    |
+| `mariadb`              | —                            | Initialized with `infra/mariadb/init.sql` (11 tables)                        |
+| `minio`                | —                            | Snapshot storage (currently unused — snapshot_path is always `""`)           |
+| `stream-gateway`       | kafka, kafka-init, mariadb   | Docker override via `config.docker.yaml`                                     |
+| `face-recognition`     | kafka, redis, stream-gateway | ONNX models: preload, build-time, or runtime download                        |
+| `dormitory-service-go` | kafka, mariadb, redis        | Go HTTP API on port 8083                                                     |
 
 ## Key Features
 
 - **Multi-camera RTSP ingest** with configurable FPS (day/night 5/1) and motion-based dynamic extraction
 - **Face detection** (RetinaFace ONNX) with Haar Cascade fallback (OpenCV)
 - **Face recognition** (ArcFace ONNX) with Redis-based identity cache
-- **Behavior analysis** pipeline (tracking, direction detection, quality filtering) — *disabled by default*
+- **Behavior analysis** pipeline (tracking, direction detection, quality filtering) — _disabled by default_
 - **Automated attendance** tracking with nightly reports
 - **Stranger detection** and real-time alerting
 - **Event deduplication** via Redis (3600s TTL)

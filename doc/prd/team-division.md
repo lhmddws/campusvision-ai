@@ -43,10 +43,10 @@
 
 ### 一句话分工
 
-| 角色 | 负责 | 产出的数据 | 交互对象 |
-|------|------|-----------|---------|
-| **你** | RTSP→帧→AI→Kafka事件 | `t_dorm_event` 进出事件流 | 摄像头、学管API、Kafka |
-| **搭档** | 消费事件→状态→统计→API | REST API 的查宿数据 | Kafka、学管API、前端、DB |
+| 角色     | 负责                   | 产出的数据                | 交互对象                 |
+| -------- | ---------------------- | ------------------------- | ------------------------ |
+| **你**   | RTSP→帧→AI→Kafka事件   | `t_dorm_event` 进出事件流 | 摄像头、学管API、Kafka   |
+| **搭档** | 消费事件→状态→统计→API | REST API 的查宿数据       | Kafka、学管API、前端、DB |
 
 ---
 
@@ -85,9 +85,9 @@ stream-gateway/
 #### 执行流程（单路 → 4 goroutine 并行）
 
 ```
-RTSP 地址 → RTSP Dial → Packet → 解码为 YUV → 
-  判断是否需要抽帧(动态策略) → 
-  YUV → JPEG 编码(指定quality) → 
+RTSP 地址 → RTSP Dial → Packet → 解码为 YUV →
+  判断是否需要抽帧(动态策略) →
+  YUV → JPEG 编码(指定quality) →
   Base64 → JSON → Kafka t_dorm_frame
 ```
 
@@ -115,13 +115,13 @@ cameras:
     enabled: true
 
 frame:
-  fps_day: 5           # 白天 06:00-22:00
-  fps_night: 1         # 夜间 22:00-06:00
-  jpeg_quality: 80     # 1-100
+  fps_day: 5 # 白天 06:00-22:00
+  fps_night: 1 # 夜间 22:00-06:00
+  jpeg_quality: 80 # 1-100
   width: 1280
   height: 720
-  dynamic_extraction: true   # 动态抽帧: 画面无变化则跳帧
-  motion_threshold: 0.05     # 动态抽帧灵敏度
+  dynamic_extraction: true # 动态抽帧: 画面无变化则跳帧
+  motion_threshold: 0.05 # 动态抽帧灵敏度
 
 kafka:
   brokers: ["kafka:9092"]
@@ -130,9 +130,9 @@ kafka:
   batch_size: 65536
 
 rtsp:
-  reconnect_interval: 5s     # 断线重连间隔
+  reconnect_interval: 5s # 断线重连间隔
   read_timeout: 10s
-  max_reconnect_attempts: 0  # 0=无限重试
+  max_reconnect_attempts: 0 # 0=无限重试
 
 log:
   level: "info"
@@ -141,6 +141,7 @@ log:
 **2. CameraManager (`internal/camera/manager.go`)**
 
 关键逻辑：
+
 - 启动时读取配置中的 `cameras` 列表
 - 对每个 `enabled: true` 的 camera 启动一个 goroutine 运行 `CameraStream.Run()`
 - 所有 camera 共用同一个 Kafka producer 实例
@@ -156,7 +157,7 @@ type CameraManager struct {
 func NewManager(cfg *config.Config) *CameraManager
 func (m *CameraManager) Start(ctx context.Context)
 func (m *CameraManager) Stop()
-func (m *CameraManager) Status() map[string]CameraStatus  
+func (m *CameraManager) Status() map[string]CameraStatus
 // 返回: { cam-a: {connected, fps, last_frame_time, frames_sent} }
 ```
 
@@ -186,6 +187,7 @@ func DecodeFrame(ctx context.Context, rtspURL string) (<-chan []byte, error) {
 ```
 
 **关键要点**：
+
 - 解码器优先选硬件加速（`h264_cuvid` / `h264_videotoolbox`），4路软解也够（宿舍入口 720p × 5fps 负载很低）
 - macOS 开发可用 `h264_videotoolbox`，生产环境 `h264_cuvid`（NVIDIA）或软解
 
@@ -247,10 +249,10 @@ type FrameMessage struct {
 
 Stream Gateway 额外暴露一个简单的 HTTP 端口（如 `:8080`）供健康检查和配置热更新：
 
-| 端点 | 方法 | 用途 |
-|------|------|------|
-| `/health` | GET | 存活检查，返回各摄像头状态 |
-| `/config` | GET | 查看当前运行配置 |
+| 端点      | 方法 | 用途                       |
+| --------- | ---- | -------------------------- |
+| `/health` | GET  | 存活检查，返回各摄像头状态 |
+| `/config` | GET  | 查看当前运行配置           |
 | `/config` | POST | 动态更新配置（如调整 fps） |
 
 ---
@@ -312,41 +314,41 @@ kafka:
 
 detection:
   model_path: "app/models/detection.onnx"
-  confidence_threshold: 0.6     # 检测置信度阈值
-  input_size: [640, 640]        # 检测模型输入尺寸
-  min_face_size: 80             # 最小人脸像素 (过滤远处小人)
+  confidence_threshold: 0.6 # 检测置信度阈值
+  input_size: [640, 640] # 检测模型输入尺寸
+  min_face_size: 80 # 最小人脸像素 (过滤远处小人)
 
 feature:
   model_path: "app/models/feature.onnx"
   embedding_size: 512
 
 match:
-  method: "sims_api"             # sims_api | local_cache | fallback
+  method: "sims_api" # sims_api | local_cache | fallback
   sims_api_url: "http://sims-backend:8080/sims/face/match"
-  sims_api_timeout: 3.0          # 秒
-  auth_token: ""                 # Bearer token
-  cache_ttl: 3600                # 秒, 本地缓存特征有效时间
-  match_threshold: 0.65          # 余弦相似度阈值 (低于此=陌生人)
-  fallback_to_cache: true        # API 失败时降级本地缓存
+  sims_api_timeout: 3.0 # 秒
+  auth_token: "" # Bearer token
+  cache_ttl: 3600 # 秒, 本地缓存特征有效时间
+  match_threshold: 0.65 # 余弦相似度阈值 (低于此=陌生人)
+  fallback_to_cache: true # API 失败时降级本地缓存
 
 direction:
-  method: "roi_line"             # ROI 线穿越法
-  roi_line_x: 0.5                # 虚拟线在画面中的水平比例 (0-1)
-  min_track_points: 3            # 最少跟踪点数才能判断方向
+  method: "roi_line" # ROI 线穿越法
+  roi_line_x: 0.5 # 虚拟线在画面中的水平比例 (0-1)
+  min_track_points: 3 # 最少跟踪点数才能判断方向
 
 dedup:
-  window_seconds: 10             # 同人同楼栋 10s 内不重复推事件
-  max_cache_size: 1000           # 去重缓存最大容量
+  window_seconds: 10 # 同人同楼栋 10s 内不重复推事件
+  max_cache_size: 1000 # 去重缓存最大容量
 
 stranger:
   enabled: true
-  alert_threshold: 0.45          # 匹配分低于此 = 陌生人
+  alert_threshold: 0.45 # 匹配分低于此 = 陌生人
 
 night_mode:
   enabled: true
-  start_hour: 22                 # 22:00 进入夜间模式
-  end_hour: 6                    # 06:00 退出
-  clahe_clip_limit: 2.0          # 夜间增强参数
+  start_hour: 22 # 22:00 进入夜间模式
+  end_hour: 6 # 06:00 退出
+  clahe_clip_limit: 2.0 # 夜间增强参数
 
 log:
   level: "INFO"
@@ -369,7 +371,7 @@ class FaceDetector:
         self.session = ort.InferenceSession(model_path)
         self.conf_threshold = config.detection.confidence_threshold
         self.min_face_size = config.detection.min_face_size
-        
+
     def detect(self, image: np.ndarray) -> List[Face]:
         """返回 [Face(x1,y1,x2,y2,confidence,landmarks), ...]"""
         # 1. 预处理: resize → normalize → HWC→CHW → 加 batch
@@ -400,7 +402,7 @@ class FeatureExtractor:
         # 加载 feature.onnx (ArcFace)
         self.session = ort.InferenceSession(model_path)
         self.input_size = (112, 112)  # ArcFace 标准输入
-        
+
     def extract(self, image: np.ndarray, face: Face) -> np.ndarray:
         """返回 512-dim float32 特征向量"""
         # 1. 根据 landmarks 做人脸对齐 (仿射变换)
@@ -488,8 +490,8 @@ class DirectionDetector:
         self.min_track_points = config.min_track_points
         self._tracks: Dict[str, List[Tuple[float, float, float]]] = {}
         self._lock = threading.Lock()
-    
-    def determine(self, face_id: str, face_center_x: float, 
+
+    def determine(self, face_id: str, face_center_x: float,
                   face_center_y: float, frame_width: int) -> Optional[str]:
         """判断方向: 'entry' | 'exit' | None"""
         roi_x = frame_width * self.roi_x_ratio
@@ -507,7 +509,7 @@ class DirectionDetector:
             if first_x >= roi_x > last_x:
                 return "exit"
         return None
-    
+
     def cleanup(self):
         """移除 5s 无更新的 track"""
         # 线程安全清理逻辑
@@ -523,7 +525,7 @@ class DedupFilter:
         self.max_cache_size = config.max_cache_size
         self._seen: OrderedDict[Tuple[str, str], float] = OrderedDict()
         self._lock = threading.Lock()
-    
+
     def is_duplicate(self, student_id: str, direction: str) -> bool:
         key = (student_id, direction)
         with self._lock:
@@ -531,7 +533,7 @@ class DedupFilter:
             if ts is not None and time.time() - ts < self.window:
                 return True
         return False
-    
+
     def mark_seen(self, student_id: str, direction: str):
         """记录已发送事件（LRU 淘汰）"""
         key = (student_id, direction)
@@ -642,13 +644,13 @@ def main():
 
 **你需要给他的约定（你的产出边界）**：
 
-| 约定项 | 说明 |
-|--------|------|
-| **Kafka Topic** | `t_dorm_event`，JSON 格式，分区 Key 为 building |
-| **消息字段** | 必须包含 event_id, building, student_id, student_name, event_type, confidence, timestamp_unix_ms |
-| **缺失处理** | 当学管API不可用 → event 中 student_id="unknown", is_stranger=true |
-| **事件量级** | 白天 ~10 events/min, 夜间 ~2 events/min (4栋楼合计) |
-| **异常约定** | 摄像头离线 → Stream Gateway 发 offline 心跳事件 |
+| 约定项          | 说明                                                                                             |
+| --------------- | ------------------------------------------------------------------------------------------------ |
+| **Kafka Topic** | `t_dorm_event`，JSON 格式，分区 Key 为 building                                                  |
+| **消息字段**    | 必须包含 event_id, building, student_id, student_name, event_type, confidence, timestamp_unix_ms |
+| **缺失处理**    | 当学管API不可用 → event 中 student_id="unknown", is_stranger=true                                |
+| **事件量级**    | 白天 ~10 events/min, 夜间 ~2 events/min (4栋楼合计)                                              |
+| **异常约定**    | 摄像头离线 → Stream Gateway 发 offline 心跳事件                                                  |
 
 ---
 
@@ -681,55 +683,55 @@ def main():
 
 ## 五、感知层完成清单
 
-| 状态 | 模块 | 任务 |
-|------|------|------|
-| ✅ | **基础架构** | Kafka + Redis + MariaDB + MinIO Docker Compose 编排 |
-| ✅ | **基础架构** | Kafka topic 初始化 (t_dorm_frame / t_dorm_event / t_dorm_alert) |
-| ✅ | **基础架构** | 数据库初始化 DDL (MariaDB) |
-| ✅ | **Stream Gateway** | Go 项目骨架 (cobra 入口 + YAML 配置) |
-| ✅ | **Stream Gateway** | CameraManager: 4 路摄像机配置管理与 goroutine 生命周期 |
-| ✅ | **Stream Gateway** | CameraStream: 单路 RTSP 拉流 + FFmpeg 解码 |
-| ✅ | **Stream Gateway** | 动态抽帧 (时间策略 + 画面变化检测) |
-| ✅ | **Stream Gateway** | YUV → JPEG 编码 |
-| ✅ | **Stream Gateway** | Kafka 推送 t_dorm_frame (4 路复用一个 producer) |
-| ✅ | **Stream Gateway** | HTTP Health API (/health, /config) |
-| ✅ | **Face Recognition** | Python 项目骨架 (dataclass 配置 + structlog) |
-| ✅ | **Face Recognition** | RetinaFace ONNX 人脸检测 (含 Haar Cascade 降级) |
-| ✅ | **Face Recognition** | ArcFace ONNX 特征提取 (512-dim, L2 归一化) |
-| ✅ | **Face Recognition** | SIMS API 身份匹配 (FaceMatcher + Redis 缓存降级) |
-| ✅ | **Face Recognition** | ROI 线穿越进出方向判断 (DirectionDetector) |
-| ✅ | **Face Recognition** | 10s 去重窗口 (DedupFilter, 线程安全 + LRU) |
-| ✅ | **Face Recognition** | 夜间 CLAHE 增强 (NightModeEnhancer) |
-| ✅ | **Face Recognition** | Kafka 消费 t_dorm_frame + 推送 t_dorm_event |
-| ✅ | **Face Recognition** | 优雅关闭 (SIGINT/SIGTERM) + 60s 统计日志 |
-| ✅ | **Dormitory Service** | Spring Boot 完整项目: 11 entity → 9 repository → 5 service → 3 controller |
-| ✅ | **Dormitory Service** | Kafka 事件消费 → Redis 实时状态 |
-| ✅ | **Dormitory Service** | 每晚 23:00 查宿统计 + 数据清理定时任务 |
-| ✅ | **Dormitory Service** | 22 个 REST API 端点 |
-| ✅ | **Dormitory Service** | 告警机制 (陌生人/长时间未归) |
-| ➡️ | **文档** | PRD + 架构 + 设计 + 部署指南 完整编写 |
+| 状态 | 模块                  | 任务                                                                      |
+| ---- | --------------------- | ------------------------------------------------------------------------- |
+| ✅   | **基础架构**          | Kafka + Redis + MariaDB + MinIO Docker Compose 编排                       |
+| ✅   | **基础架构**          | Kafka topic 初始化 (t_dorm_frame / t_dorm_event / t_dorm_alert)           |
+| ✅   | **基础架构**          | 数据库初始化 DDL (MariaDB)                                                |
+| ✅   | **Stream Gateway**    | Go 项目骨架 (cobra 入口 + YAML 配置)                                      |
+| ✅   | **Stream Gateway**    | CameraManager: 4 路摄像机配置管理与 goroutine 生命周期                    |
+| ✅   | **Stream Gateway**    | CameraStream: 单路 RTSP 拉流 + FFmpeg 解码                                |
+| ✅   | **Stream Gateway**    | 动态抽帧 (时间策略 + 画面变化检测)                                        |
+| ✅   | **Stream Gateway**    | YUV → JPEG 编码                                                           |
+| ✅   | **Stream Gateway**    | Kafka 推送 t_dorm_frame (4 路复用一个 producer)                           |
+| ✅   | **Stream Gateway**    | HTTP Health API (/health, /config)                                        |
+| ✅   | **Face Recognition**  | Python 项目骨架 (dataclass 配置 + structlog)                              |
+| ✅   | **Face Recognition**  | RetinaFace ONNX 人脸检测 (含 Haar Cascade 降级)                           |
+| ✅   | **Face Recognition**  | ArcFace ONNX 特征提取 (512-dim, L2 归一化)                                |
+| ✅   | **Face Recognition**  | SIMS API 身份匹配 (FaceMatcher + Redis 缓存降级)                          |
+| ✅   | **Face Recognition**  | ROI 线穿越进出方向判断 (DirectionDetector)                                |
+| ✅   | **Face Recognition**  | 10s 去重窗口 (DedupFilter, 线程安全 + LRU)                                |
+| ✅   | **Face Recognition**  | 夜间 CLAHE 增强 (NightModeEnhancer)                                       |
+| ✅   | **Face Recognition**  | Kafka 消费 t_dorm_frame + 推送 t_dorm_event                               |
+| ✅   | **Face Recognition**  | 优雅关闭 (SIGINT/SIGTERM) + 60s 统计日志                                  |
+| ✅   | **Dormitory Service** | Spring Boot 完整项目: 11 entity → 9 repository → 5 service → 3 controller |
+| ✅   | **Dormitory Service** | Kafka 事件消费 → Redis 实时状态                                           |
+| ✅   | **Dormitory Service** | 每晚 23:00 查宿统计 + 数据清理定时任务                                    |
+| ✅   | **Dormitory Service** | 22 个 REST API 端点                                                       |
+| ✅   | **Dormitory Service** | 告警机制 (陌生人/长时间未归)                                              |
+| ➡️   | **文档**              | PRD + 架构 + 设计 + 部署指南 完整编写                                     |
 
 ---
 
 ## 六、关键决策清单
 
-| 决策点 | 你的选择 | 理由 |
-|--------|---------|------|
-| Go RTSP 方案 | FFmpeg CGO (ffmpeg-go) | 最稳定，无进程管理开销 |
-| 人脸检测模型 | RetinaFace (ONNX) + Haar 降级 | 精度高，无模型时自动降级 OpenCV Haar |
-| 特征模型 | ArcFace (ONNX, 512-dim) + flatten 降级 | 业界标准，无模型时降级像素特征 |
-| 方向判断 | ROI 垂直穿越线 + 线程安全 track | 最简单可靠，支持 cleanup 防内存泄漏 |
-| 身份匹配 | SIMS API 优先 + Redis 缓存降级 | 数据不重复维护，匹配分缓存扫描 |
-| 去重策略 | 10s 时间窗口 (per student+direction) | 线程安全 + LRU 淘汰，防止 OOM |
-| 消息格式 | JSON (frame → base64, event → JSON) | 调试友好，量级够用 |
-| 配置管理 | YAML 文件 + dataclass 类型校验 | 静态类型安全，可扩展 |
-| 日志 | structlog | 结构化日志，适合生产排查 |
-| 数据库 | MariaDB (MySQL 兼容) | `infra/mariadb/` 提供 init SQL |
-| 抓拍图存储 | MinIO 对象存储 | 不通过 Kafka 传输大图 |
+| 决策点       | 你的选择                               | 理由                                 |
+| ------------ | -------------------------------------- | ------------------------------------ |
+| Go RTSP 方案 | FFmpeg CGO (ffmpeg-go)                 | 最稳定，无进程管理开销               |
+| 人脸检测模型 | RetinaFace (ONNX) + Haar 降级          | 精度高，无模型时自动降级 OpenCV Haar |
+| 特征模型     | ArcFace (ONNX, 512-dim) + flatten 降级 | 业界标准，无模型时降级像素特征       |
+| 方向判断     | ROI 垂直穿越线 + 线程安全 track        | 最简单可靠，支持 cleanup 防内存泄漏  |
+| 身份匹配     | SIMS API 优先 + Redis 缓存降级         | 数据不重复维护，匹配分缓存扫描       |
+| 去重策略     | 10s 时间窗口 (per student+direction)   | 线程安全 + LRU 淘汰，防止 OOM        |
+| 消息格式     | JSON (frame → base64, event → JSON)    | 调试友好，量级够用                   |
+| 配置管理     | YAML 文件 + dataclass 类型校验         | 静态类型安全，可扩展                 |
+| 日志         | structlog                              | 结构化日志，适合生产排查             |
+| 数据库       | MariaDB (MySQL 兼容)                   | `infra/mariadb/` 提供 init SQL       |
+| 抓拍图存储   | MinIO 对象存储                         | 不通过 Kafka 传输大图                |
 
 ---
 
 > **你的 AI 工作范围**：Pipeline RTSP → frame → face → feature → match → direction → event  
 > **AI 产出的最终数据**：Kafka `t_dorm_event` 中的 `{building, student_id, student_name, event_type, timestamp}`
-> 
+>
 > **提供给搭档的约定**：只要 `t_dorm_event` topic 格式不变，你内部随便重构。
