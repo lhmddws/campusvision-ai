@@ -54,6 +54,9 @@ yarn-debug.log*
 yarn-error.log*
 .pnpm-debug.log*
 
+# Large generated assets (download via scripts/download-font.sh)
+frontend/src/assets/styles/font.scss
+
 # ==================== Java (legacy) ====================
 *.class
 *.jar
