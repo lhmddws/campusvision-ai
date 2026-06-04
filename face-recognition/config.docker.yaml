@@ -7,11 +7,11 @@ kafka:
   max_poll_records: 10
 
 detection:
-  model_path: "app/models/retinaface-R50.onnx"
-  confidence_threshold: 0.6
+  model_path: ""
+  confidence_threshold: 0.3
   input_size: [640, 640]
-  min_face_size: 80
-  blur_threshold: 100.0
+  min_face_size: 40
+  blur_threshold: 0.0
   nms_iou_threshold: 0.5
 
 feature:
