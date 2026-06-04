@@ -44,7 +44,7 @@ func main() {
 	if err != nil {
 		log.Fatalf("Failed to initialize logger: %v", err)
 	}
-	defer logger.Sync()
+	defer func() { _ = logger.Sync() }()
 
 	// Warn if default JWT secret is in use (security risk for production)
 	if cfg.JWT.Secret == "your-256-bit-secret" || cfg.JWT.Secret == "dev-secret-change-in-production" {
@@ -63,7 +63,7 @@ func main() {
 	if err != nil {
 		logger.Fatal("Failed to connect to database", zap.Error(err))
 	}
-	defer db.Close()
+	defer func() { _ = db.Close() }()
 
 	db.SetMaxOpenConns(cfg.Database.MaxOpenConn)
 	db.SetMaxIdleConns(cfg.Database.MaxIdleConn)
@@ -82,7 +82,7 @@ func main() {
 		cfg.Redis.DB,
 		cfg.Redis.Password,
 	)
-	defer rdb.Close()
+	defer func() { _ = rdb.Close() }()
 
 	if err := rdb.Ping(context.Background()); err != nil {
 		logger.Fatal("Failed to connect to Redis", zap.Error(err))

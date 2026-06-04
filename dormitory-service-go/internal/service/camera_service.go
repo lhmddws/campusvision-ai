@@ -304,7 +304,7 @@ func (s *CameraService) HealthCheck(cameraID string) error {
 	resp, err := client.Get(gatewayURL)
 	if err == nil {
 		_, _ = io.Copy(io.Discard, resp.Body)
-		resp.Body.Close()
+		_ = resp.Body.Close()
 		if resp.StatusCode == http.StatusOK {
 			newStatus = "online"
 		}

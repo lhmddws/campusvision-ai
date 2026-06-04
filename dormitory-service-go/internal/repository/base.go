@@ -75,7 +75,7 @@ func (r *BaseRepository[T]) FindAll(ctx context.Context, orderBy ...string) ([]T
 func getDBColumns[T any]() (all []string, withoutPK []string) {
 	var zero T
 	t := reflect.TypeOf(zero)
-	if t.Kind() == reflect.Ptr {
+	if t.Kind() == reflect.Pointer {
 		t = t.Elem()
 	}
 	if t.Kind() != reflect.Struct {
@@ -196,7 +196,7 @@ func (r *BaseRepository[T]) FindWithPagination(
 
 	// Build the query
 	var queryBuilder strings.Builder
-	queryBuilder.WriteString(fmt.Sprintf("SELECT * FROM %s", r.TableName))
+	fmt.Fprintf(&queryBuilder, "SELECT * FROM %s", r.TableName)
 	if whereClause != "" {
 		queryBuilder.WriteString(" WHERE " + whereClause)
 	}
@@ -207,7 +207,7 @@ func (r *BaseRepository[T]) FindWithPagination(
 	}
 
 	offset := (page - 1) * size
-	queryBuilder.WriteString(fmt.Sprintf(" LIMIT %d OFFSET %d", size, offset))
+	fmt.Fprintf(&queryBuilder, " LIMIT %d OFFSET %d", size, offset)
 
 	var entities []T
 	err = r.DB.SelectContext(ctx, &entities, queryBuilder.String(), args...)

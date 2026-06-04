@@ -17,12 +17,6 @@ import (
 	"github.com/sims/campusvision/dormitory-service-go/internal/repository"
 )
 
-// buildingCacheTTL is how long a resolved building code→ID mapping stays in Redis.
-const buildingCacheTTL = 1 * time.Hour
-
-// buildingCacheKeyPrefix is the Redis key prefix for building code→ID lookups.
-const buildingCacheKeyPrefix = "dorm:building:code:"
-
 // EventConsumer consumes t_dorm_event messages from Kafka and processes them
 // into the dormitory-service database with Redis-based deduplication.
 type EventConsumer struct {

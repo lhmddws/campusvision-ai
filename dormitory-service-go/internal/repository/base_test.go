@@ -42,7 +42,7 @@ func newMockRepo(t *testing.T) (sqlmock.Sqlmock, *repository.BaseRepository[test
 func TestBase_Create_ReturnsErrorWhenNoDbTags(t *testing.T) {
 	db, _, err := sqlmock.New()
 	require.NoError(t, err)
-	defer db.Close()
+	defer func() { _ = db.Close() }()
 
 	sqlxDB := sqlx.NewDb(db, "mysql")
 	repo := repository.NewBaseRepository[noTagEntity](sqlxDB, "no_tag_table")

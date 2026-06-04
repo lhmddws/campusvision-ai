@@ -74,7 +74,7 @@ func (h *Handler) FaceMatch(c *gin.Context) {
 		})
 		return
 	}
-	defer rows.Close()
+	defer func() { _ = rows.Close() }()
 
 	threshold := h.FaceMatchThreshold
 	if threshold <= 0 {
