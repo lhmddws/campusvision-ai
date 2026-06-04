@@ -165,7 +165,10 @@ def load_config(path: str = "config.yaml") -> AppConfig:
         cfg.behavior = BehaviorConfig(**bdata)
 
     # Warn about unknown config keys
-    known_keys = {"kafka", "detection", "feature", "match", "direction", "dedup", "stranger", "night_mode", "redis", "log", "behavior"}
+    known_keys = {
+        "kafka", "detection", "feature", "match", "direction",
+        "dedup", "stranger", "night_mode", "redis", "log", "behavior",
+    }
     unknown = set(data.keys()) - known_keys
     for key in sorted(unknown):
         print(f"[WARN] unknown config key '{key}' in {path}")
