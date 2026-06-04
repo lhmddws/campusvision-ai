@@ -1,10 +1,11 @@
 # See https://golangci-lint.run/ for documentation
+version: "2"
 linters:
     enable:
         - errcheck
         - govet
         - staticcheck
-        - gosimple
+        # gosimple merged into staticcheck in v2
         - ineffassign
         - unused
 

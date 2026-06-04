@@ -43,8 +43,8 @@ func TestNewServiceWithKey_WrongLength(t *testing.T) {
 
 func TestNewService_EnvVar(t *testing.T) {
 	const testEnvValue = "test_key_32_bytes_abcdefgh123456"
-	os.Setenv(EnvKey, testEnvValue)
-	defer os.Unsetenv(EnvKey)
+	_ = os.Setenv(EnvKey, testEnvValue)
+	defer func() { _ = os.Unsetenv(EnvKey) }()
 
 	s, err := NewService()
 	if err != nil {
@@ -70,7 +70,7 @@ func TestNewService_EnvVar(t *testing.T) {
 }
 
 func TestDevModeFallback(t *testing.T) {
-	os.Unsetenv(EnvKey)
+	_ = os.Unsetenv(EnvKey)
 
 	s, err := NewService()
 	if err != nil {

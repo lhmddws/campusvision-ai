@@ -41,7 +41,7 @@ func main() {
 	defer cancel()
 
 	producer := kafka.NewProducer(cfg.Kafka)
-	defer producer.Close()
+	defer func() { _ = producer.Close() }()
 
 	var encKey []byte
 	if keyStr := os.Getenv(crypto.EnvKey); keyStr != "" {
@@ -118,8 +118,8 @@ func main() {
 	log.Println("Shutting down...")
 	cancel() // stop dbPollLoop first — ctx must be cancelled before manager shutdown
 	camManager.Stop()
-	healthServer.Shutdown(ctx)
-	mgrServer.Shutdown(ctx)
+	_ = healthServer.Shutdown(ctx)
+	_ = mgrServer.Shutdown(ctx)
 }
 
 func dbPollLoop(ctx context.Context, dbCfg config.DatabaseConfig, camManager *camera.Manager) {
@@ -128,7 +128,7 @@ func dbPollLoop(ctx context.Context, dbCfg config.DatabaseConfig, camManager *ca
 		log.Printf("[dbpoll] failed to open DB: %v", err)
 		return
 	}
-	defer db.Close()
+	defer func() { _ = db.Close() }()
 
 	// Connection pool limits for DB polling (low volume, periodic sync).
 	db.SetMaxOpenConns(dbCfg.MaxOpenConns)
@@ -161,7 +161,7 @@ func syncCamerasFromDB(ctx context.Context, db *sql.DB, camManager *camera.Manag
 		log.Printf("[dbpoll] query error: %v", err)
 		return
 	}
-	defer rows.Close()
+	defer func() { _ = rows.Close() }()
 
 	var cameras []config.CameraConfig
 	for rows.Next() {

@@ -30,9 +30,10 @@ type Producer struct {
 
 func NewProducer(cfg config.KafkaConfig) *Producer {
 	compression := compress.Snappy
-	if cfg.Compression == "none" {
+	switch cfg.Compression {
+	case "none":
 		compression = compress.None
-	} else if cfg.Compression == "gzip" {
+	case "gzip":
 		compression = compress.Gzip
 	}
 

@@ -117,7 +117,7 @@ func (d *Decoder) Stop() {
 
 // readStderr consumes ffmpeg stderr output and logs lines that indicate errors.
 func (d *Decoder) readStderr(r io.ReadCloser) {
-	defer r.Close()
+	defer func() { _ = r.Close() }()
 
 	scanner := bufio.NewScanner(r)
 	scanner.Buffer(make([]byte, 4096), 4096)
