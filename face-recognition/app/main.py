@@ -63,6 +63,7 @@ def main():
         min_face_size=cfg.detection.min_face_size,
         blur_threshold=cfg.detection.blur_threshold,
         nms_iou_threshold=cfg.detection.nms_iou_threshold,
+        haar_confidence=cfg.detection.haar_confidence,
     )
 
     extractor = FeatureExtractor(
@@ -77,7 +78,7 @@ def main():
 
     # Behaviour components (only when enabled)
     tracker = (
-        FaceTracker(iou_threshold=0.3, track_ttl=5.0)
+        FaceTracker(iou_threshold=0.3, track_ttl=cfg.direction.track_ttl)
         if cfg.behavior.enabled
         else None
     )
@@ -101,12 +102,15 @@ def main():
         group_id=cfg.kafka.group_id,
         value_deserializer=lambda m: json.loads(m.decode()),
         max_poll_records=cfg.kafka.max_poll_records,
-        auto_offset_reset="latest",
+        auto_offset_reset="earliest",
     )
 
     producer = KafkaProducer(
         bootstrap_servers=cfg.kafka.brokers,
         value_serializer=lambda v: json.dumps(v).encode(),
+        acks="all",
+        retries=3,
+        max_in_flight_requests_per_connection=1,
     )
 
     log.info(
@@ -149,7 +153,7 @@ def main():
         nonlocal stats, tracker, behavior_analyzer, event_publisher
 
         # Decode base64 JPEG -> numpy array (BGR)
-        frame_bytes = base64.b64decode(msg["frame_data"])
+        frame_bytes = base64.b64decode(msg.get("frame_data", ""))
         np_arr = np.frombuffer(frame_bytes, dtype=np.uint8)
         frame = cv2.imdecode(np_arr, cv2.IMREAD_COLOR)
         if frame is None:
@@ -171,14 +175,14 @@ def main():
             emb = extractor.extract(frame, face)
             embeddings.append(emb)
 
-        camera_id = msg["camera_id"]
+        camera_id = msg.get("camera_id", "")
         timestamp = time.time()
 
         # --- BEHAVIOUR PIPELINE (only when enabled) ---
         if tracker and behavior_analyzer and event_publisher:
             tracks = tracker.update(faces, embeddings, camera_id, timestamp)
             behavior_events = behavior_analyzer.analyze(
-                tracks, len(faces), timestamp
+                tracks, len(faces), timestamp, camera_id=camera_id
             )
             for be in behavior_events:
                 be["camera_id"] = camera_id
@@ -208,7 +212,7 @@ def main():
 
             # Direction determination (ROI line crossing)
             direction_result = direction.determine(
-                face_id, face_center_x, face_center_y, msg["frame_width"]
+                face_id, face_center_x, face_center_y, msg.get("frame_width", 640)
             )
 
             if direction_result is None:
@@ -218,7 +222,7 @@ def main():
             student_id = (
                 match_result["student_id"]
                 if match_result
-                else f"stranger_{msg['building']}"
+                else f"stranger_{msg.get('building', '')}"
             )
             if dedup.is_duplicate(student_id, direction_result):
                 continue
@@ -229,14 +233,14 @@ def main():
 
             # Build & produce event
             event = {
-                "camera_id": msg["camera_id"],
-                "building": msg["building"],
+                "camera_id": msg.get("camera_id", ""),
+                "building": msg.get("building", ""),
                 "event_type": direction_result,
                 "student_id": match_result["student_id"] if match_result else None,
                 "name": match_result["name"] if match_result else None,
                 "confidence": match_result["confidence"] if match_result else 0.0,
                 "timestamp": int(time.time() * 1000),
-                "frame_sequence": msg["frame_sequence"],
+                "frame_sequence": msg.get("frame_sequence", 0),
                 "is_stranger": match_result is None,
                 "snapshot_path": "",
                 "direction_method": "roi_line",
@@ -250,38 +254,39 @@ def main():
     # ------------------------------------------------------------------
     try:
         while running:
-            msg_pack = consumer.poll(timeout_ms=1000)
+            try:
+                msg_pack = consumer.poll(timeout_ms=1000)
 
-            for _tp, messages in msg_pack.items():
-                for raw_msg in messages:
-                    process_frame(raw_msg.value)
-                    stats["frames_processed"] += 1
+                for _tp, messages in msg_pack.items():
+                    for raw_msg in messages:
+                        process_frame(raw_msg.value)
+                        stats["frames_processed"] += 1
 
-            # Periodic maintenance
-            direction.cleanup()
-            dedup.cleanup()
-            if tracker:
-                tracker.cleanup()
+                # Periodic maintenance
+                direction.cleanup()
+                dedup.cleanup()
+                if tracker:
+                    tracker.cleanup()
 
-            # Stats logging every 60 seconds
-            now = time.time()
-            if now - stats["last_log_time"] >= 60:
-                elapsed = int(now - stats["last_log_time"])
-                log.info(
-                    "processing_stats",
-                    frames_processed=stats["frames_processed"],
-                    faces_detected=stats["faces_detected"],
-                    events_produced=stats["events_produced"],
-                    matches_found=stats["matches_found"],
-                    strangers=stats["strangers"],
-                    behavior_events=stats["behavior_events"],
-                    elapsed_seconds=elapsed,
-                )
-                stats["last_log_time"] = now
+                # Stats logging every 60 seconds
+                now = time.time()
+                if now - stats["last_log_time"] >= 60:
+                    elapsed = int(now - stats["last_log_time"])
+                    log.info(
+                        "processing_stats",
+                        frames_processed=stats["frames_processed"],
+                        faces_detected=stats["faces_detected"],
+                        events_produced=stats["events_produced"],
+                        matches_found=stats["matches_found"],
+                        strangers=stats["strangers"],
+                        behavior_events=stats["behavior_events"],
+                        elapsed_seconds=elapsed,
+                    )
+                    stats["last_log_time"] = now
 
-    except Exception:
-        log.error("unexpected_error", exc_info=True)
-        raise
+            except Exception:
+                log.error("unexpected_error", exc_info=True)
+                time.sleep(1)
     finally:
         log.info("shutting_down")
         consumer.close()

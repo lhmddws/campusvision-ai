@@ -25,8 +25,8 @@
 │   GPU 服务器       │   │   业务服务器         │
 │                   │   │                    │
 │  Stream Gateway   │   │  MariaDB           │
-│  AI Engine        │   │  Redis             │
-│  Face Recognition │   │  MinIO             │
+│  Face Recognition │   │  Redis             │
+│  Nginx            │   │  MinIO             │
 │  Nginx            │   │  Kafka (单节点)     │
 │                   │   │  Web 静态资源       │
 └───────────────────┘   └────────────────────┘
@@ -43,8 +43,8 @@
          └────────┬─────────┘
                   ▼
           ┌──────────────┐    ┌──────────────┐
-          │ GPU 服务器 1   │    │ GPU 服务器 2  │
-          │ AI Engine     │    │ AI Engine    │
+           │ GPU 服务器 1   │    │ GPU 服务器 2  │
+           │ Face Recognition│   │ Face Recognition│
           └──────┬───────┘    └──────┬───────┘
                  │                  │
                  └────────┬─────────┘
@@ -71,23 +71,23 @@
 
 ### 2.1 GPU 推理节点
 
-| 配置 | 低配（开发） | 中配（小型） | 高配（中型） |
-|------|-------------|-------------|-------------|
-| GPU | RTX 3060 | RTX 4070 | RTX 4090 / L40S |
-| CPU | 8 核 | 16 核 | 32 核 |
-| 内存 | 32 GB | 64 GB | 128 GB |
-| 存储 | 500 GB SSD | 1 TB NVMe | 2 TB NVMe |
-| 网络 | 千兆 | 万兆 | 万兆 |
-| 摄像头路数 | ~5 路 | ~20 路 | ~40+ 路 |
+| 配置       | 低配（开发） | 中配（小型） | 高配（中型）    |
+| ---------- | ------------ | ------------ | --------------- |
+| GPU        | RTX 3060     | RTX 4070     | RTX 4090 / L40S |
+| CPU        | 8 核         | 16 核        | 32 核           |
+| 内存       | 32 GB        | 64 GB        | 128 GB          |
+| 存储       | 500 GB SSD   | 1 TB NVMe    | 2 TB NVMe       |
+| 网络       | 千兆         | 万兆         | 万兆            |
+| 摄像头路数 | ~5 路        | ~20 路       | ~40+ 路         |
 
 ### 2.2 业务节点
 
-| 配置 | 小型 | 中型 |
-|------|------|------|
-| CPU | 8 核 | 16 核 × 2 |
-| 内存 | 32 GB | 64 GB × 2 |
+| 配置 | 小型       | 中型         |
+| ---- | ---------- | ------------ |
+| CPU  | 8 核       | 16 核 × 2    |
+| 内存 | 32 GB      | 64 GB × 2    |
 | 存储 | 500 GB SSD | 1 TB SSD × 2 |
-| 网络 | 千兆 | 万兆 |
+| 网络 | 千兆       | 万兆         |
 
 ### 2.3 摄像头要求
 
@@ -176,20 +176,21 @@ volumes:
   web-static:
 ```
 
-### 3.2 AI Engine
+### 3.2 Face Recognition
+
+> 原 ai-engine (C++ YOLO 服务) 已移除。当前使用 Python face-recognition 模块 (RetinaFace + ArcFace ONNX)。
 
 ```yaml
 services:
-  ai-engine:
+  face-recognition:
     build:
-      context: ./campusvision-ai-engine
+      context: ./face-recognition
       dockerfile: Dockerfile
-    image: campusvision/ai-engine:latest
-    ports:
-      - "8000:8000"
+    image: campusvision/face-recognition:latest
     environment:
       - KAFKA_BROKERS=kafka:9092
-      - REDIS_URL=redis://redis:6379
+      - REDIS_ADDR=redis:6379
+      - DORMITORY_SERVICE_URL=http://dormitory-service:8083
       - CUDA_VISIBLE_DEVICES=0
       - LOG_LEVEL=info
     deploy:
@@ -200,11 +201,11 @@ services:
               count: 1
               capabilities: [gpu]
     volumes:
-      - ./weights:/app/weights
-      - ./models:/app/models
+      - ./face-recognition/app/models:/app/app/models
     depends_on:
       - kafka
       - redis
+      - stream-gateway
     restart: unless-stopped
 ```
 
@@ -214,7 +215,7 @@ services:
 services:
   stream-gateway:
     build:
-      context: ./campusvision-stream-gateway
+      context: ./stream-gateway
       dockerfile: Dockerfile
     image: campusvision/stream-gateway:latest
     environment:
@@ -256,7 +257,7 @@ services:
 services:
   campus-web:
     build:
-      context: ./campusvision-web
+      context: ./frontend
       dockerfile: Dockerfile
     image: campusvision/web:latest
     environment:
@@ -330,16 +331,16 @@ server {
 
 ### 4.3 模型权重
 
-将模型权重文件放置到 `weights/` 目录：
+face-recognition 模块使用 ONNX 模型，通过 `python -m app.download_models` 自动下载：
 
 ```text
-weights/
-├── yolov11n.pt           # YOLO 人体检测
-├── yolov11s.pt           # YOLO 高精度模型
-├── insightface_model.onnx # 人脸识别
-├── reid_model.pth         # ReID
-└── ...
+face-recognition/app/models/
+├── detection.onnx    # RetinaFace-ResNet50 (人脸检测)
+├── feature.onnx      # ArcFace-ResNet100 (人脸识别)
+└── model_urls.yaml   # 模型下载配置 (含 SHA256 校验)
 ```
+
+> 模型文件被 gitignore (`*.onnx`)。Docker 构建时自动下载，或通过 `python -m app.download_models` 手动下载。
 
 ---
 
@@ -353,17 +354,17 @@ docker compose --profile all up -d
 
 # 启动特定服务组
 docker compose up -d kafka redis mariadb
-docker compose up -d ai-engine stream-gateway
+docker compose up -d face-recognition stream-gateway
 ```
 
 ### 5.2 日志
 
 ```bash
 # 实时查看
-docker compose logs -f ai-engine
+docker compose logs -f face-recognition
 
 # 最近 1 小时
-docker compose logs --since=1h ai-engine
+docker compose logs --since=1h face-recognition
 
 # 导出
 docker compose logs -t > deployment_logs.txt
@@ -372,8 +373,9 @@ docker compose logs -t > deployment_logs.txt
 ### 5.3 健康检查
 
 ```bash
-# Engine API
-curl http://localhost:8000/health
+# Stream Gateway (health + management)
+curl http://localhost:8080/health
+curl http://localhost:8081/api/cameras -H "X-Management-Key: $MGMT_KEY"
 
 # Dormitory Service API
 curl http://localhost:8083/health
@@ -389,11 +391,11 @@ kcat -b localhost:9092 -L
 git pull
 
 # 重新构建并部署
-docker compose build ai-engine
-docker compose up -d ai-engine
+docker compose build face-recognition
+docker compose up -d face-recognition
 
 # 滚动更新（需要多节点）
-docker compose up -d --scale ai-engine=2 --no-deps --no-recreate ai-engine
+docker compose up -d --scale face-recognition=2 --no-deps --no-recreate face-recognition
 ```
 
 ### 5.5 数据库迁移
@@ -430,14 +432,14 @@ docker run -d --gpus all --rm \
 
 ### 6.3 告警规则
 
-| 指标 | 阈值 | 严重级别 |
-|------|------|---------|
-| GPU 温度 | > 85°C | 警告 |
-| GPU 利用率持续 100% | > 5 min | 警告 |
-| Kafka 延迟 | > 10s | 严重 |
-| 摄像头断线 | > 5 min | 严重 |
-| API 5xx 错误率 | > 1% | 严重 |
-| 磁盘使用率 | > 85% | 警告 |
+| 指标                | 阈值    | 严重级别 |
+| ------------------- | ------- | -------- |
+| GPU 温度            | > 85°C  | 警告     |
+| GPU 利用率持续 100% | > 5 min | 警告     |
+| Kafka 延迟          | > 10s   | 严重     |
+| 摄像头断线          | > 5 min | 严重     |
+| API 5xx 错误率      | > 1%    | 严重     |
+| 磁盘使用率          | > 85%   | 警告     |
 
 ---
 
@@ -460,33 +462,33 @@ mariadb-dump -h localhost -u campusvision -p campusvision > backup_$(date +%Y%m%
 mariadb -h localhost -u campusvision -p campusvision < backup_20260515.sql
 
 # Docker 回滚
-docker compose up -d ai-engine=previous
+docker compose up -d face-recognition:previous
 ```
 
 ### 7.3 高可用策略
 
-| 组件 | 策略 |
-|------|------|
-| MariaDB | 主从复制 |
-| Redis | 哨兵模式 / 集群 |
-| Kafka | 多 broker + 副本因子 ≥ 2 |
-| AI Engine | 多实例 + 摄像头分片 |
-| Dormitory Service | 多实例 + Nginx 负载均衡 |
-| MinIO | 多节点纠删码 |
+| 组件                         | 策略                     |
+| ---------------------------- | ------------------------ |
+| MariaDB                      | 主从复制                 |
+| Redis                        | 哨兵模式 / 集群          |
+| Kafka                        | 多 broker + 副本因子 ≥ 2 |
+| AI Engine (Face Recognition) | 多实例 + 摄像头分片      |
+| Dormitory Service            | 多实例 + Nginx 负载均衡  |
+| MinIO                        | 多节点纠删码             |
 
 ---
 
 ## 附录：端口规划
 
-| 服务 | 端口 | 协议 |
-|------|------|------|
-| Nginx | 80/443 | HTTP/HTTPS |
-| Kafka | 9092 | TCP |
-| Redis | 6379 | TCP |
-| MariaDB | 3306 | TCP |
-| MinIO API | 9000 | HTTP |
-| MinIO Console | 9001 | HTTP |
-| Dormitory Service | 8083 | HTTP |
+| 服务              | 端口   | 协议       |
+| ----------------- | ------ | ---------- |
+| Nginx             | 80/443 | HTTP/HTTPS |
+| Kafka             | 9092   | TCP        |
+| Redis             | 6379   | TCP        |
+| MariaDB           | 3306   | TCP        |
+| MinIO API         | 9000   | HTTP       |
+| MinIO Console     | 9001   | HTTP       |
+| Dormitory Service | 8083   | HTTP       |
 
 ## 附录：Docker 镜像列表
 

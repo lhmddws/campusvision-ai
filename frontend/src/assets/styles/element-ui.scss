@@ -6,7 +6,7 @@
 }
 
 .el-upload {
-  input[type="file"] {
+  input[type='file'] {
     display: none !important;
   }
 }
@@ -108,7 +108,7 @@
   --dark-bg-color: #293146;
 
   /* left menu start */
-  --left-menu-border-color: "#eee";
+  --left-menu-border-color: '#eee';
 
   --left-menu-max-width: 200px;
 
@@ -132,13 +132,13 @@
 
   --logo-title-text-color: #fff;
 
-  --logo-border-color: "inherit";
+  --logo-border-color: 'inherit';
   /* logo end */
 
   /* header start */
-  --top-header-bg-color: "#fff";
+  --top-header-bg-color: '#fff';
 
-  --top-header-text-color: "inherit";
+  --top-header-text-color: 'inherit';
 
   --top-header-hover-color: #f6f6f6;
 

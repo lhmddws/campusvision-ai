@@ -18,7 +18,7 @@ export const setTextPlaceholder = (schema: FormSchema): PlaceholderMoel => {
   const selectMap = ['Select', 'TimePicker', 'DatePicker', 'TimeSelect', 'TreeSelect'];
   if (textMap.includes(schema?.component as string)) {
     return {
-      placeholder: t('common.inputText')
+      placeholder: t('common.inputText'),
     };
   }
   if (selectMap.includes(schema?.component as string)) {
@@ -26,17 +26,17 @@ export const setTextPlaceholder = (schema: FormSchema): PlaceholderMoel => {
     const twoTextMap = ['datetimerange', 'daterange', 'monthrange', 'datetimerange', 'daterange'];
     if (
       twoTextMap.includes(
-        (schema?.componentProps?.type || schema?.componentProps?.isRange) as string
+        (schema?.componentProps?.type || schema?.componentProps?.isRange) as string,
       )
     ) {
       return {
         startPlaceholder: t('common.startTimeText'),
         endPlaceholder: t('common.endTimeText'),
-        rangeSeparator: '-'
+        rangeSeparator: '-',
       };
     } else {
       return {
-        placeholder: t('common.selectText')
+        placeholder: t('common.selectText'),
       };
     }
   }
@@ -55,13 +55,13 @@ export const setGridProp = (col: ColProps = {}): ColProps => {
     ...(col.span
       ? {}
       : {
-        xs: 24,
-        sm: 12,
-        md: 12,
-        lg: 12,
-        xl: 12
-      }),
-    ...col
+          xs: 24,
+          sm: 12,
+          md: 12,
+          lg: 12,
+          xl: 12,
+        }),
+    ...col,
   };
   return colProps;
 };
@@ -76,9 +76,9 @@ export const setComponentProps = (item: FormSchema): Recordable => {
   const componentProps: Recordable = notNeedClearable.includes(item.component as string)
     ? { ...item.componentProps }
     : {
-      clearable: true,
-      ...item.componentProps
-    };
+        clearable: true,
+        ...item.componentProps,
+      };
   // 需要删除额外的属性
   delete componentProps?.slots;
   return componentProps;
@@ -93,7 +93,7 @@ export const setComponentProps = (item: FormSchema): Recordable => {
 export const setItemComponentSlots = (
   slots: Slots,
   slotsProps: Recordable = {},
-  field: string
+  field: string,
 ): Recordable => {
   const slotObj: Recordable = {};
   for (const key in slotsProps) {
@@ -116,7 +116,7 @@ export const setItemComponentSlots = (
  */
 export const initModel = (schema: FormSchema[], formModel: Recordable) => {
   const model: Recordable = { ...formModel };
-  schema.map((v) => {
+  schema.map(v => {
     // 如果是hidden，就删除对应的值
     if (v.hidden) {
       delete model[v.field];

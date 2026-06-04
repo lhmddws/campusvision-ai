@@ -190,7 +190,16 @@ CREATE TABLE IF NOT EXISTS dorm_camera (
     camera_id         VARCHAR(32)   NOT NULL UNIQUE                 COMMENT '摄像头唯一ID',
     name              VARCHAR(64)   NOT NULL                        COMMENT '显示名称',
     building          VARCHAR(8)    NOT NULL                        COMMENT '所在楼栋 A/B/C/D',
+    type              VARCHAR(16)   DEFAULT 'RTSP'                  COMMENT '摄像头类型: RTSP/SIMULATED/USB',
     rtsp_url          VARCHAR(512)  NOT NULL                        COMMENT 'RTSP拉流地址',
+    protocol          VARCHAR(8)    DEFAULT 'rtsp'                  COMMENT '拉流协议',
+    host              VARCHAR(128)                                   COMMENT '摄像头主机',
+    port              INT           DEFAULT 554                     COMMENT '端口',
+    path              VARCHAR(256)                                   COMMENT 'RTSP路径',
+    username          VARCHAR(64)                                    COMMENT '认证用户名',
+    password_enc      TEXT                                           COMMENT 'AES-256-GCM加密密码: base64(nonce|ciphertext)',
+    nonce             VARCHAR(32)                                    COMMENT '加密随机数(base64)',
+    key_id            VARCHAR(16)   DEFAULT 'v1'                    COMMENT '密钥版本',
     direction         VARCHAR(16)   DEFAULT 'entry'                 COMMENT '监控方向',
     resolution        VARCHAR(16)   DEFAULT '1280x720'              COMMENT '分辨率',
     status            VARCHAR(16)   DEFAULT 'unknown'               COMMENT 'online/offline/idle/unknown',
@@ -268,7 +277,7 @@ INSERT IGNORE INTO dorm_config (config_key, config_value, config_type, descripti
 -- ==================== 示例摄像头 ====================
 -- 按需通过 REST API 注册，此处仅作为 schema 参考
 -- INSERT IGNORE INTO dorm_camera (camera_id, name, building, rtsp_url, direction, resolution, enabled) VALUES
---     ('cam-a', 'A栋入口', 'A', 'rtsp://admin:password@192.168.1.101:554/stream1', 'entry', '1280x720', 1),
---     ('cam-b', 'B栋入口', 'B', 'rtsp://admin:password@192.168.1.102:554/stream1', 'entry', '1280x720', 1),
---     ('cam-c', 'C栋入口', 'C', 'rtsp://admin:password@192.168.1.103:554/stream1', 'entry', '1280x720', 1),
---     ('cam-d', 'D栋入口', 'D', 'rtsp://admin:password@192.168.1.104:554/stream1', 'entry', '1280x720', 1);
+--     ('cam-a', 'A栋入口', 'A', 'rtsp://admin:PLACEHOLDER@192.168.1.101:554/stream1', 'entry', '1280x720', 1),
+--     ('cam-b', 'B栋入口', 'B', 'rtsp://admin:PLACEHOLDER@192.168.1.102:554/stream1', 'entry', '1280x720', 1),
+--     ('cam-c', 'C栋入口', 'C', 'rtsp://admin:PLACEHOLDER@192.168.1.103:554/stream1', 'entry', '1280x720', 1),
+--     ('cam-d', 'D栋入口', 'D', 'rtsp://admin:PLACEHOLDER@192.168.1.104:554/stream1', 'entry', '1280x720', 1);

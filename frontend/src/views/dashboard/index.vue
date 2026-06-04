@@ -1,227 +1,131 @@
 <template>
-  <div class="app-container dashboard-container">
+  <div class="dashboard-container">
     <!-- Row 1: KPI Cards -->
-    <el-row :gutter="16" class="kpi-row">
-      <el-col :xs="12" :sm="12" :md="6" :lg="6">
-        <el-card v-loading="camerasLoading" shadow="hover" class="kpi-card kpi-camera">
-          <div class="kpi-content">
-            <div class="kpi-icon">
-              <el-icon :size="32"><VideoCamera /></el-icon>
-            </div>
-            <div class="kpi-info">
-              <div class="kpi-value">{{ cameraStatus.online }}<span class="kpi-unit"> / {{ cameraStatus.total }}</span></div>
-              <div class="kpi-label">摄像头在线</div>
-            </div>
+    <div class="kpi-grid">
+      <div class="kpi-card kpi-camera" v-loading="camerasLoading">
+        <div class="kpi-icon-circle kpi-icon-blue">
+          <el-icon :size="28"><VideoCamera /></el-icon>
+        </div>
+        <div class="kpi-body">
+          <div class="kpi-value">
+            {{ cameraStatus.online }}<span class="kpi-unit"> / {{ cameraStatus.total }}</span>
           </div>
-          <div class="kpi-footer">
-            <el-tag :type="cameraStatus.error > 0 ? 'danger' : 'success'" size="small" effect="plain">
-              {{ cameraStatus.error > 0 ? `${cameraStatus.error} 异常` : '全部正常' }}
-            </el-tag>
-          </div>
-        </el-card>
-      </el-col>
+          <div class="kpi-label">在线摄像头</div>
+        </div>
+        <div class="kpi-trend trend-up">
+          <el-icon :size="12"><Top /></el-icon>
+          <span
+            >{{
+              cameraStatus.total > 0
+                ? ((cameraStatus.online / cameraStatus.total) * 100).toFixed(1)
+                : 0
+            }}%</span
+          >
+        </div>
+      </div>
 
-      <el-col :xs="12" :sm="12" :md="6" :lg="6">
-        <el-card v-loading="alertsLoading" shadow="hover" class="kpi-card kpi-alert">
-          <div class="kpi-content">
-            <div class="kpi-icon">
-              <el-icon :size="32"><Bell /></el-icon>
-            </div>
-            <div class="kpi-info">
-              <div class="kpi-value">{{ alertStats.today ?? 0 }}</div>
-              <div class="kpi-label">今日告警</div>
-            </div>
-          </div>
-          <div class="kpi-footer">
-            <el-tag :type="(alertStats.unread ?? 0) > 0 ? 'warning' : 'info'" size="small" effect="plain">
-              {{ alertStats.unread ?? 0 }} 未读
-            </el-tag>
-          </div>
-        </el-card>
-      </el-col>
+      <div class="kpi-card kpi-event" v-loading="eventsLoading">
+        <div class="kpi-icon-circle kpi-icon-green">
+          <el-icon :size="28"><Sort /></el-icon>
+        </div>
+        <div class="kpi-body">
+          <div class="kpi-value">{{ eventsTotal }}</div>
+          <div class="kpi-label">今日进出</div>
+        </div>
+        <div class="kpi-trend trend-neutral">
+          <span>今日</span>
+        </div>
+      </div>
 
-      <el-col :xs="12" :sm="12" :md="6" :lg="6">
-        <el-card v-loading="attendanceLoading" shadow="hover" class="kpi-card kpi-attendance">
-          <div class="kpi-content">
-            <div class="kpi-icon">
-              <el-icon :size="32"><UserFilled /></el-icon>
-            </div>
-            <div class="kpi-info">
-              <div class="kpi-value">{{ formatRate(attendanceStats.rate) }}</div>
-              <div class="kpi-label">出勤率</div>
-            </div>
-          </div>
-          <div class="kpi-footer">
-            <span class="kpi-sub">在寝 {{ attendanceStats.present ?? 0 }} / 总计 {{ attendanceStats.total ?? 0 }}</span>
-          </div>
-        </el-card>
-      </el-col>
+      <div class="kpi-card kpi-alert" v-loading="alertsLoading">
+        <div class="kpi-icon-circle kpi-icon-orange">
+          <el-icon :size="28"><Bell /></el-icon>
+        </div>
+        <div class="kpi-body">
+          <div class="kpi-value">{{ alertStats.unread ?? 0 }}</div>
+          <div class="kpi-label">告警未处理</div>
+        </div>
+        <div class="kpi-trend" :class="(alertStats.unread ?? 0) > 0 ? 'trend-down' : 'trend-up'">
+          <el-icon :size="12"
+            ><Top v-if="(alertStats.unread ?? 0) === 0" /><Bottom v-else
+          /></el-icon>
+          <span
+            >{{
+              alertStats.total > 0
+                ? (((alertStats.unread ?? 0) / alertStats.total) * 100).toFixed(1)
+                : 0
+            }}%</span
+          >
+        </div>
+      </div>
 
-      <el-col :xs="12" :sm="12" :md="6" :lg="6">
-        <el-card v-loading="attendanceLoading" shadow="hover" class="kpi-card kpi-student">
-          <div class="kpi-content">
-            <div class="kpi-icon">
-              <el-icon :size="32"><Avatar /></el-icon>
-            </div>
-            <div class="kpi-info">
-              <div class="kpi-value">{{ attendanceStats.present ?? 0 }}</div>
-              <div class="kpi-label">在线学生</div>
-            </div>
-          </div>
-          <div class="kpi-footer">
-            <span class="kpi-sub">迟到 {{ attendanceStats.late ?? 0 }} · 陌生人 {{ attendanceStats.stranger ?? 0 }}</span>
-          </div>
-        </el-card>
-      </el-col>
-    </el-row>
+      <div class="kpi-card kpi-attendance" v-loading="attendanceLoading">
+        <div class="kpi-icon-circle kpi-icon-blue">
+          <el-icon :size="28"><UserFilled /></el-icon>
+        </div>
+        <div class="kpi-body">
+          <div class="kpi-value">{{ formatRate(attendanceStats.rate) }}</div>
+          <div class="kpi-label">出勤率</div>
+        </div>
+        <div class="kpi-trend trend-up">
+          <span>{{ attendanceStats.present ?? 0 }} / {{ attendanceStats.total ?? 0 }}</span>
+        </div>
+      </div>
+    </div>
 
-    <!-- Row 2: Camera Status + Alert Summary -->
-    <el-row :gutter="16" class="detail-row">
-      <el-col :xs="24" :sm="24" :md="16" :lg="16">
-        <el-card v-loading="camerasLoading" shadow="hover" class="detail-card">
-          <template #header>
-            <div class="card-header">
-              <span>摄像头状态</span>
-              <el-tag size="small" effect="plain" type="info">
-                在线 {{ cameraStatus.online }} / 离线 {{ cameraStatus.offline }} / 异常 {{ cameraStatus.error }}
-              </el-tag>
-            </div>
-          </template>
-          <div v-if="cameraStatus.cameras && cameraStatus.cameras.length > 0" class="camera-grid">
-            <div
-              v-for="cam in cameraStatus.cameras"
-              :key="cam.camera_id ?? cam.id"
-              class="camera-item"
-            >
-              <el-card shadow="never" class="camera-card" :body-style="{ padding: '12px' }">
-                <div class="camera-status-dot" :class="statusDotClass(cam.status)"></div>
-                <div class="camera-info">
-                  <div class="camera-name" :title="cam.name ?? cam.camera_name">
-                    {{ cam.name ?? cam.camera_name ?? '—' }}
-                  </div>
-                  <div class="camera-meta">{{ cam.building ?? cam.building_name ?? '—' }}</div>
-                  <div class="camera-fps" v-if="cam.fps !== undefined && cam.fps !== null">
-                    {{ cam.fps }} FPS
-                  </div>
-                </div>
-                <el-tag :type="statusTagType(cam.status)" size="small" effect="dark" class="camera-tag">
-                  {{ statusLabel(cam.status) }}
-                </el-tag>
-              </el-card>
-            </div>
-          </div>
-          <el-empty v-else description="暂无摄像头数据" :image-size="60" />
-        </el-card>
-      </el-col>
+    <!-- Row 2: Charts -->
+    <div class="charts-grid">
+      <div class="chart-card">
+        <div class="card-header">
+          <span class="card-title">进出趋势</span>
+        </div>
+        <div ref="trendChartRef" class="chart-container"></div>
+      </div>
+      <div class="chart-card">
+        <div class="card-header">
+          <span class="card-title">告警分布</span>
+        </div>
+        <div ref="alertChartRef" class="chart-container"></div>
+      </div>
+    </div>
 
-      <el-col :xs="24" :sm="24" :md="8" :lg="8">
-        <el-card v-loading="alertsLoading" shadow="hover" class="detail-card">
-          <template #header>
-            <div class="card-header">
-              <span>告警概览</span>
-              <el-tag size="small" effect="plain" type="danger">
-                共 {{ alertStats.total ?? 0 }}
-              </el-tag>
-            </div>
-          </template>
-          <div class="alert-summary">
-            <div class="alert-item alert-critical">
-              <div class="alert-level">
-                <el-tag type="danger" effect="dark" size="large" round>严重</el-tag>
-              </div>
-              <div class="alert-count">{{ alertStats.by_severity?.critical ?? 0 }}</div>
-            </div>
-            <div class="alert-item alert-high">
-              <div class="alert-level">
-                <el-tag type="warning" effect="dark" size="large" round>高危</el-tag>
-              </div>
-              <div class="alert-count">{{ alertStats.by_severity?.high ?? 0 }}</div>
-            </div>
-            <div class="alert-item alert-medium">
-              <div class="alert-level">
-                <el-tag type="primary" effect="dark" size="large" round>中等</el-tag>
-              </div>
-              <div class="alert-count">{{ alertStats.by_severity?.medium ?? 0 }}</div>
-            </div>
-            <div class="alert-item alert-low">
-              <div class="alert-level">
-                <el-tag type="info" effect="dark" size="large" round>低级</el-tag>
-              </div>
-              <div class="alert-count">{{ alertStats.by_severity?.low ?? 0 }}</div>
+    <!-- Row 3: Activity List -->
+    <div class="activity-card">
+      <div class="card-header">
+        <span class="card-title">实时活动</span>
+        <span class="card-header-extra">共 {{ eventsTotal }} 条</span>
+      </div>
+      <div class="activity-list" v-loading="eventsLoading">
+        <div v-if="events.length === 0" class="activity-empty">
+          <el-empty description="暂无事件数据" :image-size="60" />
+        </div>
+        <div v-for="(event, index) in events" :key="event.id ?? index" class="activity-item">
+          <div class="activity-dot" :class="eventDotClass(event.event_type)"></div>
+          <div class="activity-info">
+            <div class="activity-type">{{ formatEventType(event.event_type) }}</div>
+            <div class="activity-meta">
+              {{ event.building ?? event.building_name ?? '—' }} ·
+              {{ event.camera ?? event.camera_name ?? '—' }}
             </div>
           </div>
-          <el-divider />
-          <div class="alert-type-breakdown">
-            <div class="alert-type-title">按类型统计</div>
-            <div v-for="(count, type) in alertStats.by_type" :key="type" class="alert-type-row">
-              <span class="alert-type-label">{{ formatEventType(type as string) }}</span>
-              <span class="alert-type-count">{{ count }}</span>
-            </div>
-            <el-empty v-if="!alertStats.by_type || Object.keys(alertStats.by_type).length === 0" description="暂无数据" :image-size="40" />
-          </div>
-        </el-card>
-      </el-col>
-    </el-row>
-
-    <!-- Row 3: Recent Events Table -->
-    <el-row :gutter="16" class="events-row">
-      <el-col :span="24">
-        <el-card v-loading="eventsLoading" shadow="hover" class="detail-card">
-          <template #header>
-            <div class="card-header">
-              <span>最近事件</span>
-              <el-tag size="small" effect="plain" type="info">
-                共 {{ eventsTotal }} 条
-              </el-tag>
-            </div>
-          </template>
-          <el-table :data="events" stripe style="width: 100%" empty-text="暂无事件数据">
-            <el-table-column prop="event_time" label="时间" min-width="170">
-              <template #default="{ row }">
-                {{ formatTime(row.event_time ?? row.created_at) }}
-              </template>
-            </el-table-column>
-            <el-table-column prop="building" label="楼栋" min-width="100">
-              <template #default="{ row }">
-                {{ row.building ?? row.building_name ?? '—' }}
-              </template>
-            </el-table-column>
-            <el-table-column prop="camera" label="摄像头" min-width="120">
-              <template #default="{ row }">
-                {{ row.camera ?? row.camera_name ?? '—' }}
-              </template>
-            </el-table-column>
-            <el-table-column prop="event_type" label="事件类型" min-width="110">
-              <template #default="{ row }">
-                <el-tag :type="eventTypeTagType(row.event_type)" size="small" effect="plain">
-                  {{ formatEventType(row.event_type) }}
-                </el-tag>
-              </template>
-            </el-table-column>
-            <el-table-column prop="student" label="学生" min-width="100">
-              <template #default="{ row }">
-                {{ row.student ?? row.student_name ?? '—' }}
-              </template>
-            </el-table-column>
-            <el-table-column prop="confidence" label="置信度" min-width="90">
-              <template #default="{ row }">
-                <span v-if="row.confidence !== undefined && row.confidence !== null">
-                  {{ (row.confidence * 100).toFixed(1) }}%
-                </span>
-                <span v-else>—</span>
-              </template>
-            </el-table-column>
-          </el-table>
-        </el-card>
-      </el-col>
-    </el-row>
+          <div class="activity-student">{{ event.student ?? event.student_name ?? '—' }}</div>
+          <div class="activity-time">{{ formatTime(event.event_time ?? event.created_at) }}</div>
+        </div>
+      </div>
+    </div>
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, onMounted, onBeforeUnmount } from 'vue';
-import { VideoCamera, Bell, UserFilled, Avatar } from '@element-plus/icons-vue';
-import { getCamerasStatus, getAlertStats, getAttendanceStats, getRecentEvents } from '@/api/dashboard';
+import { ref, reactive, onMounted, onBeforeUnmount, watch, nextTick } from 'vue';
+import { VideoCamera, Bell, UserFilled, Top, Bottom, Sort } from '@element-plus/icons-vue';
+import {
+  getCamerasStatus,
+  getAlertStats,
+  getAttendanceStats,
+  getRecentEvents,
+} from '@/api/dashboard';
+import echarts from '@/plugins/echarts';
 
 // ─── TypeScript Interfaces ───
 
@@ -317,6 +221,16 @@ const events = ref<EventItem[]>([]);
 const eventsTotal = ref(0);
 
 let refreshTimer: ReturnType<typeof setInterval> | null = null;
+
+// ─── Chart State ───
+
+const trendChartRef = ref<HTMLElement>();
+const alertChartRef = ref<HTMLElement>();
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+let trendChart: any = null;
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+let alertChart: any = null;
+let resizeHandler: (() => void) | null = null;
 
 // ─── Data Fetching ───
 
@@ -506,11 +420,188 @@ function statusLabel(status?: string): string {
   }
 }
 
+function eventDotClass(type?: string): string {
+  switch (type) {
+    case 'entry':
+      return 'dot-entry';
+    case 'exit':
+      return 'dot-exit';
+    case 'stranger':
+    case 'late_return':
+    case 'absent':
+    case 'abnormal':
+      return 'dot-alert';
+    default:
+      return 'dot-default';
+  }
+}
+
+// ─── ECharts ───
+
+const trendBarColors: Record<string, string> = {
+  entry: '#52C41A',
+  exit: '#1890FF',
+  stranger: '#FF4D4F',
+  late_return: '#FAAD14',
+  absent: '#8C8C8C',
+  abnormal: '#FF4D4F',
+};
+
+function initTrendChart() {
+  if (!trendChartRef.value) return;
+  try {
+    trendChart = echarts.init(trendChartRef.value);
+  } catch (e) {
+    console.warn('Failed to init trend chart:', e);
+  }
+}
+
+function initAlertChart() {
+  if (!alertChartRef.value) return;
+  try {
+    alertChart = echarts.init(alertChartRef.value);
+  } catch (e) {
+    console.warn('Failed to init alert chart:', e);
+  }
+}
+
+function updateTrendChart() {
+  if (!trendChart) return;
+
+  const byType = alertStats.by_type ?? {};
+  const labels: string[] = [];
+  const values: number[] = [];
+  const colors: string[] = [];
+
+  // Render in known order
+  const knownTypes = ['entry', 'exit', 'stranger', 'late_return', 'absent', 'abnormal'];
+  for (const key of knownTypes) {
+    if (byType[key] !== undefined) {
+      labels.push(eventTypeMap[key] ?? key);
+      values.push(byType[key]);
+      colors.push(trendBarColors[key] ?? '#8C8C8C');
+    }
+  }
+  // Append unknown types
+  for (const [key, val] of Object.entries(byType)) {
+    if (!knownTypes.includes(key)) {
+      labels.push(key);
+      values.push(val);
+      colors.push('#8C8C8C');
+    }
+  }
+
+  trendChart.setOption(
+    {
+      tooltip: {
+        trigger: 'axis',
+        axisPointer: { type: 'shadow' },
+      },
+      grid: {
+        left: '3%',
+        right: '4%',
+        bottom: '3%',
+        top: '12%',
+        containLabel: true,
+      },
+      xAxis: {
+        type: 'category',
+        data: labels,
+        axisLabel: { color: '#8C8C8C', fontSize: 12 },
+        axisLine: { lineStyle: { color: '#E8E8E8' } },
+        axisTick: { show: false },
+      },
+      yAxis: {
+        type: 'value',
+        axisLabel: { color: '#8C8C8C', fontSize: 12 },
+        splitLine: { lineStyle: { color: '#F0F0F0', type: 'dashed' } },
+        axisLine: { show: false },
+        axisTick: { show: false },
+      },
+      series: [
+        {
+          type: 'bar',
+          data: values.map((v, i) => ({
+            value: v,
+            itemStyle: { color: colors[i], borderRadius: [4, 4, 0, 0] },
+          })),
+          barWidth: '45%',
+          emphasis: {
+            itemStyle: { shadowBlur: 10, shadowOffsetX: 0, shadowColor: 'rgba(0,0,0,0.1)' },
+          },
+        },
+      ],
+    },
+    true,
+  );
+}
+
+function updateAlertChart() {
+  if (!alertChart) return;
+
+  const severity = alertStats.by_severity ?? {};
+  const data = [
+    { value: severity.critical ?? 0, name: '严重', itemStyle: { color: '#FF4D4F' } },
+    { value: severity.high ?? 0, name: '高危', itemStyle: { color: '#FAAD14' } },
+    { value: severity.medium ?? 0, name: '中等', itemStyle: { color: '#1890FF' } },
+    { value: severity.low ?? 0, name: '低级', itemStyle: { color: '#8C8C8C' } },
+  ];
+
+  alertChart.setOption(
+    {
+      tooltip: {
+        trigger: 'item',
+        formatter: '{b}: {c} ({d}%)',
+      },
+      legend: {
+        orient: 'vertical',
+        right: '5%',
+        top: 'center',
+        textStyle: { color: '#8C8C8C', fontSize: 12 },
+        itemWidth: 12,
+        itemHeight: 12,
+        itemGap: 16,
+      },
+      series: [
+        {
+          type: 'pie',
+          radius: ['45%', '70%'],
+          center: ['35%', '50%'],
+          avoidLabelOverlap: false,
+          label: { show: false },
+          emphasis: {
+            label: { show: true, fontSize: 14, fontWeight: 'bold' },
+          },
+          labelLine: { show: false },
+          data,
+        },
+      ],
+    },
+    true,
+  );
+}
+
+function updateCharts() {
+  updateTrendChart();
+  updateAlertChart();
+}
+
 // ─── Lifecycle ───
 
-onMounted(() => {
+onMounted(async () => {
   fetchAll();
   refreshTimer = setInterval(fetchAll, 30000);
+
+  await nextTick();
+  initTrendChart();
+  initAlertChart();
+  updateCharts();
+
+  resizeHandler = () => {
+    trendChart?.resize();
+    alertChart?.resize();
+  };
+  window.addEventListener('resize', resizeHandler);
 });
 
 onBeforeUnmount(() => {
@@ -518,290 +609,311 @@ onBeforeUnmount(() => {
     clearInterval(refreshTimer);
     refreshTimer = null;
   }
+  trendChart?.dispose();
+  alertChart?.dispose();
+  if (resizeHandler) {
+    window.removeEventListener('resize', resizeHandler);
+  }
 });
+
+watch(
+  alertStats,
+  () => {
+    updateCharts();
+  },
+  { deep: true },
+);
 </script>
 
 <style scoped lang="scss">
+@import '@/assets/styles/variables.module.scss';
+
+// ─── Theme Aliases ───
+$cv-primary: $primary-color;
+$cv-success: $success-color;
+$cv-warning: $warning-color;
+$cv-danger: $danger-color;
+$cv-page-bg: $page-bg;
+$cv-card-bg: $card-bg;
+$cv-text-primary: $text-primary;
+$cv-text-secondary: $text-secondary;
+
 .dashboard-container {
-  padding: 16px;
+  padding: 20px;
+  background: $cv-page-bg;
+  min-height: 100%;
 }
 
-/* ─── KPI Cards ─── */
+// ─── KPI Grid ───
 
-.kpi-row {
+.kpi-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 16px;
   margin-bottom: 16px;
 }
 
 .kpi-card {
+  background: $cv-card-bg;
   border-radius: 8px;
-  transition: transform 0.2s ease;
-
-  &:hover {
-    transform: translateY(-2px);
-  }
-}
-
-.kpi-content {
+  padding: 20px 24px;
   display: flex;
   align-items: center;
   gap: 16px;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.06);
+  transition:
+    transform 0.2s ease,
+    box-shadow 0.2s ease;
+  position: relative;
+
+  &:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
+  }
 }
 
-.kpi-icon {
+.kpi-icon-circle {
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 56px;
-  height: 56px;
-  border-radius: 12px;
   flex-shrink: 0;
 }
 
-.kpi-camera .kpi-icon {
-  background: rgba(2, 167, 151, 0.1);
-  color: #02a797;
+.kpi-icon-blue {
+  background: rgba(24, 144, 255, 0.1);
+  color: $cv-primary;
 }
 
-.kpi-alert .kpi-icon {
-  background: rgba(245, 108, 108, 0.1);
-  color: #f56c6c;
+.kpi-icon-green {
+  background: rgba(82, 196, 26, 0.1);
+  color: $cv-success;
 }
 
-.kpi-attendance .kpi-icon {
-  background: rgba(103, 194, 58, 0.1);
-  color: #67c23a;
+.kpi-icon-orange {
+  background: rgba(250, 173, 20, 0.1);
+  color: $cv-warning;
 }
 
-.kpi-student .kpi-icon {
-  background: rgba(64, 158, 255, 0.1);
-  color: #409eff;
-}
-
-.kpi-info {
+.kpi-body {
   flex: 1;
   min-width: 0;
 }
 
 .kpi-value {
   font-size: 28px;
-  font-weight: 600;
-  color: #1f2329;
+  font-weight: 700;
+  color: $cv-text-primary;
   line-height: 1.2;
+  font-variant-numeric: tabular-nums;
 
   .kpi-unit {
     font-size: 14px;
     font-weight: 400;
-    color: #a5a7a9;
+    color: $cv-text-secondary;
   }
 }
 
 .kpi-label {
   font-size: 13px;
-  color: #63656a;
+  color: $cv-text-secondary;
   margin-top: 4px;
 }
 
-.kpi-footer {
-  margin-top: 12px;
-  padding-top: 12px;
-  border-top: 1px solid #f0f0f0;
-}
-
-.kpi-sub {
+.kpi-trend {
+  display: flex;
+  align-items: center;
+  gap: 4px;
   font-size: 12px;
-  color: #a5a7a9;
+  font-weight: 500;
+  padding: 4px 8px;
+  border-radius: 4px;
+  white-space: nowrap;
 }
 
-/* ─── Detail Cards ─── */
+.trend-up {
+  color: $cv-success;
+  background: rgba(82, 196, 26, 0.08);
+}
 
-.detail-row {
+.trend-down {
+  color: $cv-danger;
+  background: rgba(255, 77, 79, 0.08);
+}
+
+.trend-neutral {
+  color: $cv-text-secondary;
+  background: rgba(140, 140, 140, 0.06);
+}
+
+// ─── Charts Grid ───
+
+.charts-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
   margin-bottom: 16px;
 }
 
-.detail-card {
+.chart-card {
+  background: $cv-card-bg;
   border-radius: 8px;
-  margin-bottom: 0;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.06);
+  overflow: hidden;
+}
+
+.chart-container {
+  width: 100%;
+  height: 320px;
+  min-height: 0;
+}
+
+// ─── Activity Card ───
+
+.activity-card {
+  background: $cv-card-bg;
+  border-radius: 8px;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.06);
+  overflow: hidden;
 }
 
 .card-header {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  font-weight: 500;
+  padding: 16px 24px;
+  border-bottom: 1px solid #f0f0f0;
+}
+
+.card-title {
   font-size: 15px;
-  color: #1f2329;
-}
-
-/* ─── Camera Grid ─── */
-
-.camera-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
-  gap: 12px;
-}
-
-.camera-card {
-  position: relative;
-  border: 1px solid #ebeef5;
-  border-radius: 6px;
-  transition: border-color 0.2s ease;
-
-  &:hover {
-    border-color: #02a797;
-  }
-}
-
-.camera-item {
-  position: relative;
-}
-
-.camera-status-dot {
-  position: absolute;
-  top: 8px;
-  right: 8px;
-  width: 8px;
-  height: 8px;
-  border-radius: 50%;
-  z-index: 1;
-}
-
-.dot-online {
-  background-color: #67c23a;
-  box-shadow: 0 0 4px rgba(103, 194, 58, 0.6);
-}
-
-.dot-offline {
-  background-color: #f56c6c;
-  box-shadow: 0 0 4px rgba(245, 108, 108, 0.6);
-}
-
-.dot-error {
-  background-color: #e6a23c;
-  box-shadow: 0 0 4px rgba(230, 162, 60, 0.6);
-}
-
-.camera-info {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-  padding-right: 48px;
-}
-
-.camera-name {
-  font-size: 14px;
-  font-weight: 500;
-  color: #1f2329;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-.camera-meta {
-  font-size: 12px;
-  color: #a5a7a9;
-}
-
-.camera-fps {
-  font-size: 12px;
-  color: #63656a;
-  font-variant-numeric: tabular-nums;
-}
-
-.camera-tag {
-  position: absolute;
-  bottom: 12px;
-  right: 12px;
-}
-
-/* ─── Alert Summary ─── */
-
-.alert-summary {
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-}
-
-.alert-item {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 8px 12px;
-  border-radius: 6px;
-}
-
-.alert-critical {
-  background: rgba(245, 108, 108, 0.06);
-}
-
-.alert-high {
-  background: rgba(230, 162, 60, 0.06);
-}
-
-.alert-medium {
-  background: rgba(64, 158, 255, 0.06);
-}
-
-.alert-low {
-  background: rgba(144, 147, 153, 0.06);
-}
-
-.alert-count {
-  font-size: 20px;
   font-weight: 600;
-  color: #1f2329;
-  font-variant-numeric: tabular-nums;
+  color: $cv-text-primary;
 }
 
-.alert-type-breakdown {
-  margin-top: 4px;
+.card-header-extra {
+  font-size: 12px;
+  color: $cv-text-secondary;
 }
 
-.alert-type-title {
-  font-size: 13px;
-  font-weight: 500;
-  color: #63656a;
-  margin-bottom: 8px;
+// ─── Activity List ───
+
+.activity-list {
+  padding: 0;
 }
 
-.alert-type-row {
+.activity-item {
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  padding: 6px 0;
+  padding: 14px 24px;
   border-bottom: 1px solid #f5f5f5;
+  transition: background-color 0.15s ease;
 
   &:last-child {
     border-bottom: none;
   }
+
+  &:hover {
+    background-color: #fafafa;
+  }
 }
 
-.alert-type-label {
-  font-size: 13px;
-  color: #63656a;
+.activity-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  margin-right: 14px;
 }
 
-.alert-type-count {
+.dot-entry {
+  background: $cv-success;
+  box-shadow: 0 0 6px rgba(82, 196, 26, 0.4);
+}
+
+.dot-exit {
+  background: $cv-warning;
+  box-shadow: 0 0 6px rgba(250, 173, 20, 0.4);
+}
+
+.dot-alert {
+  background: $cv-danger;
+  box-shadow: 0 0 6px rgba(255, 77, 79, 0.4);
+}
+
+.dot-default {
+  background: $cv-text-secondary;
+  box-shadow: 0 0 6px rgba(140, 140, 140, 0.3);
+}
+
+.activity-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.activity-type {
   font-size: 14px;
   font-weight: 500;
-  color: #1f2329;
+  color: $cv-text-primary;
+}
+
+.activity-meta {
+  font-size: 12px;
+  color: $cv-text-secondary;
+  margin-top: 2px;
+}
+
+.activity-student {
+  font-size: 13px;
+  color: $cv-text-primary;
+  margin-left: 16px;
+  white-space: nowrap;
+}
+
+.activity-time {
+  font-size: 12px;
+  color: $cv-text-secondary;
+  margin-left: 16px;
+  white-space: nowrap;
   font-variant-numeric: tabular-nums;
 }
 
-/* ─── Events Row ─── */
-
-.events-row {
-  margin-bottom: 16px;
+.activity-empty {
+  padding: 40px 0;
+  text-align: center;
 }
 
-/* ─── Responsive ─── */
+// ─── Responsive ───
+
+@media (max-width: 1200px) {
+  .kpi-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
 
 @media (max-width: 768px) {
-  .kpi-card {
-    margin-bottom: 12px;
+  .dashboard-container {
+    padding: 12px;
   }
 
-  .camera-grid {
+  .kpi-grid {
     grid-template-columns: 1fr;
+    gap: 12px;
+  }
+
+  .kpi-card {
+    padding: 16px;
+  }
+
+  .charts-grid {
+    grid-template-columns: 1fr;
+    gap: 12px;
+  }
+
+  .chart-container {
+    height: 260px;
   }
 }
 </style>

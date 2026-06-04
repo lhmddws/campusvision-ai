@@ -6,7 +6,7 @@
 -- multiple camera types (RTSP, SIMULATED, USB) and centralized credential
 -- storage with AES-256-GCM encryption.
 --
--- Columns added: 10
+-- Columns added: 9
 --   - type             Camera type classification
 --   - protocol         RTSP protocol variant
 --   - host             Camera host/IP
@@ -16,7 +16,6 @@
 --   - password_enc     AES-256-GCM encrypted password
 --   - nonce            Encryption nonce (base64)
 --   - key_id           Encryption key version
---   - last_health_check Last health check timestamp
 --
 -- Backward compatible: rtsp_url column is preserved (not dropped or altered).
 -- ============================================================================
@@ -56,8 +55,4 @@ ALTER TABLE dorm_camera
 
   ADD COLUMN key_id            VARCHAR(16)  DEFAULT 'v1'
     COMMENT '密钥版本'
-    AFTER nonce,
-
-  ADD COLUMN last_health_check DATETIME
-    COMMENT '上次健康检查时间'
-    AFTER last_event_time;
+    AFTER nonce;

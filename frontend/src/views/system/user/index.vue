@@ -3,17 +3,17 @@
     <ElRow :gutter="20">
       <ElCol :span="4">
         <ElInput
-            v-model="deptName"
-            placeholder="请输入部门名称"
-            clearable
-            prefix-icon="Search"
-            style="margin-bottom: 20px"
+          v-model="deptName"
+          placeholder="请输入部门名称"
+          clearable
+          prefix-icon="Search"
+          style="margin-bottom: 20px"
         />
         <div class="dept-tree">
           <ElTree
             ref="deptTreeRef"
             :data="deptOptions"
-            :props="{ children: 'children', label:'label' }"
+            :props="{ children: 'children', label: 'label' }"
             :expand-on-click-node="false"
             :filter-node-method="filterNode"
             default-expand-all
@@ -44,8 +44,14 @@
           @register="register"
           @selectChange="selectChange"
         >
-          <template #status="{row}">
-            <ElSwitch v-model="row.status" active-color="#02A797" active-value="0" inactive-value="1" @click="handleStatusChange(row)"/>
+          <template #status="{ row }">
+            <ElSwitch
+              v-model="row.status"
+              active-color="#02A797"
+              active-value="0"
+              inactive-value="1"
+              @click="handleStatusChange(row)"
+            />
           </template>
           <template #action="{ row }">
             <ElButton
@@ -86,7 +92,12 @@
     </ElRow>
 
     <!-- 添加用户 -->
-    <CreateUser v-model:visible="showCreateUser" :userData="userData" :title="userTitle" @submit="getList"/>
+    <CreateUser
+      v-model:visible="showCreateUser"
+      :userData="userData"
+      :title="userTitle"
+      @submit="getList"
+    />
 
     <!-- 导入弹窗 -->
     <el-dialog v-model="upload.open" :title="upload.title" width="400px" append-to-body>
@@ -96,31 +107,20 @@
 </template>
 
 <script setup lang="ts">
-import { Search } from "@/components/Search";
-import { ContentWrap } from "@/components/ContentWrap";
-import { BasicTable } from "@/components/Table";
-import { useTable } from "@/hooks/web/useTable";
-import { useCrudSchemas } from "@/hooks/web/useCrudSchemas";
-import { crudSchemas } from "./user.config";
-import { getToken } from "@/utils/auth";
-import {
-  changeUserStatus,
-  listUser,
-  resetUserPwd,
-  delUser,
-} from "@/api/system/user";
-import { treeSelect } from "@/api/system/dept";
-import {
-  getCurrentInstance,
-  ComponentInternalInstance,
-  ref,
-  reactive,
-  watch,
-} from "vue";
-import { useRouter } from "vue-router";
-import { ElTree } from "element-plus";
+import { Search } from '@/components/Search';
+import { ContentWrap } from '@/components/ContentWrap';
+import { BasicTable } from '@/components/Table';
+import { useTable } from '@/hooks/web/useTable';
+import { useCrudSchemas } from '@/hooks/web/useCrudSchemas';
+import { crudSchemas } from './user.config';
+import { getToken } from '@/utils/auth';
+import { changeUserStatus, listUser, resetUserPwd, delUser } from '@/api/system/user';
+import { treeSelect } from '@/api/system/dept';
+import { getCurrentInstance, ComponentInternalInstance, ref, reactive, watch } from 'vue';
+import { useRouter } from 'vue-router';
+import { ElTree } from 'element-plus';
 import { downLoadExcel } from '@/utils/ruoyi';
-import CreateUser from "./CreateUser.vue";
+import CreateUser from './CreateUser.vue';
 
 const router = useRouter();
 const { proxy } = getCurrentInstance() as ComponentInternalInstance;
@@ -149,55 +149,55 @@ const upload = ref({
   template: {
     url: 'system/user/importTemplate',
     params: {},
-    filename: ''
-  }
+    filename: '',
+  },
 });
 
 const btns = reactive([
   {
-    name: "新增",
-    type: "primary",
-    auth: ["system:user:add"],
-    icon: "yijiantuisong",
+    name: '新增',
+    type: 'primary',
+    auth: ['system:user:add'],
+    icon: 'yijiantuisong',
     handler: () => {
       handleUpdate();
-    }
+    },
   },
   {
-    name: "修改",
-    type: "primary",
-    auth: ["system:user:edit"],
-    icon: "yijianbanjie",
+    name: '修改',
+    type: 'primary',
+    auth: ['system:user:edit'],
+    icon: 'yijianbanjie',
     disabled: isUpdate,
     handler: () => {
       handleUpdate();
-    }
+    },
   },
   {
-    name: "删除",
-    type: "danger",
-    auth: ["system:user:remove"],
-    icon: "yijianbanjie",
+    name: '删除',
+    type: 'danger',
+    auth: ['system:user:remove'],
+    icon: 'yijianbanjie',
     disabled: isDisabled,
     handler: () => {
       handleDelete();
-    }
+    },
   },
   {
-    name: "导入",
-    auth: ["system:user:inport"],
-    icon: "yijianbanjie",
-    handler: ()=>{
+    name: '导入',
+    auth: ['system:user:inport'],
+    icon: 'yijianbanjie',
+    handler: () => {
       handleImport();
-    }
+    },
   },
   {
-    name: "导出",
-    auth: ["system:user:export"],
-    icon: "daochu",
-    handler: ()=>{
+    name: '导出',
+    auth: ['system:user:export'],
+    icon: 'daochu',
+    handler: () => {
       handleExport();
-    }
+    },
   },
 ]);
 const deptTreeRef = ref();
@@ -207,42 +207,42 @@ const { register, tableObject, methods } = useTable({
   getListApi: listUser,
   delListApi: delUser as any,
   response: {
-    list: "rows",
-    total: "total",
+    list: 'rows',
+    total: 'total',
   },
 });
 
 const { getList, setSearchParams, delList, getSelections } = methods;
 getList();
 
-const selectChange = (selected: any[])=>{
+const selectChange = (selected: any[]) => {
   isDisabled.value = selected.length < 1;
   isUpdate.value = selected.length !== 1;
 };
 
 /** 查询部门下拉树结构 */
 const getTreeselect = async () => {
-  const {data} = await treeSelect();
+  const { data } = await treeSelect();
   deptOptions.value = data;
 };
 getTreeselect();
 // 筛选节点
-const filterNode = (value: any, data: any) =>{
+const filterNode = (value: any, data: any) => {
   if (!value) return true;
   return data.label.indexOf(value) !== -1;
 };
-  // 节点单击事件
+// 节点单击事件
 const handleNodeClick = (data: any) => {
-  setSearchParams({deptId: data.id});
+  setSearchParams({ deptId: data.id });
 };
 
-watch(deptName, (val)=>{
+watch(deptName, val => {
   console.log(val);
   deptTreeRef.value.filter(val);
 });
 /** 修改按钮操作 */
 const handleUpdate = (row?: any) => {
-  if(row){
+  if (row) {
     userTitle.value = '修改用户';
   } else {
     userTitle.value = '添加用户';
@@ -254,21 +254,21 @@ const handleUpdate = (row?: any) => {
 /** 跳转角色分配 */
 function handleAuthRole(row: any) {
   const userId = row.userId;
-  router.push("/system/user-auth/role/" + userId);
+  router.push('/system/user-auth/role/' + userId);
 }
 /** 重置密码按钮操作 */
 function handleResetPwd(row: any) {
   (proxy as any)
-    .$prompt('请输入"' + row.userName + '"的新密码', "提示", {
-      confirmButtonText: "确定",
-      cancelButtonText: "取消",
+    .$prompt('请输入"' + row.userName + '"的新密码', '提示', {
+      confirmButtonText: '确定',
+      cancelButtonText: '取消',
       closeOnClickModal: false,
       inputPattern: /^.{5,20}$/,
-      inputErrorMessage: "用户密码长度必须介于 5 和 20 之间",
+      inputErrorMessage: '用户密码长度必须介于 5 和 20 之间',
     })
     .then(({ value }: any) => {
-      resetUserPwd(row.userId, value).then((response) => {
-        proxy!.$modal.msgSuccess("修改成功，新密码是：" + value);
+      resetUserPwd(row.userId, value).then(response => {
+        proxy!.$modal.msgSuccess('修改成功，新密码是：' + value);
       });
     })
     .catch((e: any) => {
@@ -278,30 +278,31 @@ function handleResetPwd(row: any) {
 
 /** 用户状态修改  */
 function handleStatusChange(row: any) {
-  let text = row.status === "0" ? "启用" : "停用";
+  let text = row.status === '0' ? '启用' : '停用';
   proxy!.$modal
     .confirm('确认要"' + text + '""' + row.userName + '"用户吗?')
     .then(function () {
       return changeUserStatus(row.userId, row.status);
     })
     .then(() => {
-      proxy!.$modal.msgSuccess(text + "成功");
+      proxy!.$modal.msgSuccess(text + '成功');
     })
     .catch(function () {
-      row.status = row.status === "0" ? "1" : "0";
+      row.status = row.status === '0' ? '1' : '0';
     });
 }
 
 /** 删除按钮操作 */
-async function handleDelete (row?: any) {
-  const userIds = row?.userId ? [row?.userId] : (await getSelections()).map(d=>d.userId);
+async function handleDelete(row?: any) {
+  const userIds = row?.userId ? [row?.userId] : (await getSelections()).map(d => d.userId);
   console.log(userIds);
 
   proxy?.$modal
     .confirm('是否确认删除用户编号为"' + userIds + '"的数据项？')
     .then(function () {
       return delList(userIds, true);
-    }).then(res=>{
+    })
+    .then(res => {
       console.log(res);
     })
     .catch((e: any) => {
@@ -311,11 +312,11 @@ async function handleDelete (row?: any) {
 /** 导出按钮操作 */
 async function handleExport() {
   downLoadExcel(
-    "system/user/export",
+    'system/user/export',
     {
       ...(await searchRef.value.methods.getFormData()),
     },
-    `user_${new Date().getTime()}.xlsx`
+    `user_${new Date().getTime()}.xlsx`,
   );
 }
 /** 导入按钮操作 */
@@ -323,4 +324,3 @@ const handleImport = () => {
   upload.value.open = true;
 };
 </script>
-

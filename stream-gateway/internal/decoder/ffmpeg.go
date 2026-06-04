@@ -39,11 +39,14 @@ func NewDecoder(rtspURL string, width, height, fps int) *Decoder {
 }
 
 // Start spawns the ffmpeg subprocess and returns a channel that delivers raw
-// YUV420P frames as []byte.  Each frame is exactly width*height*3/2 bytes.
+// YUV420P frames as []byte.  Each frame is exactly
+//   width*height + 2 * ceil(width/2)*ceil(height/2) bytes.
 // The channel is closed when the stream ends, on read error, or when Stop() is
 // called.
 func (d *Decoder) Start(ctx context.Context) (<-chan []byte, error) {
-	frameSize := d.width * d.height * 3 / 2
+	ySize := d.width * d.height
+	uvSize := ((d.width + 1) / 2) * ((d.height + 1) / 2) * 2
+	frameSize := ySize + uvSize
 	frameCh := make(chan []byte, 2)
 
 	args := []string{
@@ -83,6 +86,11 @@ func (d *Decoder) Start(ctx context.Context) (<-chan []byte, error) {
 	// Read raw frames from stdout in a dedicated goroutine.
 	go d.readFrames(frameCh, frameSize)
 
+	go func() {
+		<-ctx.Done()
+		d.Stop()
+	}()
+
 	return frameCh, nil
 }
 
@@ -103,18 +111,13 @@ func (d *Decoder) Stop() {
 	}
 }
 
-// IsRunning reports whether the decoder subprocess is currently active.
-func (d *Decoder) IsRunning() bool {
-	return d.running.Load()
-}
-
 // ---------------------------------------------------------------------------
 // internal helpers
 // ---------------------------------------------------------------------------
 
 // readStderr consumes ffmpeg stderr output and logs lines that indicate errors.
 func (d *Decoder) readStderr(r io.ReadCloser) {
-	defer r.Close()
+	defer func() { _ = r.Close() }()
 
 	scanner := bufio.NewScanner(r)
 	scanner.Buffer(make([]byte, 4096), 4096)

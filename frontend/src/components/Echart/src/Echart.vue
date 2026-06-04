@@ -4,35 +4,41 @@ import echarts from '@/plugins/echarts';
 import { debounce } from 'lodash-es';
 import 'echarts-wordcloud';
 import VueTypes from '@/utils/propTypes';
-import { computed, PropType, ref, unref, watch, onMounted, onBeforeUnmount, onActivated } from 'vue';
+import {
+  computed,
+  PropType,
+  ref,
+  unref,
+  watch,
+  onMounted,
+  onBeforeUnmount,
+  onActivated,
+} from 'vue';
 import { isString } from '@/utils/is';
 import { useDesign } from '@/hooks/web/useDesign';
 
 const { getPrefixCls, variables } = useDesign();
 
-
 const prefixCls = getPrefixCls('echart');
-
 
 const props = defineProps({
   options: {
     type: Object as PropType<EChartsOption>,
-    required: true
+    required: true,
   },
   width: VueTypes.oneOfType([Number, String]).def(''),
-  height: VueTypes.oneOfType([Number, String]).def('500px')
+  height: VueTypes.oneOfType([Number, String]).def('500px'),
 });
 
-
 const theme = computed(() => {
-  const echartTheme: boolean | string =  'auto';
+  const echartTheme: boolean | string = 'auto';
 
   return echartTheme;
 });
 
 const options = computed(() => {
   return Object.assign(props.options, {
-    darkMode: unref(theme)
+    darkMode: unref(theme),
   });
 });
 
@@ -48,7 +54,7 @@ const styles = computed(() => {
 
   return {
     width,
-    height
+    height,
   };
 });
 
@@ -61,14 +67,14 @@ const initChart = () => {
 
 watch(
   () => options.value,
-  (options) => {
+  options => {
     if (echartRef) {
       echartRef?.setOption(options);
     }
   },
   {
-    deep: true
-  }
+    deep: true,
+  },
 );
 
 const resizeHandler = debounce(() => {

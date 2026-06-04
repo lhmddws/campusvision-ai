@@ -15,9 +15,6 @@ httpx>=0.26
 # Model downloads
 requests>=2.31
 
-# Image processing
-Pillow>=10.0
-
 # Config
 PyYAML>=6.0
 

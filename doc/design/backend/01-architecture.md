@@ -1,8 +1,8 @@
-# Dormitory Service — Java 后端架构设计
+# Dormitory Service — Go 后端架构设计
 
 > **文档归属**: 后端开发 → 架构设计  
 > **对应 PRD**: PRD-004 (主进程对接)  
-> **版本**: v1.0 · **更新**: 2026-05-15  
+> **版本**: v1.0 · **更新**: 2026-05-15
 
 ---
 
@@ -22,248 +22,123 @@
 
 ## 1. 项目骨架
 
-### 1.1 Maven 项目结构
+### 1.1 Go Module 结构
 
-```xml
-<!-- pom.xml 关键依赖 (Phase 1 独立部署阶段) -->
-<parent>
-    <groupId>org.springframework.boot</groupId>
-    <artifactId>spring-boot-starter-parent</artifactId>
-    <version>3.2.5</version>
-</parent>
+```go
+// go.mod 关键依赖
+module github.com/sims/campusvision/dormitory-service-go
 
-<groupId>com.sims.dormitory</groupId>
-<artifactId>dormitory-service</artifactId>
-<version>1.0.0-SNAPSHOT</version>
-<packaging>jar</packaging>
+go 1.26
 
-<properties>
-    <java.version>17</java.version>
-    <mybatis-plus.version>3.5.7</mybatis-plus.version>
-    <kafka-client.version>3.7.0</kafka-client.version>
-</properties>
-
-<dependencies>
-    <!-- Web -->
-    <dependency>
-        <groupId>org.springframework.boot</groupId>
-        <artifactId>spring-boot-starter-web</artifactId>
-    </dependency>
-
-    <!-- Kafka -->
-    <dependency>
-        <groupId>org.springframework.kafka</groupId>
-        <artifactId>spring-kafka</artifactId>
-    </dependency>
-
-    <!-- Redis -->
-    <dependency>
-        <groupId>org.springframework.boot</groupId>
-        <artifactId>spring-boot-starter-data-redis</artifactId>
-    </dependency>
-
-    <!-- Database -->
-    <dependency>
-        <groupId>org.springframework.boot</groupId>
-        <artifactId>spring-boot-starter-jdbc</artifactId>
-    </dependency>
-    <dependency>
-        <groupId>com.mysql</groupId>
-        <artifactId>mysql-connector-j</artifactId>
-        <scope>runtime</scope>
-    </dependency>
-    <!-- MariaDB (MySQL 兼容) -->
-    <dependency>
-        <groupId>org.mariadb.jdbc</groupId>
-        <artifactId>mariadb-java-client</artifactId>
-        <scope>runtime</scope>
-    </dependency>
-
-    <!-- MyBatis-Plus -->
-    <dependency>
-        <groupId>com.baomidou</groupId>
-        <artifactId>mybatis-plus-spring-boot3-starter</artifactId>
-        <version>${mybatis-plus.version}</version>
-    </dependency>
-
-    <!-- Validation -->
-    <dependency>
-        <groupId>org.springframework.boot</groupId>
-        <artifactId>spring-boot-starter-validation</artifactId>
-    </dependency>
-
-    <!-- Lombok -->
-    <dependency>
-        <groupId>org.projectlombok</groupId>
-        <artifactId>lombok</artifactId>
-        <optional>true</optional>
-    </dependency>
-
-    <!-- OpenAPI (Swagger) -->
-    <dependency>
-        <groupId>org.springdoc</groupId>
-        <artifactId>springdoc-openapi-starter-webmvc-ui</artifactId>
-        <version>2.5.0</version>
-    </dependency>
-
-    <!-- Jackson (JSON) -->
-    <dependency>
-        <groupId>com.fasterxml.jackson.core</groupId>
-        <artifactId>jackson-databind</artifactId>
-    </dependency>
-    <dependency>
-        <groupId>com.fasterxml.jackson.datatype</groupId>
-        <artifactId>jackson-datatype-jsr310</artifactId>
-    </dependency>
-
-    <!-- Actuator -->
-    <dependency>
-        <groupId>org.springframework.boot</groupId>
-        <artifactId>spring-boot-starter-actuator</artifactId>
-    </dependency>
-
-    <!-- Test -->
-    <dependency>
-        <groupId>org.springframework.boot</groupId>
-        <artifactId>spring-boot-starter-test</artifactId>
-        <scope>test</scope>
-    </dependency>
-    <dependency>
-        <groupId>org.springframework.kafka</groupId>
-        <artifactId>spring-kafka-test</artifactId>
-        <scope>test</scope>
-    </dependency>
-</dependencies>
+require (
+	github.com/gin-gonic/gin v1.10.0
+	github.com/jmoiron/sqlx v1.4.0
+	github.com/go-sql-driver/mysql v1.8.1
+	github.com/redis/go-redis/v9 v9.7.0
+	github.com/segmentio/kafka-go v0.4.47
+	github.com/spf13/viper v1.19.0
+	go.uber.org/zap v1.27.0
+	github.com/golang-jwt/jwt/v5 v5.2.1
+	github.com/robfig/cron/v3 v3.0.1
+)
 ```
 
 ### 1.2 目录骨架
 
 ```
-dormitory-service/
-├── pom.xml
-├── src/
-│   ├── main/
-│   │   ├── java/com/sims/dormitory/
-│   │   │   ├── DormitoryApplication.java       # 启动类
-│   │   │   │
-│   │   │   ├── config/                          # 配置类
-│   │   │   │   ├── KafkaConfig.java
-│   │   │   │   ├── RedisConfig.java
-│   │   │   │   ├── MyBatisPlusConfig.java
-│   │   │   │   ├── JacksonConfig.java
-│   │   │   │   ├── SchedulingConfig.java
-│   │   │   │   └── WebMvcConfig.java
-│   │   │   │
-│   │   │   ├── controller/                      # REST 控制器
-│   │   │   │   ├── NightlyReportController.java
-│   │   │   │   ├── StudentStatusController.java
-│   │   │   │   ├── EventController.java
-│   │   │   │   ├── AlertController.java
-│   │   │   │   ├── SyncController.java
-│   │   │   │   ├── ConfigController.java
-│   │   │   │   ├── StatsController.java
-│   │   │   │   └── CameraController.java
-│   │   │   │
-│   │   │   ├── consumer/                        # Kafka 消费者
-│   │   │   │   └── DormEventConsumer.java
-│   │   │   │
-│   │   │   ├── service/                         # 业务逻辑层
-│   │   │   │   ├── EventService.java
-│   │   │   │   ├── StudentStatusService.java
-│   │   │   │   ├── NightlyReportService.java
-│   │   │   │   ├── AlertService.java
-│   │   │   │   ├── SyncService.java
-│   │   │   │   ├── ConfigService.java
-│   │   │   │   ├── StatsService.java
-│   │   │   │   ├── CameraService.java
-│   │   │   │   └── HealthCheckService.java
-│   │   │   │
-│   │   │   ├── repository/                      # DAO 层 (MyBatis-Plus Mapper)
-│   │   │   │   ├── StudentAssignmentMapper.java
-│   │   │   │   ├── StudentStatusMapper.java
-│   │   │   │   ├── EntryExitEventMapper.java
-│   │   │   │   ├── NightlyReportMapper.java
-│   │   │   │   ├── NightlyDetailMapper.java
-│   │   │   │   ├── StrangerRecordMapper.java
-│   │   │   │   ├── AlertRecordMapper.java
-│   │   │   │   ├── ConfigMapper.java
-│   │   │   │   ├── SyncLogMapper.java
-│   │   │   │   ├── CameraMapper.java
-│   │   │   │   └── CameraLogMapper.java
-│   │   │   │
-│   │   │   ├── model/                           # 数据模型
-│   │   │   │   ├── entity/                      # 数据库实体
-│   │   │   │   │   ├── StudentAssignment.java
-│   │   │   │   │   ├── StudentStatus.java
-│   │   │   │   │   ├── EntryExitEvent.java
-│   │   │   │   │   ├── NightlyReport.java
-│   │   │   │   │   ├── NightlyDetail.java
-│   │   │   │   │   ├── StrangerRecord.java
-│   │   │   │   │   ├── AlertRecord.java
-│   │   │   │   │   ├── Config.java
-│   │   │   │   │   ├── SyncLog.java
-│   │   │   │   │   ├── Camera.java
-│   │   │   │   │   └── CameraLog.java
-│   │   │   │   │
-│   │   │   │   ├── dto/                         # 数据传输对象
-│   │   │   │   │   ├── DormEventMessage.java     # Kafka 消息
-│   │   │   │   │   ├── NightlyReportVO.java
-│   │   │   │   │   ├── StudentStatusVO.java
-│   │   │   │   │   ├── AlertMessage.java
-│   │   │   │   │   └── CameraStatusVO.java
-│   │   │   │   │
-│   │   │   │   ├── query/                       # 查询参数封装
-│   │   │   │   │   ├── EventQuery.java
-│   │   │   │   │   ├── StudentQuery.java
-│   │   │   │   │   └── ReportQuery.java
-│   │   │   │   │
-│   │   │   │   └── enums/                       # 枚举
-│   │   │   │       ├── EventType.java          # ENTRY / EXIT
-│   │   │   │       ├── TodayStatus.java        # IN / OUT / UNKNOWN
-│   │   │   │       ├── AlertType.java          # STRANGER_ENTRY / ...
-│   │   │   │       ├── Severity.java           # LOW / MEDIUM / HIGH / CRITICAL
-│   │   │   │       ├── CameraStatus.java       # ONLINE / OFFLINE / IDLE / UNKNOWN
-│   │   │   │       └── SyncStatus.java         # SUCCESS / FAILED / IN_PROGRESS
-│   │   │   │
-│   │   │   ├── common/                          # 公共
-│   │   │   │   ├── response/                    # 统一响应
-│   │   │   │   │   ├── ApiResponse.java
-│   │   │   │   │   ├── PageResponse.java
-│   │   │   │   │   └── ErrorCode.java
-│   │   │   │   ├── exception/                   # 异常定义
-│   │   │   │   │   ├── BusinessException.java
-│   │   │   │   │   └── GlobalExceptionHandler.java
-│   │   │   │   └── constant/                    # 常量
-│   │   │   │       └── RedisKeys.java
-│   │   │   │
-│   │   │   └── scheduler/                       # 定时任务
-│   │   │       ├── NightlyReportTask.java
-│   │   │       ├── SyncStudentTask.java
-│   │   │       └── CameraHealthCheckTask.java
-│   │   │
-│   │   └── resources/
-│   │       ├── application.yml                  # 主配置
-│   │       ├── application-dev.yml              # 开发环境
-│   │       ├── application-prod.yml             # 生产环境
-│   │       ├── mapper/                          # MyBatis XML
-│   │       │   ├── StudentAssignmentMapper.xml
-│   │       │   ├── EntryExitEventMapper.xml
-│   │       │   └── ...
-│   │       ├── db/migration/                    # Flyway 迁移脚本
-│   │       │   ├── V1__init_schema.sql
-│   │       │   └── V2__seed_config.sql
-│   │       └── logback-spring.xml               # 日志配置
+dormitory-service-go/
+├── go.mod
+├── go.sum
+├── config.yaml                          # 本地开发配置
+├── config.docker.yaml                   # Docker Compose 覆盖
+├── Dockerfile
+│
+├── cmd/
+│   └── dormitory-service/
+│       └── main.go                      # 入口：依赖注入 + 路由注册 + Kafka 启动
+│
+├── internal/
+│   ├── client/                          # PushClient → stream-gateway 通知
+│   │   └── push_client.go
 │   │
-│   └── test/java/com/sims/dormitory/
-│       ├── service/
-│       │   ├── EventServiceTest.java
-│       │   ├── NightlyReportServiceTest.java
-│       │   └── ...
-│       └── consumer/
-│           └── DormEventConsumerTest.java
+│   ├── config/                          # Viper 配置加载 (YAML + 环境变量)
+│   │   └── config.go
+│   │
+│   ├── consumer/                        # Kafka 消费者
+│   │   ├── event_consumer.go            # t_dorm_event 消费
+│   │   ├── alert_consumer.go            # t_dorm_alert 消费 (骨架)
+│   │   └── manager.go                   # 消费者管理器
+│   │
+│   ├── handler/                         # Gin HTTP 处理器
+│   │   ├── camera_handler.go            # 摄像头 CRUD
+│   │   ├── record_handler.go            # 考勤/事件查询
+│   │   ├── alert_handler.go             # 告警管理
+│   │   ├── config_handler.go            # 系统配置
+│   │   ├── face.go                      # 人脸匹配/特征提取
+│   │   ├── auth.go                      # 登录认证
+│   │   └── response.go                  # 统一响应格式
+│   │
+│   ├── middleware/                       # 中间件
+│   │   ├── auth.go                      # JWT 认证
+│   │   └── cors.go                      # CORS 跨域
+│   │
+│   ├── model/                           # 数据模型
+│   │   ├── dto/                         # 请求/响应类型
+│   │   │   ├── camera_dto.go
+│   │   │   ├── record_dto.go
+│   │   │   ├── alert_dto.go
+│   │   │   └── config_dto.go
+│   │   │
+│   │   ├── entity/                      # 数据库实体 (db tag 映射)
+│   │   │   ├── student_assignment.go
+│   │   │   ├── student_status.go
+│   │   │   ├── entry_exit_event.go
+│   │   │   ├── nightly_report.go
+│   │   │   ├── nightly_detail.go
+│   │   │   ├── stranger_record.go
+│   │   │   ├── alert_record.go
+│   │   │   ├── config.go
+│   │   │   ├── sync_log.go
+│   │   │   ├── camera.go
+│   │   │   └── camera_log.go
+│   │   │
+│   │   └── enums/                       # 枚举
+│   │       ├── event_type.go            # ENTRY / EXIT
+│   │       ├── alert_type.go            # STRANGER_ENTRY / ...
+│   │       ├── camera_status.go         # ONLINE / OFFLINE / IDLE / UNKNOWN
+│   │       └── student_status.go        # IN / OUT / UNKNOWN
+│   │
+│   ├── redis/                           # go-redis 封装 + 去重
+│   │   └── client.go
+│   │
+│   ├── repository/                      # DAO 层 (sqlx)
+│   │   ├── base.go                      # 泛型 BaseRepository[T]
+│   │   ├── camera_repository.go
+│   │   ├── student_repository.go
+│   │   ├── event_log_repository.go
+│   │   ├── alert_repository.go
+│   │   ├── config_repository.go
+│   │   └── ...
+│   │
+│   ├── service/                         # 业务逻辑层
+│   │   ├── camera_service.go
+│   │   ├── record_service.go
+│   │   ├── alert_service.go
+│   │   ├── config_service.go
+│   │   └── report_service.go
+│   │
+│   ├── scheduler/                       # 定时任务 (robfig/cron)
+│   │   ├── manager.go                   # 任务管理器
+│   │   ├── nightly_report_job.go        # 每晚查宿
+│   │   └── health_check_job.go          # 摄像头健康检查
+│   │
+│   └── util/                            # 工具
+│       └── crypto.go                    # AES-256-GCM 加密
+│
+├── test/
+│   └── repository/
+│       └── base_test.go                # BaseRepository 泛型 CRUD 测试
 ```
-
----
 
 ## 2. 分层架构
 
@@ -274,33 +149,32 @@ HTTP Request
     │
     ▼
 ┌─────────────────────────────────────┐
-│  Controller 层                       │
-│  @RestController                     │
-│  • 参数校验 (@Valid)                  │
+│  Handler 层 (Gin)                    │
+│  func(c *gin.Context)               │
+│  • 参数绑定与校验 (c.ShouldBindJSON)   │
 │  • 调用 Service                      │
-│  • 返回统一 ApiResponse              │
+│  • 返回统一响应 (handler.OK)          │
 └────────────────┬────────────────────┘
                  │
                  ▼
 ┌─────────────────────────────────────┐
 │  Service 层                          │
-│  @Service                           │
+│  struct { ... }                     │
 │  • 业务逻辑编排                       │
-│  • 事务管理 (@Transactional)          │
-│  • 调用 Mapper / RedisTemplate       │
-│  • 抛出 BusinessException            │
+│  • 调用 Repository / Redis           │
+│  • 返回 error 或业务结果              │
 └────────────────┬────────────────────┘
                  │
                  ▼
 ┌─────────────────────────────────────┐
 │  Repository 层                       │
-│  @Mapper (MyBatis-Plus)             │
-│  • 数据库 CRUD                       │
-│  • 复杂查询使用 XML                   │
+│  BaseRepository[T] + sqlx           │
+│  • 数据库 CRUD (泛型)                 │
+│  • 复杂查询使用手写 SQL                │
 └────────────────┬────────────────────┘
                  │
                  ▼
-              PostgreSQL
+               MariaDB
 ```
 
 ### 2.2 Kafka 消费链路
@@ -310,37 +184,35 @@ Kafka t_dorm_event
     │
     ▼
 ┌───────────────────────────┐
-│  DormEventConsumer        │
-│  @KafkaListener           │
+│  EventConsumer            │
+│  consumer.EventConsumer   │
 │                           │
-│  ① 反序列化 JSON          │
-│  ② 幂等校验 (eventId)    │
-│  ③ 调用 EventService     │
-│  ④ 手动 commit           │
+│  ① 解析 JSON 消息          │
+│  ② 幂等校验 (Redis dedup) │
+│  ③ 调用 Repository        │
+│  ④ 手动 Commit            │
 └──────────┬────────────────┘
            │
            ▼
 ┌───────────────────────────┐
-│  EventService             │
-│  @Service                 │
-│  @Transactional           │
-│                           │
-│  ① 判断是否为陌生人        │
-│  ② 更新 Redis 状态        │
-│  ③ 写入 PostgreSQL       │
-│  ④ 检查告警规则            │
+│  Repository 层 (直调)      │
+│  • 更新学生状态            │
+│  • 写入事件记录            │
+│  • 陌生人 → 创建告警       │
 └───────────────────────────┘
 ```
+
+> **注意**: EventConsumer 直接调用 Repository，绕过 Service 层。这是当前实现的设计。
 
 ### 2.3 定时任务链路
 
 ```
-Spring Scheduler (默认 23:00)
+Cron Scheduler (robfig/cron)
     │
     ▼
 ┌───────────────────────────┐
-│  NightlyReportTask        │
-│  @Scheduled(cron=...)     │
+│  NightlyReportJob         │
+│  cron: "0 0 23 * * *"     │
 │                           │
 │  ① 获取所有 active 学生   │
 │  ② 查询今日 entry 事件   │
@@ -355,195 +227,194 @@ Spring Scheduler (默认 23:00)
 
 ## 3. 核心配置
 
-### 3.1 application.yml
+### 3.1 config.yaml
 
 ```yaml
 server:
-  port: 8080
-  servlet:
-    context-path: /
+  port: 8083
 
-spring:
-  application:
-    name: dormitory-service
+database:
+  dsn: "root:root_dev@tcp(localhost:3306)/dormitory?charset=utf8mb4&parseTime=True&loc=Asia%2FShanghai"
+  driver: mysql
+  max_open_conns: 25
+  max_idle_conns: 10
 
-  # 数据源 (Phase 1 独立数据库)
-  datasource:
-    url: jdbc:mariadb://localhost:3306/dormitory
-    username: dormitory
-    password: ${DB_PASSWORD}
-    driver-class-name: org.mariadb.jdbc.Driver
-    hikari:
-      maximum-pool-size: 10
-      minimum-idle: 2
-      idle-timeout: 300000
-      max-lifetime: 600000
+redis:
+  host: "127.0.0.1"
+  port: 6379
+  db: 0
+  password: ""
 
-  # Redis
-  data:
-    redis:
-      host: ${REDIS_HOST:localhost}
-      port: 6379
-      password: ${REDIS_PASSWORD:}
-      timeout: 3000ms
-      lettuce:
-        pool:
-          max-active: 8
-          max-idle: 4
-          min-idle: 1
+kafka:
+  brokers: ["localhost:9092"]
+  event_topic: "t_dorm_event"
+  alert_topic: "t_dorm_alert"
+  group_id: "dormitory-service-group"
+  max_poll_record: 500
 
-  # Kafka Consumer
-  kafka:
-    bootstrap-servers: ${KAFKA_BOOTSTRAP:localhost:9092}
-    consumer:
-      group-id: dormitory-service
-      auto-offset-reset: latest
-      enable-auto-commit: false  # 手动提交
-      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
-      value-deserializer: org.apache.kafka.common.serialization.StringDeserializer
-      properties:
-        max.poll.records: 500
-        fetch.min.bytes: 1024
-        fetch.max.wait.ms: 500
-    listener:
-      ack-mode: manual  # 手动 ACK
-      concurrency: 3    # 3 个并发消费者（对应 4 个分区）
+jwt:
+  secret: "${JWT_SECRET:your-256-bit-secret}"
+  expiration_hours: 24
 
-  # Jackson
-  jackson:
-    date-format: yyyy-MM-dd'T'HH:mm:ssXXX
-    time-zone: Asia/Shanghai
-    property-naming-strategy: LOWER_CAMEL_CASE
-    serialization:
-      write-dates-as-timestamps: false
+auth:
+  admin_username: "admin"
+  admin_password: "${ADMIN_PASSWORD:admin123}"
 
-  # Flyway
-  flyway:
-    enabled: true
-    locations: classpath:db/migration
-    baseline-on-migrate: true
+face:
+  match_threshold: 0.6
+  match_key: "${FACE_MATCH_KEY:}"
 
-# MyBatis-Plus
-mybatis-plus:
-  mapper-locations: classpath:mapper/*.xml
-  type-aliases-package: com.sims.dormitory.model.entity
-  configuration:
-    map-underscore-to-camel-case: true
-    log-impl: org.apache.ibatis.logging.stdout.StdOutImpl  # 开发环境
-  global-config:
-    db-config:
-      id-type: AUTO
-      logic-delete-field: deleted
-      logic-delete-value: 1
-      logic-not-delete-value: 0
+camera:
+  max_cameras: 50
 
-# SpringDoc (Swagger)
-springdoc:
-  api-docs:
-    path: /api-docs
-  swagger-ui:
-    path: /swagger-ui.html
-
-# 日志
-logging:
-  level:
-    com.sims.dormitory: DEBUG
-    org.springframework.kafka: INFO
-    com.baomidou.mybatisplus: INFO
+log:
+  level: "info"
 ```
 
-### 3.2 Kafka 配置类
+### 3.2 配置加载 (Viper)
 
-```java
-@Configuration
-@EnableKafka
-public class KafkaConfig {
+```go
+// internal/config/config.go
+package config
 
-    /**
-     * KafkaListenerContainerFactory 手动确认模式
-     */
-    @Bean
-    public ConcurrentKafkaListenerContainerFactory<String, String>
-            kafkaListenerContainerFactory(ConsumerFactory<String, String> factory) {
-        ConcurrentKafkaListenerContainerFactory<String, String> containerFactory =
-                new ConcurrentKafkaListenerContainerFactory<>();
-        containerFactory.setConsumerFactory(factory);
-        // 手动 Ack
-        containerFactory.getContainerProperties().setAckMode(ContainerProperties.AckMode.MANUAL);
-        // 并发消费者数
-        containerFactory.setConcurrency(3);
-        // 批量消费
-        containerFactory.setBatchListener(true);
-        return containerFactory;
-    }
+type Config struct {
+	Server   ServerConfig   `mapstructure:"server"`
+	Database DatabaseConfig `mapstructure:"database"`
+	Redis    RedisConfig    `mapstructure:"redis"`
+	Kafka    KafkaConfig    `mapstructure:"kafka"`
+	JWT      JWTConfig      `mapstructure:"jwt"`
+	Auth     AuthConfig     `mapstructure:"auth"`
+	Face     FaceConfig     `mapstructure:"face"`
+	Camera   CameraConfig   `mapstructure:"camera"`
+	Log      LogConfig      `mapstructure:"log"`
+}
 
-    /**
-     * KafkaTemplate (用于生产告警消息到 t_dorm_alert)
-     */
-    @Bean
-    public KafkaTemplate<String, String> kafkaTemplate(ProducerFactory<String, String> factory) {
-        return new KafkaTemplate<>(factory);
-    }
+func Load(path string) (*Config, error) {
+	v := viper.New()
+	v.SetConfigFile(path)
+	v.AutomaticEnv()
+	// 兼容主流框架风格的环境变量映射 (SPRING_DATASOURCE_URL 等)
+	v.BindEnv("database.dsn", "SPRING_DATASOURCE_URL")
+	v.BindEnv("kafka.brokers", "KAFKA_BOOTSTRAP_SERVERS")
+	// ...
+	if err := v.ReadInConfig(); err != nil {
+		return nil, err
+	}
+	var cfg Config
+	if err := v.Unmarshal(&cfg); err != nil {
+		return nil, err
+	}
+	return &cfg, nil
 }
 ```
 
-### 3.3 Redis 配置类
+### 3.3 Kafka 消费者配置
 
-```java
-@Configuration
-public class RedisConfig {
+```go
+// internal/consumer/event_consumer.go
+type EventConsumer struct {
+	logger       *zap.Logger
+	redis        *redis.Client
+	brokers      []string
+	topic        string
+	groupID      string
+	maxPollRec   int
+	// repositories...
+}
 
-    @Bean
-    public RedisTemplate<String, Object> redisTemplate(RedisConnectionFactory factory) {
-        RedisTemplate<String, Object> template = new RedisTemplate<>();
-        template.setConnectionFactory(factory);
+func NewEventConsumer(
+	logger *zap.Logger,
+	redis *redis.Client,
+	brokers []string,
+	topic string,
+	groupID string,
+	maxPollRec int,
+	// repos...
+) *EventConsumer {
+	return &EventConsumer{
+		logger:     logger,
+		redis:      redis,
+		brokers:    brokers,
+		topic:      topic,
+		groupID:    groupID,
+		maxPollRec: maxPollRec,
+	}
+}
 
-        // 使用 Jackson2JsonRedisSerializer 序列化 value
-        Jackson2JsonRedisSerializer<Object> serializer =
-                new Jackson2JsonRedisSerializer<>(Object.class);
-        ObjectMapper mapper = new ObjectMapper();
-        mapper.registerModule(new JavaTimeModule());
-        mapper.disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS);
-        mapper.setVisibility(PropertyAccessor.ALL, JsonAutoDetect.Visibility.ANY);
-        mapper.activateDefaultTyping(
-                LazyObjectMapper.defaultBaseType(),
-                ObjectMapper.DefaultTyping.NON_FINAL);
-        serializer.setObjectMapper(mapper);
-
-        template.setKeySerializer(new StringRedisSerializer());
-        template.setValueSerializer(serializer);
-        template.setHashKeySerializer(new StringRedisSerializer());
-        template.setHashValueSerializer(serializer);
-        template.afterPropertiesSet();
-        return template;
-    }
-
-    /**
-     * StringRedisTemplate 用于简单 KV
-     */
-    @Bean
-    public StringRedisTemplate stringRedisTemplate(RedisConnectionFactory factory) {
-        return new StringRedisTemplate(factory);
-    }
+func (c *EventConsumer) Start(ctx context.Context) {
+	reader := kafka.NewReader(kafka.ReaderConfig{
+		Brokers:  c.brokers,
+		Topic:    c.topic,
+		GroupID:  c.groupID,
+		MinBytes: 1024,
+		MaxBytes: 10e6,
+	})
+	go c.consumeLoop(ctx, reader)
 }
 ```
 
-### 3.4 MyBatis-Plus 配置类
+### 3.4 Redis 客户端封装
 
-```java
-@Configuration
-@MapperScan("com.sims.dormitory.repository")
-public class MyBatisPlusConfig {
+```go
+// internal/redis/client.go
+package redis
 
-    /**
-     * 分页插件
-     */
-    @Bean
-    public MybatisPlusInterceptor mybatisPlusInterceptor() {
-        MybatisPlusInterceptor interceptor = new MybatisPlusInterceptor();
-        interceptor.addInnerInterceptor(new PaginationInnerInterceptor(DbType.POSTGRE_SQL));
-        return interceptor;
-    }
+import (
+	"context"
+	"fmt"
+	redigo "github.com/redis/go-redis/v9"
+)
+
+type Client struct {
+	rdb *redigo.Client
+}
+
+func NewClient(host string, port int, db int, password string) *Client {
+	rdb := redigo.NewClient(&redigo.Options{
+		Addr:     fmt.Sprintf("%s:%d", host, port),
+		DB:       db,
+		Password: password,
+	})
+	return &Client{rdb: rdb}
+}
+
+func (c *Client) Ping(ctx context.Context) error {
+	return c.rdb.Ping(ctx).Err()
+}
+
+// CheckAndSetDedup 幂等去重: key=dedup:{camera_id}:{frame_sequence}, TTL=3600s
+func (c *Client) CheckAndSetDedup(ctx context.Context, cameraID, frameSeq string) (bool, error) {
+	key := fmt.Sprintf("dedup:%s:%s", cameraID, frameSeq)
+	set, err := c.rdb.SetNX(ctx, key, "1", 3600*time.Second).Result()
+	return set, err
+}
+```
+
+### 3.5 sqlx 数据库连接
+
+```go
+// cmd/dormitory-service/main.go
+import (
+	"github.com/jmoiron/sqlx"
+	_ "github.com/go-sql-driver/mysql"
+)
+
+func main() {
+	cfg, _ := config.Load(cfgPath)
+
+	db, err := sqlx.Connect(cfg.Database.Driver, cfg.Database.DSN)
+	if err != nil {
+		log.Fatalf("Failed to connect to database: %v", err)
+	}
+	defer db.Close()
+
+	db.SetMaxOpenConns(cfg.Database.MaxOpenConn)
+	db.SetMaxIdleConns(cfg.Database.MaxIdleConn)
+	db.SetConnMaxLifetime(10 * time.Minute)
+
+	if err := db.Ping(); err != nil {
+		log.Fatalf("Failed to ping database: %v", err)
+	}
 }
 ```
 
@@ -553,113 +424,140 @@ public class MyBatisPlusConfig {
 
 ### 4.1 消费者实现
 
-```java
-@Component
-@Slf4j
-public class DormEventConsumer {
+```go
+// internal/consumer/event_consumer.go
+package consumer
 
-    @Autowired
-    private EventService eventService;
+type EventConsumer struct {
+	logger  *zap.Logger
+	redis   *redis.Client
+	brokers []string
+	topic   string
+	groupID string
+	// repositories...
+}
 
-    /**
-     * 消费 t_dorm_event，手动确认模式
-     *
-     * 消息体:
-     * {
-     *   "event_id": "evt_xxx",
-     *   "camera_id": "cam-a",
-     *   "building": "A",
-     *   "student_id": "S2024001",
-     *   "student_name": "张三",
-     *   "event_type": "entry",
-     *   "confidence": 0.95,
-     *   "face_snapshot": "/9j/4AAQ...",
-     *   "timestamp_unix_ms": 1747305000000,
-     *   "is_stranger": false,
-     *   "extra": { "class": "计算机2101班", "dorm_room": "A-301" }
-     * }
-     */
-    @KafkaListener(
-        topics = "${kafka.consumer.topic:t_dorm_event}",
-        groupId = "${kafka.consumer.group:dormitory-service}",
-        containerFactory = "kafkaListenerContainerFactory"
-    )
-    public void consume(List<ConsumerRecord<String, String>> records,
-                        Acknowledgment ack) {
-        for (ConsumerRecord<String, String> record : records) {
-            try {
-                DormEventMessage message = JsonUtils.parse(record.value(),
-                        DormEventMessage.class);
-                eventService.processEvent(message);
-            } catch (Exception e) {
-                // 记录失败消息到死信队列（日志 + 后续补偿）
-                log.error("Failed to process dorm event: {}", record.value(), e);
-                // 不阻塞其它消息，继续消费
-            }
-        }
-        // 批量确认
-        ack.acknowledge();
-    }
+// 消息体结构:
+// {
+//   "event_id": "evt_xxx",
+//   "camera_id": "cam-a",
+//   "building": "A",
+//   "student_id": "S2024001",
+//   "student_name": "张三",
+//   "event_type": "entry",
+//   "confidence": 0.95,
+//   "face_snapshot": "/9j/4AAQ...",
+//   "timestamp_unix_ms": 1747305000000,
+//   "is_stranger": false,
+//   "extra": { "class": "计算机2101班", "dorm_room": "A-301" }
+// }
+
+func (c *EventConsumer) Start(ctx context.Context) {
+	reader := kafka.NewReader(kafka.ReaderConfig{
+		Brokers:  c.brokers,
+		Topic:    c.topic,
+		GroupID:  c.groupID,
+		MinBytes: 1024,
+		MaxBytes: 10e6,
+	})
+	go c.consumeLoop(ctx, reader)
+}
+
+func (c *EventConsumer) consumeLoop(ctx context.Context, reader *kafka.Reader) {
+	defer reader.Close()
+	for {
+		msg, err := reader.FetchMessage(ctx)
+		if err != nil {
+			c.logger.Error("fetch message failed", zap.Error(err))
+			continue
+		}
+		c.processMessage(ctx, msg, reader)
+	}
+}
+
+func (c *EventConsumer) processMessage(ctx context.Context, msg kafka.Message, reader *kafka.Reader) {
+	var event DormEventMessage
+	if err := json.Unmarshal(msg.Value, &event); err != nil {
+		c.logger.Error("parse message failed", zap.Error(err), zap.String("value", string(msg.Value)))
+		reader.CommitMessages(ctx, msg)
+		return
+	}
+
+	// 幂等去重
+	dedupKey := fmt.Sprintf("dedup:%s:%s", event.CameraID, event.EventID)
+	isSet, _ := c.redis.CheckAndSetDedup(ctx, event.CameraID, event.EventID)
+	if !isSet {
+		c.logger.Debug("duplicate event, skip", zap.String("event_id", event.EventID))
+		reader.CommitMessages(ctx, msg)
+		return
+	}
+
+	// 处理事件
+	if err := c.handleEvent(ctx, event); err != nil {
+		c.logger.Error("process event failed", zap.Error(err), zap.String("event_id", event.EventID))
+	}
+
+	reader.CommitMessages(ctx, msg)
 }
 ```
 
-### 4.2 事件处理 Service
+### 4.2 事件处理
 
-```java
-@Service
-@Slf4j
-public class EventService {
+```go
+// internal/consumer/event_consumer.go
+func (c *EventConsumer) handleEvent(ctx context.Context, msg DormEventMessage) error {
+	// Step 1: 判断是否为本楼住宿学生
+	student, err := c.studentRepo.FindByStudentID(ctx, msg.StudentID)
+	if err != nil {
+		// 陌生人处理
+		return c.handleStranger(ctx, msg)
+	}
 
-    @Autowired
-    private StudentStatusService statusService;
-    @Autowired
-    private EntryExitEventMapper eventMapper;
-    @Autowired
-    private AlertService alertService;
-    @Autowired
-    private StringRedisTemplate redisTemplate;
+	// Step 2: 更新在校状态
+	if msg.EventType == "entry" {
+		c.studentRepo.UpdateStatus(ctx, msg.StudentID, map[string]interface{}{
+			"is_in_dorm":      true,
+			"last_entry_time": msg.Timestamp,
+			"today_status":    "in",
+		})
+	} else {
+		c.studentRepo.UpdateStatus(ctx, msg.StudentID, map[string]interface{}{
+			"is_in_dorm":   false,
+			"last_exit_time": msg.Timestamp,
+		})
+	}
 
-    private static final long DEDUP_TTL_SEC = 3600; // 幂等去重 TTL
+	// Step 3: 写入事件记录
+	event := model.EntryExitEvent{
+		EventID:       msg.EventID,
+		CameraID:      msg.CameraID,
+		Building:      msg.Building,
+		StudentID:     msg.StudentID,
+		StudentName:   msg.StudentName,
+		EventType:     msg.EventType,
+		Confidence:    msg.Confidence,
+		IsStranger:    false,
+		Timestamp:     msg.Timestamp,
+	}
+	return c.eventLogRepo.Create(ctx, &event)
+}
 
-    /**
-     * 处理单条进出事件
-     */
-    @Transactional
-    public void processEvent(DormEventMessage msg) {
-        // Step 1: 幂等校验
-        String dedupKey = RedisKeys.eventProcessed(msg.getEventId());
-        if (Boolean.TRUE.equals(redisTemplate.hasKey(dedupKey))) {
-            log.debug("Duplicate event, skip: {}", msg.getEventId());
-            return;
-        }
-
-        // Step 2: 持久化事件记录
-        EntryExitEvent event = convertToEntity(msg);
-        eventMapper.insert(event);
-
-        // Step 3: 判断是否为本楼住宿学生
-        StudentAssignment student = statusService.findStudent(
-                msg.getBuilding(), msg.getStudentId());
-
-        if (student == null) {
-            // 陌生人处理
-            handleStranger(msg);
-        } else {
-            // 更新在校状态
-            statusService.updateStatus(student, msg.getEventType(), msg.getTimestamp());
-        }
-
-        // Step 4: 标记已处理（防重复）
-        redisTemplate.opsForValue().set(dedupKey, "1", Duration.ofSeconds(DEDUP_TTL_SEC));
-    }
-
-    private void handleStranger(DormEventMessage msg) {
-        // 记录陌生人事件
-        eventMapper.updateStrangerFlag(msg.getEventId(), true);
-        // 触发陌生人告警
-        alertService.createAlert(AlertType.STRANGER_ENTRY, msg.getBuilding(),
-                null, "陌生人进入 " + msg.getBuilding() + " 栋", Severity.HIGH);
-    }
+func (c *EventConsumer) handleStranger(ctx context.Context, msg DormEventMessage) error {
+	// 记录陌生人事件
+	c.logger.Warn("stranger detected",
+		zap.String("building", msg.Building),
+		zap.Float64("confidence", msg.Confidence),
+	)
+	// 创建陌生人告警
+	alert := model.AlertRecord{
+		AlertID:     fmt.Sprintf("alert_%s_%d", msg.Building, time.Now().UnixMilli()),
+		AlertType:   "STRANGER_ENTRY",
+		Building:    msg.Building,
+		Severity:    "high",
+		Description: fmt.Sprintf("陌生人进入 %s 栋", msg.Building),
+		OccurredAt:  msg.Timestamp,
+	}
+	return c.alertRepo.Create(ctx, &alert)
 }
 ```
 
@@ -669,68 +567,75 @@ public class EventService {
 
 ### 5.1 Key 命名规范
 
-```java
-public class RedisKeys {
+```go
+// internal/redis/keys.go
+package redis
 
-    /** 学生在校状态 Hash: dorm:student:{studentId}:status */
-    public static String studentStatus(String studentId) {
-        return String.format("dorm:student:%s:status", studentId);
-    }
+import "fmt"
 
-    /** 楼栋学生集合 Set: dorm:building:{building}:students */
-    public static String buildingStudents(String building) {
-        return String.format("dorm:building:%s:students", building);
-    }
+const (
+	PrefixStudentStatus = "dorm:student:%s:status"
+	PrefixBuildingStudents = "dorm:building:%s:students"
+	PrefixEventProcessed = "dorm:event:processed:%s"
+	PrefixBuildingStatus = "dorm:building:%s:status"
+	PrefixTodayReport   = "dorm:report:today:%s"
+	PrefixConfig        = "dorm:config"
+)
 
-    /** 事件已处理标记: dorm:event:processed:{eventId} */
-    public static String eventProcessed(String eventId) {
-        return String.format("dorm:event:processed:%s", eventId);
-    }
+func StudentStatusKey(studentID string) string {
+	return fmt.Sprintf(PrefixStudentStatus, studentID)
+}
 
-    /** 楼栋状态缓存 Hash: dorm:building:{building}:status */
-    public static String buildingStatus(String building) {
-        return String.format("dorm:building:%s:status", building);
-    }
+func BuildingStudentsKey(building string) string {
+	return fmt.Sprintf(PrefixBuildingStudents, building)
+}
 
-    /** 今日查宿缓存 Hash: dorm:report:today:{building} */
-    public static String todayReport(String building) {
-        return String.format("dorm:report:today:%s", building);
-    }
+func EventProcessedKey(eventID string) string {
+	return fmt.Sprintf(PrefixEventProcessed, eventID)
+}
 
-    /** 配置缓存 Hash: dorm:config */
-    public static final String CONFIG = "dorm:config";
+func BuildingStatusKey(building string) string {
+	return fmt.Sprintf(PrefixBuildingStatus, building)
+}
+
+func TodayReportKey(building string) string {
+	return fmt.Sprintf(PrefixTodayReport, building)
 }
 ```
 
 ### 5.2 状态更新操作
 
-```java
-/**
- * 更新学生在校状态 (entry / exit)
- */
-public void updateStatus(StudentAssignment student, String eventType, long timestamp) {
-    String key = RedisKeys.studentStatus(student.getStudentId());
+```go
+// 更新学生在校状态 (entry / exit)
+func (c *Client) UpdateStudentStatus(ctx context.Context, studentID string, fields map[string]interface{}) error {
+	key := StudentStatusKey(studentID)
+	for field, value := range fields {
+		if err := c.rdb.HSet(ctx, key, field, value).Err(); err != nil {
+			return err
+		}
+	}
+	// TTL 次日 06:00 过期
+	tomorrow6am := time.Now().Add(24 * time.Hour).Truncate(24 * time.Hour).Add(6 * time.Hour)
+	return c.rdb.ExpireAt(ctx, key, tomorrow6am).Err()
+}
 
-    Map<String, String> fields = new HashMap<>();
-    fields.put("building", student.getBuilding());
-    fields.put("room", student.getRoom());
-    fields.put("studentName", student.getStudentName());
+// 查询学生状态
+func (c *Client) GetStudentStatus(ctx context.Context, studentID string) (map[string]string, error) {
+	key := StudentStatusKey(studentID)
+	return c.rdb.HGetAll(ctx, key).Result()
+}
 
-    if ("entry".equals(eventType)) {
-        fields.put("isInDorm", "true");
-        fields.put("lastEntryTime", formatTimestamp(timestamp));
-        fields.put("todayStatus", "in");
-    } else {
-        fields.put("isInDorm", "false");
-        fields.put("lastExitTime", formatTimestamp(timestamp));
-    }
+// 批量查询楼栋学生
+func (c *Client) GetBuildingStudents(ctx context.Context, building string) ([]string, error) {
+	key := BuildingStudentsKey(building)
+	return c.rdb.SMembers(ctx, key).Result()
+}
 
-    // 写入 Redis Hash，TTL 次日 06:00 过期
-    redisTemplate.opsForHash().putAll(key, fields);
-    redisTemplate.expireAt(key, nextDay6am());
-
-    // 同时更新楼栋聚合缓存
-    updateBuildingCache(student.getBuilding());
+// 幂等检查
+func (c *Client) CheckAndSetDedup(ctx context.Context, cameraID, frameSeq string) (bool, error) {
+	key := fmt.Sprintf("dedup:%s:%s", cameraID, frameSeq)
+	set, err := c.rdb.SetNX(ctx, key, "1", 3600*time.Second).Result()
+	return set, err
 }
 ```
 
@@ -740,72 +645,112 @@ public void updateStatus(StudentAssignment student, String eventType, long times
 
 ### 6.1 每晚查宿统计
 
-```java
-@Component
-@Slf4j
-public class NightlyReportTask {
+```go
+// internal/scheduler/nightly_report_job.go
+package scheduler
 
-    @Autowired
-    private NightlyReportService reportService;
+type NightlyReportJob struct {
+	logger        *zap.Logger
+	reportService *service.ReportService
+}
 
-    /**
-     * 默认 23:00 执行，从配置动态读取
-     */
-    @Scheduled(cron = "${nightly_report.trigger_time:0 0 23 * * ?}")
-    public void generateNightlyReport() {
-        log.info("=== 开始每晚查宿统计 ===");
-        try {
-            reportService.generateForAllBuildings(LocalDate.now());
-            log.info("=== 每晚查宿统计完成 ===");
-        } catch (Exception e) {
-            log.error("每晚查宿统计失败", e);
-        }
-    }
+func NewNightlyReportJob(logger *zap.Logger, reportService *service.ReportService) *NightlyReportJob {
+	return &NightlyReportJob{logger: logger, reportService: reportService}
+}
+
+// Run 默认 23:00 执行
+func (j *NightlyReportJob) Run() {
+	j.logger.Info("=== 开始每晚查宿统计 ===")
+	if err := j.reportService.GenerateForAllBuildings(time.Now()); err != nil {
+		j.logger.Error("每晚查宿统计失败", zap.Error(err))
+		return
+	}
+	j.logger.Info("=== 每晚查宿统计完成 ===")
 }
 ```
 
 ### 6.2 学管数据同步
 
-```java
-@Component
-@Slf4j
-public class SyncStudentTask {
+```go
+// internal/scheduler/sync_student_job.go
+package scheduler
 
-    @Autowired
-    private SyncService syncService;
+type SyncStudentJob struct {
+	logger      *zap.Logger
+	syncService *service.SyncService
+}
 
-    /**
-     * 默认每 60 分钟执行
-     */
-    @Scheduled(fixedDelayString = "${sync.student.interval_ms:3600000}")
-    public void syncStudents() {
-        if (!syncService.isSyncEnabled()) {
-            return;
-        }
-        log.info("开始同步学管宿舍数据...");
-        SyncResult result = syncService.syncFromSIMS();
-        log.info("同步完成: {}", result);
-    }
+func NewSyncStudentJob(logger *zap.Logger, syncService *service.SyncService) *SyncStudentJob {
+	return &SyncStudentJob{logger: logger, syncService: syncService}
+}
+
+// Run 默认每 60 分钟执行
+func (j *SyncStudentJob) Run() {
+	if !j.syncService.IsEnabled() {
+		return
+	}
+	j.logger.Info("开始同步学管宿舍数据...")
+	result, err := j.syncService.SyncFromSIMS()
+	if err != nil {
+		j.logger.Error("同步失败", zap.Error(err))
+		return
+	}
+	j.logger.Info("同步完成", zap.Any("result", result))
 }
 ```
 
 ### 6.3 摄像头健康检查
 
-```java
-@Component
-@Slf4j
-public class CameraHealthCheckTask {
+```go
+// internal/scheduler/health_check_job.go
+package scheduler
 
-    @Autowired
-    private CameraService cameraService;
+type HealthCheckJob struct {
+	logger        *zap.Logger
+	cameraService *service.CameraService
+}
 
-    /**
-     * 每 30 秒检查一次摄像头状态
-     */
-    @Scheduled(fixedRateString = "${camera.health_check.interval_ms:30000}")
-    public void checkCameras() {
-        cameraService.checkAllCameras();
-    }
+func NewHealthCheckJob(logger *zap.Logger, cameraService *service.CameraService) *HealthCheckJob {
+	return &HealthCheckJob{logger: logger, cameraService: cameraService}
+}
+
+// Run 每 30 秒检查一次摄像头状态
+func (j *HealthCheckJob) Run() {
+	j.cameraService.CheckAllCameras()
+}
+```
+
+### 6.4 调度管理器
+
+```go
+// internal/scheduler/manager.go
+package scheduler
+
+import "github.com/robfig/cron/v3"
+
+type Manager struct {
+	logger *zap.Logger
+	cron   *cron.Cron
+}
+
+func NewManager(logger *zap.Logger) *Manager {
+	return &Manager{
+		logger: logger,
+		cron:   cron.New(cron.WithSeconds()),
+	}
+}
+
+func (m *Manager) AddJob(spec string, job cron.Job) {
+	m.cron.AddJob(spec, job)
+	m.logger.Info("scheduled job", zap.String("spec", spec))
+}
+
+func (m *Manager) Start() {
+	m.cron.Start()
+}
+
+func (m *Manager) Stop() {
+	m.cron.Stop()
 }
 ```
 
@@ -815,219 +760,267 @@ public class CameraHealthCheckTask {
 
 ### 7.1 统一响应体
 
-```java
-@Data
-@NoArgsConstructor
-@AllArgsConstructor
-public class ApiResponse<T> {
-    private int code;
-    private String text;
-    private T data;
-    private String timestamp;
-    private String requestId;
+```go
+// internal/handler/response.go
+package handler
 
-    public static <T> ApiResponse<T> success(T data) {
-        return new ApiResponse<>(200, "success", data,
-                LocalDateTime.now().toString(), MDC.get("requestId"));
-    }
+import (
+	"net/http"
+	"time"
 
-    public static <T> ApiResponse<T> error(int code, String message) {
-        return new ApiResponse<>(code, message, null,
-                LocalDateTime.now().toString(), MDC.get("requestId"));
-    }
+	"github.com/gin-gonic/gin"
+)
 
-    public static <T> ApiResponse<T> error(ErrorCode errorCode) {
-        return new ApiResponse<>(errorCode.getCode(), errorCode.getMessage(),
-                null, LocalDateTime.now().toString(), MDC.get("requestId"));
-    }
+type Response struct {
+	Code      int         `json:"code"`
+	Message   string      `json:"message"`
+	Data      interface{} `json:"data,omitempty"`
+	Timestamp string      `json:"timestamp"`
+	RequestID string      `json:"requestId,omitempty"`
+}
+
+func OK(c *gin.Context, data interface{}) {
+	c.JSON(http.StatusOK, Response{
+		Code:      200,
+		Message:   "success",
+		Data:      data,
+		Timestamp: time.Now().Format(time.RFC3339),
+		RequestID: c.GetString("requestId"),
+	})
+}
+
+func Error(c *gin.Context, httpStatus int, code int, message string) {
+	c.JSON(httpStatus, Response{
+		Code:      code,
+		Message:   message,
+		Timestamp: time.Now().Format(time.RFC3339),
+		RequestID: c.GetString("requestId"),
+	})
+}
+
+func BadRequest(c *gin.Context, message string) {
+	Error(c, http.StatusBadRequest, 400, message)
+}
+
+func NotFound(c *gin.Context, message string) {
+	Error(c, http.StatusNotFound, 404, message)
+}
+
+func InternalError(c *gin.Context, message string) {
+	Error(c, http.StatusInternalServerError, 500, message)
 }
 ```
 
-### 7.2 业务异常类
+### 7.2 业务错误定义
 
-```java
-@Getter
-public class BusinessException extends RuntimeException {
-    private final int code;
-    private final String message;
-    private final Map<String, Object> details;
+```go
+// internal/handler/errors.go
+package handler
 
-    public BusinessException(ErrorCode errorCode) {
-        super(errorCode.getMessage());
-        this.code = errorCode.getCode();
-        this.message = errorCode.getMessage();
-        this.details = new HashMap<>();
-    }
+import "errors"
 
-    public BusinessException(ErrorCode errorCode, Map<String, Object> details) {
-        super(errorCode.getMessage());
-        this.code = errorCode.getCode();
-        this.message = errorCode.getMessage();
-        this.details = details;
-    }
+var (
+	ErrInvalidParameter  = errors.New("请求参数不合法")
+	ErrUnauthorized      = errors.New("认证失败")
+	ErrNotFound          = errors.New("资源不存在")
+	ErrConflict          = errors.New("数据冲突")
+	ErrBuildingInvalid   = errors.New("楼栋参数不合法，仅支持 A/B/C/D")
+	ErrStudentNotFound   = errors.New("未找到该学生")
+	ErrReportExists      = errors.New("该日期已存在查宿统计")
+	ErrSyncInProgress    = errors.New("同步任务执行中")
+	ErrCameraLimit       = errors.New("摄像头数量已达上限")
+	ErrInternal          = errors.New("服务器内部错误")
+	ErrServiceUnavailable = errors.New("服务暂不可用")
+)
 
-    public BusinessException(int code, String message) {
-        super(message);
-        this.code = code;
-        this.message = message;
-        this.details = new HashMap<>();
-    }
+type BusinessError struct {
+	HTTPStatus int
+	Code       int
+	Message    string
+}
+
+func (e *BusinessError) Error() string {
+	return e.Message
 }
 ```
 
-### 7.3 全局异常处理器
+### 7.3 全局错误处理中间件
 
-```java
-@RestControllerAdvice
-@Slf4j
-public class GlobalExceptionHandler {
+```go
+// internal/middleware/error_handler.go
+package middleware
 
-    @ExceptionHandler(BusinessException.class)
-    public ResponseEntity<ApiResponse<Void>> handleBusiness(BusinessException e) {
-        log.warn("业务异常: code={}, message={}", e.getCode(), e.getMessage());
-        return ResponseEntity.status(HttpStatus.BAD_REQUEST)
-                .body(ApiResponse.error(e.getCode(), e.getMessage()));
-    }
+import (
+	"errors"
+	"net/http"
 
-    @ExceptionHandler(MethodArgumentNotValidException.class)
-    public ResponseEntity<ApiResponse<Void>> handleValidation(
-            MethodArgumentNotValidException e) {
-        String msg = e.getBindingResult().getFieldErrors().stream()
-                .map(f -> f.getField() + ": " + f.getDefaultMessage())
-                .collect(Collectors.joining(", "));
-        return ResponseEntity.status(HttpStatus.BAD_REQUEST)
-                .body(ApiResponse.error(400, msg));
-    }
+	"github.com/gin-gonic/gin"
+	"your.module/internal/handler"
+)
 
-    @ExceptionHandler(Exception.class)
-    public ResponseEntity<ApiResponse<Void>> handleUnknown(Exception e) {
-        log.error("未知异常", e);
-        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                .body(ApiResponse.error(500, "服务器内部错误"));
-    }
+func RecoveryMiddleware() gin.HandlerFunc {
+	return func(c *gin.Context) {
+		defer func() {
+			if err := recover(); err != nil {
+				handler.InternalError(c, "服务器内部错误")
+				c.Abort()
+			}
+		}()
+		c.Next()
+	}
+}
+
+// Handler 层统一错误处理模式
+func handleServiceError(c *gin.Context, err error) {
+	var bizErr *handler.BusinessError
+	if errors.As(err, &bizErr) {
+		handler.Error(c, bizErr.HTTPStatus, bizErr.Code, bizErr.Message)
+		return
+	}
+	handler.InternalError(c, err.Error())
 }
 ```
 
-### 7.4 错误码枚举
+### 7.4 Gin 参数校验
 
-```java
-@Getter
-public enum ErrorCode {
-    INVALID_PARAMETER(400, "请求参数不合法"),
-    UNAUTHORIZED(401, "认证失败"),
-    NOT_FOUND(404, "资源不存在"),
-    CONFLICT(409, "数据冲突"),
-    BUILDING_INVALID(400, "楼栋参数不合法，仅支持 A/B/C/D"),
-    STUDENT_NOT_FOUND(404, "未找到该学生"),
-    REPORT_ALREADY_EXISTS(409, "该日期已存在查宿统计"),
-    SYNC_IN_PROGRESS(409, "同步任务执行中"),
-    CAMERA_LIMIT_EXCEEDED(400, "摄像头数量已达上限"),
-    INTERNAL_ERROR(500, "服务器内部错误"),
-    SERVICE_UNAVAILABLE(503, "服务暂不可用");
+```go
+// internal/model/dto/camera_dto.go
+package dto
 
-    private final int code;
-    private final String message;
+type RegisterCameraRequest struct {
+	CameraID  string `json:"cameraId" binding:"required"`
+	Name      string `json:"name" binding:"required"`
+	Building  string `json:"building" binding:"required,oneof=A B C D"`
+	RTSPURL   string `json:"rtspUrl" binding:"required"`
+	Direction string `json:"direction"`
+	Resolution string `json:"resolution"`
+	Remark    string `json:"remark"`
+}
 
-    ErrorCode(int code, String message) {
-        this.code = code;
-        this.message = message;
-    }
+// handler 中使用
+func (h *CameraHandler) RegisterCamera(c *gin.Context) {
+	var req dto.RegisterCameraRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		handler.BadRequest(c, err.Error())
+		return
+	}
+	// ...
 }
 ```
+
+### 7.5 错误码速查
+
+| HTTP 状态码 | 业务错误码            | 说明                 |
+| ----------- | --------------------- | -------------------- |
+| 400         | INVALID_PARAMETER     | 请求参数校验失败     |
+| 400         | BUILDING_INVALID      | 楼栋参数不合法       |
+| 400         | CAMERA_LIMIT_EXCEEDED | 摄像头数量已达上限   |
+| 401         | UNAUTHORIZED          | 认证失败             |
+| 404         | NOT_FOUND             | 资源不存在           |
+| 404         | STUDENT_NOT_FOUND     | 学生未找到           |
+| 409         | CONFLICT              | 数据冲突             |
+| 409         | REPORT_ALREADY_EXISTS | 该日期已存在查宿统计 |
+| 409         | SYNC_IN_PROGRESS      | 同步任务执行中       |
+| 422         | UNPROCESSABLE_ENTITY  | 业务规则校验失败     |
+| 429         | TOO_MANY_REQUESTS     | 请求频率超限         |
+| 500         | INTERNAL_ERROR        | 服务器内部错误       |
+| 503         | SERVICE_UNAVAILABLE   | 服务暂不可用         |
 
 ---
 
 ## 8. 日志规范
 
-### 8.1 logback-spring.xml
+### 8.1 zap 日志配置
 
-```xml
-<?xml version="1.0" encoding="UTF-8"?>
-<configuration>
-    <include resource="org/springframework/boot/logging/logback/defaults.xml"/>
+```go
+// cmd/dormitory-service/main.go
+func initLogger(level string) (*zap.Logger, error) {
+	var lvl zapcore.Level
+	switch level {
+	case "debug":
+		lvl = zapcore.DebugLevel
+	case "warn":
+		lvl = zapcore.WarnLevel
+	case "error":
+		lvl = zapcore.ErrorLevel
+	default:
+		lvl = zapcore.InfoLevel
+	}
 
-    <!-- 控制台输出 -->
-    <appender name="CONSOLE" class="ch.qos.logback.core.ConsoleAppender">
-        <encoder>
-            <pattern>%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level %logger{36} - %msg%n</pattern>
-        </encoder>
-    </appender>
-
-    <!-- 文件输出 -->
-    <appender name="FILE" class="ch.qos.logback.core.rolling.RollingFileAppender">
-        <file>${LOG_PATH:-logs}/dormitory-service.log</file>
-        <rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
-            <fileNamePattern>${LOG_PATH:-logs}/dormitory-service.%d{yyyy-MM-dd}.log.gz</fileNamePattern>
-            <maxHistory>30</maxHistory>
-        </rollingPolicy>
-        <encoder>
-            <pattern>%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level %logger{36} - %msg%n</pattern>
-        </encoder>
-    </appender>
-
-    <!-- Kafka 消费日志单独文件 -->
-    <appender name="KAFKA_FILE" class="ch.qos.logback.core.rolling.RollingFileAppender">
-        <file>${LOG_PATH:-logs}/kafka-consumer.log</file>
-        <rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
-            <fileNamePattern>${LOG_PATH:-logs}/kafka-consumer.%d{yyyy-MM-dd}.log.gz</fileNamePattern>
-            <maxHistory>7</maxHistory>
-        </rollingPolicy>
-        <encoder>
-            <pattern>%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level %logger{36} - %msg%n</pattern>
-        </encoder>
-    </appender>
-
-    <logger name="com.sims.dormitory.consumer" level="INFO" additivity="false">
-        <appender-ref ref="KAFKA_FILE"/>
-        <appender-ref ref="CONSOLE"/>
-    </logger>
-
-    <root level="INFO">
-        <appender-ref ref="CONSOLE"/>
-        <appender-ref ref="FILE"/>
-    </root>
-</configuration>
+	cfg := zap.Config{
+		Level:            zap.NewAtomicLevelAt(lvl),
+		Development:      lvl == zapcore.DebugLevel,
+		Encoding:         "console",
+		EncoderConfig:    zap.NewDevelopmentEncoderConfig(),
+		OutputPaths:      []string{"stdout"},
+		ErrorOutputPaths: []string{"stderr"},
+	}
+	return cfg.Build()
+}
 ```
 
 ### 8.2 关键日志埋点
 
-| 位置 | 日志事件 | 级别 | 说明 |
-|------|---------|------|------|
-| 事件消费 | 收到/处理完成 | INFO | 包含 eventId、building、eventType |
-| 事件消费 | 解析失败/异常 | ERROR | 包含原始消息体 |
-| 状态更新 | 更新成功 | DEBUG | 包含 studentId + 新状态 |
-| 查宿统计 | 开始/完成/失败 | INFO | 包含 date、各楼栋计数 |
-| 学管同步 | 开始/成功/失败 | INFO | 包含 syncId、数据量 |
-| 告警触发 | 告警创建 | WARN | 包含 alertType、building |
-| 摄像头检查 | 状态变更 | INFO | 包含 cameraId、old/new status |
-| 配置更新 | 更新成功 | INFO | 包含 key、old/new value |
+| 位置       | 日志事件       | 级别  | 说明                                |
+| ---------- | -------------- | ----- | ----------------------------------- |
+| 事件消费   | 收到/处理完成  | INFO  | 包含 event_id、building、event_type |
+| 事件消费   | 解析失败/异常  | ERROR | 包含原始消息体                      |
+| 状态更新   | 更新成功       | DEBUG | 包含 student_id + 新状态            |
+| 查宿统计   | 开始/完成/失败 | INFO  | 包含 date、各楼栋计数               |
+| 学管同步   | 开始/成功/失败 | INFO  | 包含 sync_id、数据量                |
+| 告警触发   | 告警创建       | WARN  | 包含 alert_type、building           |
+| 摄像头检查 | 状态变更       | INFO  | 包含 camera_id、old/new status      |
+| 配置更新   | 更新成功       | INFO  | 包含 key、old/new value             |
+
+### 8.3 日志使用示例
+
+```go
+// Kafka 消费日志
+c.logger.Info("event processed",
+	zap.String("event_id", msg.EventID),
+	zap.String("building", msg.Building),
+	zap.String("event_type", msg.EventType),
+)
+
+// 错误日志
+c.logger.Error("process event failed",
+	zap.Error(err),
+	zap.String("event_id", msg.EventID),
+	zap.String("raw_message", string(msg.Value)),
+)
+
+// 调试日志
+c.logger.Debug("duplicate event, skip",
+	zap.String("event_id", msg.EventID),
+)
+```
 
 ---
 
 ## 9. 包结构总结
 
 ```
-com.sims.dormitory
-├── DormitoryApplication.java
-├── config/          # Spring Boot 配置类
-├── controller/      # REST 控制器
-├── consumer/        # Kafka 消费者
-├── service/         # 业务逻辑
-├── repository/      # MyBatis-Plus Mapper
-├── model/
-│   ├── entity/      # 数据库实体
-│   ├── dto/         # 数据传输对象
-│   ├── query/       # 查询参数
-│   └── enums/       # 枚举
-├── common/
-│   ├── response/    # 统一响应
-│   ├── exception/   # 异常处理
-│   └── constant/    # 常量
-└── scheduler/       # 定时任务
+github.com/sims/campusvision/dormitory-service-go
+├── cmd/dormitory-service/main.go    # 入口：DI + 路由 + 启动
+├── internal/
+│   ├── client/                      # PushClient → stream-gateway
+│   ├── config/                      # Viper 配置加载
+│   ├── consumer/                    # Kafka 消费者
+│   ├── handler/                     # Gin HTTP 处理器
+│   ├── middleware/                  # JWT + CORS 中间件
+│   ├── model/
+│   │   ├── dto/                     # 请求/响应类型
+│   │   ├── entity/                  # 数据库实体 (db tag)
+│   │   └── enums/                   # 领域枚举
+│   ├── redis/                       # go-redis 封装 + 去重
+│   ├── repository/                  # sqlx 数据访问 (泛型 BaseRepository)
+│   ├── service/                     # 业务逻辑
+│   ├── scheduler/                   # robfig/cron 定时任务
+│   └── util/                        # 工具 (AES 加密)
 ```
 
 ---
 
 > **本文件属于**: `doc/design/backend/01-architecture.md`  
-> **面向读者**: Java 后端开发（搭档）  
+> **面向读者**: Go 后端开发（搭档）  
 > **参考**: PRD-004 主进程对接、PRD-003 Dormitory Service

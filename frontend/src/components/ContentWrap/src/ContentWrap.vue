@@ -9,7 +9,7 @@ const prefixCls = getPrefixCls('content-wrap');
 
 defineProps({
   title: VueTypes.string.def(''),
-  message: VueTypes.string.def('')
+  message: VueTypes.string.def(''),
 });
 </script>
 
@@ -26,6 +26,6 @@ defineProps({
         </ElTooltip>
       </div>
     </template>
-      <slot></slot>
+    <slot></slot>
   </ElCard>
 </template>

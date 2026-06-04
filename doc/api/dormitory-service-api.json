@@ -811,48 +811,6 @@
           }
         }
       }
-    },
-    "/api/face/embed": {
-      "post": {
-        "tags": ["face"],
-        "summary": "Compute face embedding from image",
-        "description": "⚠️ **STUB** — currently returns null embedding. Not yet implemented.",
-        "operationId": "faceEmbed",
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "type": "object",
-                "properties": {
-                  "image_path": { "type": "string" }
-                },
-                "required": ["image_path"]
-              }
-            }
-          }
-        },
-        "responses": {
-          "200": {
-            "description": "Embedding (null — stub)",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "success": { "type": "boolean", "example": true },
-                    "embedding": {
-                      "type": "array",
-                      "items": { "type": "number" },
-                      "nullable": true
-                    }
-                  }
-                }
-              }
-            }
-          }
-        }
-      }
     }
   },
   "components": {

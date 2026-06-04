@@ -1,0 +1,46 @@
+# See https://pre-commit.com for more information
+default_stages: [pre-commit]
+default_install_hook_types: [pre-commit]
+
+repos:
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v5.0.0
+    hooks:
+      - id: trailing-whitespace
+      - id: end-of-file-fixer
+      - id: check-yaml
+      - id: check-json
+      - id: check-added-large-files
+
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: v0.9.10
+    hooks:
+      - id: ruff
+        args: [--fix]
+        types_or: [python, pyi]
+        files: ^face-recognition/
+
+  - repo: https://github.com/golangci/golangci-lint
+    rev: v1.64.8
+    hooks:
+      - id: golangci-lint
+        types: [go]
+        files: ^(stream-gateway|dormitory-service-go)/
+
+  - repo: https://github.com/pre-commit/mirrors-prettier
+    rev: v4.0.0-alpha.8
+    hooks:
+      - id: prettier
+        types_or: [javascript, typescript, vue, css, scss, json, yaml, markdown]
+        files: ^frontend/
+        additional_dependencies:
+          - prettier@^3.0.0
+
+  - repo: https://github.com/pre-commit/mirrors-eslint
+    rev: v9.23.0
+    hooks:
+      - id: eslint
+        types: [javascript, typescript, vue]
+        files: ^frontend/
+        additional_dependencies:
+          - eslint@^8.0.0

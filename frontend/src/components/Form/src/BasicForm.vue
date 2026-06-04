@@ -1,9 +1,9 @@
 <script lang="tsx">
-import { PropType, defineComponent, ref, computed, unref, watch, onMounted } from "vue";
-import { ElForm, ElFormItem, ElRow, ElCol, ElTooltip } from "element-plus";
-import { componentMap } from "./componentMap";
-import VueTypes from "@/utils/propTypes";
-import { getSlot } from "@/utils/tsxHelper";
+import { PropType, defineComponent, ref, computed, unref, watch, onMounted } from 'vue';
+import { ElForm, ElFormItem, ElRow, ElCol, ElTooltip } from 'element-plus';
+import { componentMap } from './componentMap';
+import VueTypes from '@/utils/propTypes';
+import { getSlot } from '@/utils/tsxHelper';
 import {
   setTextPlaceholder,
   setGridProp,
@@ -11,24 +11,24 @@ import {
   setItemComponentSlots,
   initModel,
   setFormItemSlots,
-} from "./helper";
-import { useRenderSelect } from "./components/useRenderSelect";
-import { useRenderRadio } from "./components/useRenderRadio";
-import { useRenderCheckbox } from "./components/useRenderCheckbox";
-import { useDesign } from "@/hooks/web/useDesign";
-import { deepMerge, findIndex } from "@/utils";
-import { set } from "lodash-es";
-import { FormProps } from "./types";
-import { Icon } from "@/components/Icon";
-import { FormSchema, FormSetPropsType } from "@/types/form";
-import { isArray, isFunction, isObject } from "@/utils/is";
+} from './helper';
+import { useRenderSelect } from './components/useRenderSelect';
+import { useRenderRadio } from './components/useRenderRadio';
+import { useRenderCheckbox } from './components/useRenderCheckbox';
+import { useDesign } from '@/hooks/web/useDesign';
+import { deepMerge, findIndex } from '@/utils';
+import { set } from 'lodash-es';
+import { FormProps } from './types';
+import { Icon } from '@/components/Icon';
+import { FormSchema, FormSetPropsType } from '@/types/form';
+import { isArray, isFunction, isObject } from '@/utils/is';
 
 const { getPrefixCls } = useDesign();
 
-const prefixCls = getPrefixCls("form");
+const prefixCls = getPrefixCls('form');
 
 export default defineComponent({
-  name: "BasicForm",
+  name: 'BasicForm',
   props: {
     // 生成Form的布局结构数组
     schema: {
@@ -47,10 +47,10 @@ export default defineComponent({
     // 是否自定义内容
     isCustom: VueTypes.bool.def(false),
     // 表单label宽度
-    labelWidth: VueTypes.oneOfType([String, Number]).def("80px"),
-    labelPosition: VueTypes.oneOfType([String]).def("top"),
+    labelWidth: VueTypes.oneOfType([String, Number]).def('80px'),
+    labelPosition: VueTypes.oneOfType([String]).def('top'),
   },
-  emits: ["register"],
+  emits: ['register'],
   setup(props, { slots, expose, emit }) {
     // element form 实例
     const elFormRef = ref<ComponentRef<typeof ElForm>>();
@@ -70,7 +70,7 @@ export default defineComponent({
     const formModel = ref<Recordable>({});
 
     onMounted(() => {
-      emit("register", unref(elFormRef)?.$parent, unref(elFormRef));
+      emit('register', unref(elFormRef)?.$parent, unref(elFormRef));
     });
 
     // 对表单赋值
@@ -115,21 +115,19 @@ export default defineComponent({
 
     const getSchemaApiData = async () => {
       const { schema = [] } = unref(getProps);
-      schema.forEach(async (item) => {
+      schema.forEach(async item => {
         if (item.api) {
           const res = await (isFunction(item.api) ? item.api() : item.api);
           if (item.afterFetch) {
-            item.componentProps["options"] = item.afterFetch(res);
+            item.componentProps['options'] = item.afterFetch(res);
           } else {
-            item.componentProps["options"] =
-              res[item.componentProps?.optionsAlias?.dataField || "data"];
+            item.componentProps['options'] =
+              res[item.componentProps?.optionsAlias?.dataField || 'data'];
           }
           if (item.apiValue) {
             item.value = isFunction(item.apiValue)
               ? item.apiValue(res)
-              : res[item.componentProps?.optionsAlias?.dataField || "data"][
-                item.apiValue
-              ];
+              : res[item.componentProps?.optionsAlias?.dataField || 'data'][item.apiValue];
             Object.assign(formModel.value, { [item.field]: item.value });
             setValues(formModel.value);
           }
@@ -147,19 +145,18 @@ export default defineComponent({
       }
 
       const hasField = updateData.every(
-        (item) =>
-          item.component === "Divider" || (Reflect.has(item, "field") && item.field)
+        item => item.component === 'Divider' || (Reflect.has(item, 'field') && item.field),
       );
 
       if (!hasField) {
         console.error(
-          "All children of the form Schema array that need to be updated must contain the `field` field"
+          'All children of the form Schema array that need to be updated must contain the `field` field',
         );
         return;
       }
       const { schema } = unref(getProps);
-      schema.forEach((val) => {
-        updateData.forEach((item) => {
+      schema.forEach(val => {
+        updateData.forEach(item => {
           if (val.field === item.field) {
             Object.assign(val, item);
           }
@@ -191,7 +188,7 @@ export default defineComponent({
       {
         immediate: true,
         deep: true,
-      }
+      },
     );
 
     // 渲染包裹标签，是否使用栅格布局
@@ -211,15 +208,13 @@ export default defineComponent({
       const { schema = [], isCol } = unref(getProps);
 
       return schema
-        .filter((v) => !v.hidden)
-        .map((item) => {
+        .filter(v => !v.hidden)
+        .map(item => {
           // 如果是 Divider 组件，需要自己占用一行
-          const isDivider = item.component === "Divider";
-          const Com = componentMap["Divider"] as ReturnType<typeof defineComponent>;
+          const isDivider = item.component === 'Divider';
+          const Com = componentMap['Divider'] as ReturnType<typeof defineComponent>;
           return isDivider ? (
-            <Com {...{ contentPosition: "left", ...item.componentProps }}>
-              {item?.label}
-            </Com>
+            <Com {...{ contentPosition: 'left', ...item.componentProps }}>{item?.label}</Com>
           ) : isCol ? (
             // 如果需要栅格，需要包裹 ElCol
             <ElCol {...setGridProp(item.colProps)}>{renderFormItem(item)}</ElCol>
@@ -232,19 +227,19 @@ export default defineComponent({
     // 渲染formItem
     const renderFormItem = (item: FormSchema) => {
       // 单独给只有options属性的组件做判断
-      const notRenderOptions = ["SelectV2", "Cascader", "Transfer", "TreeSelect"];
+      const notRenderOptions = ['SelectV2', 'Cascader', 'Transfer', 'TreeSelect'];
       const slotsMap: Recordable = {
         ...setItemComponentSlots(slots, item?.componentProps?.slots, item.field),
       };
       if (
-        item?.component !== "SelectV2" &&
-        item?.component !== "Cascader" &&
+        item?.component !== 'SelectV2' &&
+        item?.component !== 'Cascader' &&
         item?.componentProps?.options
       ) {
         slotsMap.default = () => renderOptions(item);
       }
-      if (item?.component === "TreeSelect" && item.componentProps) {
-        item.componentProps[item.componentProps.optionsAlias?.dataField || "data"] =
+      if (item?.component === 'TreeSelect' && item.componentProps) {
+        item.componentProps[item.componentProps.optionsAlias?.dataField || 'data'] =
           item.componentProps?.options;
       }
 
@@ -274,11 +269,7 @@ export default defineComponent({
       }
 
       return (
-        <ElFormItem
-          {...(item.formItemProps || {})}
-          prop={item.field}
-          label={item.label || ""}
-        >
+        <ElFormItem {...(item.formItemProps || {})} prop={item.field} label={item.label || ''}>
           {{
             ...formItemSlots,
             default: () => {
@@ -308,8 +299,8 @@ export default defineComponent({
                   item?.componentProps?.options
                     ? { options: item?.componentProps?.options || [] }
                     : {})}
-                  {...(item?.component === "DatePicker" || item.component === "TimePicker"
-                    ? { prefixIcon:ComIcon() }
+                  {...(item?.component === 'DatePicker' || item.component === 'TimePicker'
+                    ? { prefixIcon: ComIcon() }
                     : {})}
                 >
                   {{ ...slotsMap }}
@@ -324,15 +315,15 @@ export default defineComponent({
     // 渲染options
     const renderOptions = (item: FormSchema) => {
       switch (item.component) {
-        case "Select":
+        case 'Select':
           const { renderSelectOptions } = useRenderSelect(slots);
           return renderSelectOptions(item);
-        case "Radio":
-        case "RadioButton":
+        case 'Radio':
+        case 'RadioButton':
           const { renderRadioOptions } = useRenderRadio();
           return renderRadioOptions(item);
-        case "Checkbox":
-        case "CheckboxButton":
+        case 'Checkbox':
+        case 'CheckboxButton':
           const { renderCheckboxOptions } = useRenderCheckbox();
           return renderCheckboxOptions(item);
         default:
@@ -343,9 +334,9 @@ export default defineComponent({
     // 过滤传入Form组件的属性
     const getFormBindValue = () => {
       // 避免在标签上出现多余的属性
-      const delKeys = ["schema", "isCol", "autoSetPlaceholder", "isCustom", "model"];
+      const delKeys = ['schema', 'isCol', 'autoSetPlaceholder', 'isCustom', 'model'];
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const props = ({ ...unref(getProps) } as unknown) as any;
+      const props = { ...unref(getProps) } as unknown as any;
       for (const key in props) {
         if (delKeys.indexOf(key) !== -1) {
           delete props[key];
@@ -367,7 +358,7 @@ export default defineComponent({
           // 如果需要自定义，就什么都不渲染，而是提供默认插槽
           default: () => {
             const { isCustom } = unref(getProps);
-            return isCustom ? getSlot(slots, "default") : renderWrap();
+            return isCustom ? getSlot(slots, 'default') : renderWrap();
           },
         }}
       </ElForm>

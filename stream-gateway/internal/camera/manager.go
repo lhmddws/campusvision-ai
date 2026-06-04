@@ -9,10 +9,6 @@ import (
 	"github.com/sims/campusvision/stream-gateway/internal/kafka"
 )
 
-// context.Background() for streams added dynamically (not tied to main ctx lifecycle;
-// individual streams manage their own cancellation via Stop/stopCh).
-var backgroundCtx = context.Background()
-
 type CameraStatus struct {
 	CameraID     string `json:"camera_id"`
 	Building     string `json:"building"`
@@ -31,9 +27,13 @@ type Manager struct {
 	cfg      config.FrameConfig
 	rtspCfg  config.RTSPConfig
 	encKey   []byte
+	bgCtx    context.Context
 }
 
 func NewManager(cfg config.FrameConfig, rtspCfg config.RTSPConfig, producer *kafka.Producer, encKey []byte) *Manager {
+	if producer == nil {
+		log.Println("[manager] nil producer passed to NewManager")
+	}
 	return &Manager{
 		streams:  make(map[string]*Stream),
 		statuses: make(map[string]CameraStatus),
@@ -45,6 +45,7 @@ func NewManager(cfg config.FrameConfig, rtspCfg config.RTSPConfig, producer *kaf
 }
 
 func (m *Manager) Start(ctx context.Context, cameras []config.CameraConfig) {
+	m.bgCtx = ctx
 	for _, cam := range cameras {
 		if !cam.Enabled {
 			continue
@@ -68,6 +69,8 @@ func (m *Manager) Start(ctx context.Context, cameras []config.CameraConfig) {
 }
 
 func (m *Manager) Stop() {
+	m.mu.Lock()
+	defer m.mu.Unlock()
 	for id, stream := range m.streams {
 		stream.Stop()
 		log.Printf("Camera stream stopped: %s", id)
@@ -114,7 +117,7 @@ func (m *Manager) AddCamera(cfg config.CameraConfig) {
 		Building:  cfg.Building,
 		Connected: false,
 	}
-	go stream.Run(backgroundCtx)
+	go stream.Run(m.ctx())
 	log.Printf("[manager] camera stream added: %s (%s栋)", cfg.ID, cfg.Building)
 }
 
@@ -134,33 +137,59 @@ func (m *Manager) RemoveCamera(id string) {
 // DiffAndSync diffs current streams against desired camera configs and reconciles them.
 // Adds new cameras, removes stale ones, skips unchanged.
 func (m *Manager) DiffAndSync(desired []config.CameraConfig) {
-	m.mu.RLock()
+	m.mu.Lock()
+	defer m.mu.Unlock()
+
 	currentIDs := make(map[string]bool, len(m.streams))
 	for id := range m.streams {
 		currentIDs[id] = true
 	}
-	m.mu.RUnlock()
 
-	desiredIDs := make(map[string]config.CameraConfig, len(desired))
+	desiredMap := make(map[string]config.CameraConfig, len(desired))
 	for _, cam := range desired {
-		desiredIDs[cam.ID] = cam
+		desiredMap[cam.ID] = cam
 	}
 
 	for id := range currentIDs {
-		if _, ok := desiredIDs[id]; !ok {
-			go m.RemoveCamera(id)
+		if _, ok := desiredMap[id]; !ok {
+			if stream, ok := m.streams[id]; ok {
+				stream.Stop()
+				delete(m.streams, id)
+				delete(m.statuses, id)
+				log.Printf("[manager] camera stream removed: %s", id)
+			}
 		}
 	}
 
-	for id, cfg := range desiredIDs {
-		m.mu.RLock()
+	for id, cfg := range desiredMap {
 		_, exists := m.streams[id]
-		m.mu.RUnlock()
-
 		if !exists && cfg.Enabled {
-			m.AddCamera(cfg)
+			stream := NewStream(cfg, m.cfg, m.rtspCfg, m.producer,
+				func(id string, s CameraStatus) { m.UpdateStatus(id, s) },
+				m.encKey,
+			)
+			m.streams[cfg.ID] = stream
+			m.statuses[cfg.ID] = CameraStatus{
+				CameraID:  cfg.ID,
+				Building:  cfg.Building,
+				Connected: false,
+			}
+			go stream.Run(m.ctx())
+			log.Printf("[manager] camera stream added: %s (%s栋)", cfg.ID, cfg.Building)
 		} else if exists && !cfg.Enabled {
-			go m.RemoveCamera(id)
+			if stream, ok := m.streams[id]; ok {
+				stream.Stop()
+				delete(m.streams, id)
+				delete(m.statuses, id)
+				log.Printf("[manager] camera stream removed: %s", id)
+			}
 		}
 	}
+}
+
+func (m *Manager) ctx() context.Context {
+	if m.bgCtx != nil {
+		return m.bgCtx
+	}
+	return context.Background()
 }

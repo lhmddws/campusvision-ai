@@ -1,5 +1,16 @@
 # CampusVision AI
 
+<p align="center">
+  <img src="https://img.shields.io/badge/Go-1.26-00ADD8?logo=go" alt="Go">
+  <img src="https://img.shields.io/badge/Python-3.11-3776AB?logo=python" alt="Python">
+  <img src="https://img.shields.io/badge/Vue-3.2-4FC08D?logo=vue.js" alt="Vue">
+  <img src="https://img.shields.io/badge/TypeScript-5-3176C8?logo=typescript" alt="TypeScript">
+  <img src="https://img.shields.io/badge/Kafka-7.6-231F20?logo=apache-kafka" alt="Kafka">
+  <img src="https://img.shields.io/badge/license-MIT-green" alt="License">
+</p>
+
+[![CI](https://github.com/lhmddws/campusvision-ai/actions/workflows/ci.yml/badge.svg)](https://github.com/lhmddws/campusvision-ai/actions/workflows/ci.yml)
+
 AI-powered dormitory surveillance system with multi-camera RTSP streaming, real-time face recognition, automated attendance & alerting, and a Vue 3 SPA dashboard.
 
 ```
@@ -15,24 +26,24 @@ RTSP cameras (A/B/C/D)
 
 **Perception pipeline:**
 
-| Layer | Language | Service | Role |
-|---|---|---|---|
-| Stream ingest | Go | `stream-gateway` | RTSP capture → Kafka frame producer (hash-partitioned by building) |
-| Recognition | Python | `face-recognition` | Face detection/recognition → event producer |
-| Business API | Go | `dormitory-service-go` | Event processing, alerts, attendance, reports, HTTP API |
-| Frontend | Vue 3 | `frontend/` | SPA dashboard built on RuoYi-Vue3-ts (Element Plus + Vite) |
+| Layer         | Language | Service                | Role                                                               |
+| ------------- | -------- | ---------------------- | ------------------------------------------------------------------ |
+| Stream ingest | Go       | `stream-gateway`       | RTSP capture → Kafka frame producer (hash-partitioned by building) |
+| Recognition   | Python   | `face-recognition`     | Face detection/recognition → event producer                        |
+| Business API  | Go       | `dormitory-service-go` | Event processing, alerts, attendance, reports, HTTP API            |
+| Frontend      | Vue 3    | `frontend/`            | SPA dashboard built on RuoYi-Vue3-ts (Element Plus + Vite)         |
 
 **Infrastructure** (Docker Compose): Zookeeper, Kafka (3 topics), Redis, MariaDB, MinIO
 
 ## Modules
 
-| Directory | Language | Entrypoint | Port |
-|---|---|---|---|
-| `stream-gateway/` | Go 1.26 | `go run cmd/main.go --config config.yaml` | 8080 (health), 8081 (mgmt) |
-| `face-recognition/` | Python 3.11 | `python -m app.main --config config.yaml` | — |
-| `dormitory-service-go/` | Go 1.26 | `CONFIG_PATH=config.yaml go run ./cmd/dormitory-service/` | 8083 |
-| `frontend/` | Vue 3.2 + TS | `pnpm dev` | 80 (dev) |
-| `infra/` | — | `docker compose up -d` | — |
+| Directory               | Language     | Entrypoint                                                | Port                       |
+| ----------------------- | ------------ | --------------------------------------------------------- | -------------------------- |
+| `stream-gateway/`       | Go 1.26      | `go run cmd/main.go --config config.yaml`                 | 8080 (health), 8081 (mgmt) |
+| `face-recognition/`     | Python 3.11  | `python -m app.main --config config.yaml`                 | —                          |
+| `dormitory-service-go/` | Go 1.26      | `CONFIG_PATH=config.yaml go run ./cmd/dormitory-service/` | 8083                       |
+| `frontend/`             | Vue 3.2 + TS | `pnpm dev`                                                | 80 (dev)                   |
+| `infra/`                | —            | `docker compose up -d`                                    | —                          |
 
 ## Quick Start
 
@@ -84,11 +95,11 @@ docker compose build \
 
 ## Kafka Topics
 
-| Topic | Partitions | Retention | Producer → Consumer |
-|---|---|---|---|
-| `t_dorm_frame` | 4 | 12h | stream-gateway → face-recognition |
-| `t_dorm_event` | 2 | 7d | face-recognition → dormitory-service-go |
-| `t_dorm_alert` | 1 | 7d | dormitory-service-go → (future) |
+| Topic          | Partitions | Retention | Producer → Consumer                     |
+| -------------- | ---------- | --------- | --------------------------------------- |
+| `t_dorm_frame` | 4          | 12h       | stream-gateway → face-recognition       |
+| `t_dorm_event` | 2          | 7d        | face-recognition → dormitory-service-go |
+| `t_dorm_alert` | 1          | 7d        | dormitory-service-go → (future)         |
 
 - `t_dorm_frame` uses **hash partitioner** (`kafka.Hash{}`) keyed by `building`.
 - Compression: **Snappy** for `t_dorm_frame`.
@@ -96,28 +107,39 @@ docker compose build \
 
 ## Docker Compose Services
 
-| Service | Depends on | Notes |
-|---|---|---|
-| `zookeeper` | — | `user: root` (permission fix) |
-| `kafka` | zookeeper | `user: root`; topics auto-created by `kafka-init` |
-| `kafka-init` | kafka (healthy) | One-shot: creates `t_dorm_frame`(4p), `t_dorm_event`(2p), `t_dorm_alert`(1p) |
-| `redis` | — | db=0, shared by face-recognition and dormitory-service-go |
-| `mariadb` | — | Initialized with `infra/mariadb/init.sql` (11 tables) |
-| `minio` | — | Snapshot storage (currently unused — snapshot_path is always `""`) |
-| `stream-gateway` | kafka, kafka-init, mariadb | Docker override via `config.docker.yaml` |
-| `face-recognition` | kafka, redis, stream-gateway | ONNX models: preload, build-time, or runtime download |
-| `dormitory-service-go` | kafka, mariadb, redis | Go HTTP API on port 8083 |
+| Service                | Depends on                   | Notes                                                                        |
+| ---------------------- | ---------------------------- | ---------------------------------------------------------------------------- |
+| `zookeeper`            | —                            | `user: root` (permission fix)                                                |
+| `kafka`                | zookeeper                    | `user: root`; topics auto-created by `kafka-init`                            |
+| `kafka-init`           | kafka (healthy)              | One-shot: creates `t_dorm_frame`(4p), `t_dorm_event`(2p), `t_dorm_alert`(1p) |
+| `redis`                | —                            | db=0, shared by face-recognition and dormitory-service-go                    |
+| `mariadb`              | —                            | Initialized with `infra/mariadb/init.sql` (11 tables)                        |
+| `minio`                | —                            | Snapshot storage (currently unused — snapshot_path is always `""`)           |
+| `stream-gateway`       | kafka, kafka-init, mariadb   | Docker override via `config.docker.yaml`                                     |
+| `face-recognition`     | kafka, redis, stream-gateway | ONNX models: preload, build-time, or runtime download                        |
+| `dormitory-service-go` | kafka, mariadb, redis        | Go HTTP API on port 8083                                                     |
 
 ## Key Features
 
 - **Multi-camera RTSP ingest** with configurable FPS (day/night 5/1) and motion-based dynamic extraction
 - **Face detection** (RetinaFace ONNX) with Haar Cascade fallback (OpenCV)
 - **Face recognition** (ArcFace ONNX) with Redis-based identity cache
-- **Behavior analysis** pipeline (tracking, direction detection, quality filtering) — *disabled by default*
+- **Behavior analysis** pipeline (tracking, direction detection, quality filtering) — _disabled by default_
 - **Automated attendance** tracking with nightly reports
 - **Stranger detection** and real-time alerting
 - **Event deduplication** via Redis (3600s TTL)
 - **Vue 3 SPA dashboard** — monitoring, camera management, events, alerts, attendance, face records, system config
+
+## Repository
+
+| Resource        | Link                                                       |
+| --------------- | ---------------------------------------------------------- |
+| Issue Tracker   | [GitHub Issues](https://github.com/lhmddws/campusvision-ai/issues) |
+| Pull Requests   | [GitHub Pulls](https://github.com/lhmddws/campusvision-ai/pulls)   |
+| API Docs        | [`doc/api/`](doc/api/)                                           |
+| Design Docs     | [`doc/design/`](doc/design/)                              |
+| PRDs            | [`doc/prd/`](doc/prd/)                                     |
+| License         | [MIT](LICENSE)                                             |
 
 ## Development
 
@@ -138,9 +160,12 @@ cd frontend && npx vitest run
 
 ### Known Gotchas
 
-- **DB schema fragmentation**: `infra/mariadb/init.sql` and Go entities can diverge — always verify table names before writing sqlx queries.
-- **AES key mismatch**: Dev keys in `stream-gateway/internal/crypto/` differ from `dormitory-service-go/internal/util/crypto.go` — cross-module encrypt/decrypt will fail in dev.
-- **Haar Cascade path**: Hardcoded macOS path at `face-recognition/app/detector/detector.py:255-256` — fails on non-macOS or different OpenCV versions.
-- **Config loading**: Each module uses a different mechanism (CLI `--config`, `CONFIG_PATH` env var, argparse). See AGENTS.md for details.
 - **ONNX models**: Model files are gitignored (`*.onnx`). Download via `python -m app.download_models` or Docker build.
-- **The `POST /api/face/embed` endpoint is a stub** (returns null embedding).
+- **Haar Cascade path**: Fixed in f6a24e0 — uses `cv2.data.haarcascades` (portable) in detector.py.
+
+## Related
+
+- [stream-gateway](stream-gateway/) — RTSP stream ingestion
+- [face-recognition](face-recognition/) — Face detection & recognition
+- [dormitory-service-go](dormitory-service-go/) — Business API
+- [frontend](frontend/) — Vue 3 SPA dashboard

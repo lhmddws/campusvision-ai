@@ -26,13 +26,14 @@ class NightModeEnhancer:
     # Public API
     # ------------------------------------------------------------------
 
-    def is_night(self) -> bool:
+    def is_night(self, tz=None) -> bool:
         """Return ``True`` if the current hour is in the night window.
 
         The night window spans ``[start_hour, end_hour)`` with wrap-around:
         e.g. start_hour=22, end_hour=6 means 22:00 – 05:59.
         """
-        h = datetime.now().hour
+        now = datetime.now(tz) if tz is not None else datetime.now()
+        h = now.hour
         return h >= self.config.start_hour or h < self.config.end_hour
 
     def enhance(self, frame: np.ndarray) -> np.ndarray:

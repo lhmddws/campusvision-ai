@@ -68,7 +68,7 @@ class TestEventTypeAssertion:
                     "timestamp": int(time.time() * 1000),
                 }
             )
-            # Should not raise AssertionError
+            # Should not raise ValueError
 
     def test_exactly_8_chars_passes(self, config):
         """Edge case: exactly 8 characters passes."""
@@ -85,11 +85,11 @@ class TestEventTypeAssertion:
         # Should not raise
 
     def test_long_event_type_raises(self, config):
-        """Event_type > 8 chars (and not in mapping) raises AssertionError."""
+        """Event_type > 8 chars (and not in mapping) raises ValueError."""
         config.behavior.event.event_type_mapping = {}
         with patch("kafka.KafkaProducer"):
             publisher = BehaviorEventPublisher(config)
-            with pytest.raises(AssertionError, match="exceeds 8 char limit"):
+            with pytest.raises(ValueError, match="exceeds 8 char limit"):
                 publisher.publish_behavior_event(
                     {
                         "camera_id": "cam_01",

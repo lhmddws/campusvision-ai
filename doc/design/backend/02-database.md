@@ -2,7 +2,7 @@
 
 > **文档归属**: 后端开发 → 数据库设计  
 > **对应 PRD**: PRD-004 (主进程对接), PRD-005 (摄像头功能实现)  
-> **版本**: v1.0 · **更新**: 2026-05-15  
+> **版本**: v1.0 · **更新**: 2026-05-15
 
 ---
 
@@ -12,7 +12,7 @@
 2. [表定义总览](#2-表定义总览)
 3. [DDL 完整定义](#3-ddl-完整定义)
 4. [索引设计](#4-索引设计)
-5. [Flyway 迁移](#5-flyway-迁移)
+5. [手动 SQL 迁移](#5-手动-sql-迁移)
 6. [Redis Key 设计](#6-redis-key-设计)
 7. [数据量估算](#7-数据量估算)
 8. [存储与清理策略](#8-存储与清理策略)
@@ -104,19 +104,19 @@
 
 ## 2. 表定义总览
 
-| # | 表名 | 说明 | 归属模块 | 数据量 |
-|---|------|------|---------|--------|
-| 1 | `dorm_student_assignment` | 学生宿舍分配（学管同步） | 主进程对接 | ~500 行 |
-| 2 | `dorm_student_status` | 人员实时在校状态 | 主进程对接 | ~500 行 |
-| 3 | `dorm_entry_exit_event` | 进出事件明细 | 主进程对接 | ~10,000 行/日 |
-| 4 | `dorm_nightly_report` | 每晚查宿统计汇总 | 主进程对接 | 4 行/日 |
-| 5 | `dorm_nightly_detail` | 查宿每人明细 | 主进程对接 | ~500 行/日 |
-| 6 | `dorm_stranger_record` | 陌生人记录 | 主进程对接 | ~50 行/日 |
-| 7 | `dorm_alert_record` | 告警记录 | 主进程对接 | ~100 行/日 |
-| 8 | `dorm_config` | 系统动态配置 | 主进程对接 | ~30 行 |
-| 9 | `dorm_sync_log` | 学管同步日志 | 主进程对接 | ~20 行/日 |
-| 10 | `dorm_camera` | 摄像头设备信息 | 摄像头功能实现 | 4 行 |
-| 11 | `dorm_camera_log` | 摄像头状态变更日志 | 摄像头功能实现 | ~50 行/日 |
+| #   | 表名                      | 说明                     | 归属模块       | 数据量        |
+| --- | ------------------------- | ------------------------ | -------------- | ------------- |
+| 1   | `dorm_student_assignment` | 学生宿舍分配（学管同步） | 主进程对接     | ~500 行       |
+| 2   | `dorm_student_status`     | 人员实时在校状态         | 主进程对接     | ~500 行       |
+| 3   | `dorm_entry_exit_event`   | 进出事件明细             | 主进程对接     | ~10,000 行/日 |
+| 4   | `dorm_nightly_report`     | 每晚查宿统计汇总         | 主进程对接     | 4 行/日       |
+| 5   | `dorm_nightly_detail`     | 查宿每人明细             | 主进程对接     | ~500 行/日    |
+| 6   | `dorm_stranger_record`    | 陌生人记录               | 主进程对接     | ~50 行/日     |
+| 7   | `dorm_alert_record`       | 告警记录                 | 主进程对接     | ~100 行/日    |
+| 8   | `dorm_config`             | 系统动态配置             | 主进程对接     | ~30 行        |
+| 9   | `dorm_sync_log`           | 学管同步日志             | 主进程对接     | ~20 行/日     |
+| 10  | `dorm_camera`             | 摄像头设备信息           | 摄像头功能实现 | 4 行          |
+| 11  | `dorm_camera_log`         | 摄像头状态变更日志       | 摄像头功能实现 | ~50 行/日     |
 
 ---
 
@@ -399,18 +399,18 @@ CREATE TABLE dorm_camera_log (
 
 ### 4.1 索引矩阵
 
-| 表 | 索引 | 列 | 理由 |
-|----|------|----|------|
-| `dorm_entry_exit_event` | `idx_building_ts` | (building, timestamp) | 按楼栋查时间段事件 |
-| `dorm_entry_exit_event` | `idx_student_id` | (student_id) | 查单个学生进出记录 |
-| `dorm_entry_exit_event` | `idx_camera_ts` | (camera_id, timestamp) | 按摄像头查抓拍 |
-| `dorm_entry_exit_event` | `idx_stranger` | (is_stranger) | 陌生人筛选 |
-| `dorm_nightly_report` | `uk_date_building` | (report_date, building) | 唯一约束+快速查询 |
-| `dorm_student_assignment` | `idx_building_room` | (building, room) | 按楼栋/房间查住宿分配 |
-| `dorm_student_assignment` | `idx_active` | (active) | 只在住宿的学生 |
-| `dorm_camera` | `idx_building` | (building) | 按楼栋查摄像头 |
-| `dorm_camera_log` | `idx_camera_ts` | (camera_id, created_at) | 摄像头状态变化历史 |
-| `dorm_config` | `idx_group` | (group_name) | 按分组查询配置 |
+| 表                        | 索引                | 列                      | 理由                  |
+| ------------------------- | ------------------- | ----------------------- | --------------------- |
+| `dorm_entry_exit_event`   | `idx_building_ts`   | (building, timestamp)   | 按楼栋查时间段事件    |
+| `dorm_entry_exit_event`   | `idx_student_id`    | (student_id)            | 查单个学生进出记录    |
+| `dorm_entry_exit_event`   | `idx_camera_ts`     | (camera_id, timestamp)  | 按摄像头查抓拍        |
+| `dorm_entry_exit_event`   | `idx_stranger`      | (is_stranger)           | 陌生人筛选            |
+| `dorm_nightly_report`     | `uk_date_building`  | (report_date, building) | 唯一约束+快速查询     |
+| `dorm_student_assignment` | `idx_building_room` | (building, room)        | 按楼栋/房间查住宿分配 |
+| `dorm_student_assignment` | `idx_active`        | (active)                | 只在住宿的学生        |
+| `dorm_camera`             | `idx_building`      | (building)              | 按楼栋查摄像头        |
+| `dorm_camera_log`         | `idx_camera_ts`     | (camera_id, created_at) | 摄像头状态变化历史    |
+| `dorm_config`             | `idx_group`         | (group_name)            | 按分组查询配置        |
 
 ### 4.2 索引定义汇总
 
@@ -441,27 +441,35 @@ ALTER TABLE dorm_camera_log ADD INDEX idx_camera_ts (camera_id, created_at);
 
 ---
 
-## 5. Flyway 迁移
+## 5. 手动 SQL 迁移
 
 ### 5.1 迁移脚本命名规范
 
+本项目不使用 Flyway 或 golang-migrate，采用手动 SQL 迁移方式。迁移脚本存放在 `infra/mariadb/migrations/` 目录下，使用数字序号命名。
+
 ```
-src/main/resources/db/migration/
-├── V1__init_schema.sql           # 初始建表
-├── V2__seed_config.sql           # 插入默认配置
-├── V3__add_camera_tables.sql     # 摄像头相关表
-└── V4__add_indexes.sql           # 性能优化索引
+infra/mariadb/migrations/
+├── 001_init_schema.sql           # 初始建表
+├── 002_seed_config.sql           # 插入默认配置
+├── 003_add_camera_tables.sql     # 摄像头相关表
+└── 004_add_indexes.sql           # 性能优化索引
 ```
 
-### 5.2 V1__init_schema.sql 概要
+### 5.2 迁移执行方式
+
+```bash
+# 手动执行迁移脚本
+docker compose exec mariadb mysql -u root -proot_dev dormitory < infra/mariadb/migrations/001_init_schema.sql
+
+# 或在宿主机执行
+mysql -h 127.0.0.1 -P 3306 -u root -proot_dev dormitory < infra/mariadb/migrations/001_init_schema.sql
+```
+
+### 5.3 001_init_schema.sql 概要
 
 ```sql
--- V1: 初始化核心业务表
+-- 001: 初始化核心业务表
 -- 按顺序执行: assignment → status → event → report → detail → stranger → alert → config → sync_log
-
--- 创建数据库
--- CREATE DATABASE IF NOT EXISTS dormitory DEFAULT CHARSET utf8mb4;
--- USE dormitory;
 
 -- 1. 学生宿舍分配表
 CREATE TABLE dorm_student_assignment ( ... );
@@ -483,10 +491,10 @@ CREATE TABLE dorm_config ( ... );
 CREATE TABLE dorm_sync_log ( ... );
 ```
 
-### 5.3 V2__seed_config.sql
+### 5.4 002_seed_config.sql
 
 ```sql
--- V2: 插入默认配置
+-- 002: 插入默认配置
 INSERT INTO dorm_config (config_key, config_value, config_type, description, default_value, group_name) VALUES
 
 -- 查宿规则
@@ -533,32 +541,49 @@ INSERT INTO dorm_config (config_key, config_value, config_type, description, def
 
 ### 6.1 Key 完整列表
 
-| Key 模式 | 类型 | 用途 | TTL |
-|----------|------|------|-----|
-| `dorm:student:{studentId}:status` | Hash | 实时在校状态 | 次日06:00 |
-| `dorm:building:{building}:students` | Set | 楼栋内所有学生ID | 永久（随同步更新） |
-| `dorm:building:{building}:status` | Hash | 楼栋聚合状态（总人数/在/离） | 5min |
-| `dorm:event:processed:{eventId}` | String | 事件幂等去重 | 1h |
-| `dorm:config` | Hash | 配置缓存 | 配置变更时刷新 |
-| `dorm:report:today:{building}` | String | 今日查宿缓存 | 次日06:00 |
-| `dorm:alert:cooldown:{type}` | String | 告警冷却 | 300s |
+| Key 模式                            | 类型   | 用途                         | TTL                |
+| ----------------------------------- | ------ | ---------------------------- | ------------------ |
+| `dorm:student:{studentId}:status`   | Hash   | 实时在校状态                 | 次日06:00          |
+| `dorm:building:{building}:students` | Set    | 楼栋内所有学生ID             | 永久（随同步更新） |
+| `dorm:building:{building}:status`   | Hash   | 楼栋聚合状态（总人数/在/离） | 5min               |
+| `dorm:event:processed:{eventId}`    | String | 事件幂等去重                 | 1h                 |
+| `dorm:config`                       | Hash   | 配置缓存                     | 配置变更时刷新     |
+| `dorm:report:today:{building}`      | String | 今日查宿缓存                 | 次日06:00          |
+| `dorm:alert:cooldown:{type}`        | String | 告警冷却                     | 300s               |
 
 ### 6.2 Redis 操作示例
 
-```java
+```go
+import (
+	"context"
+	"fmt"
+	"time"
+
+	redigo "github.com/redis/go-redis/v9"
+)
+
+var rdb = redigo.NewClient(&redigo.Options{
+	Addr: "127.0.0.1:6379",
+	DB:   0,
+})
+
 // 查询学生状态
-String key = RedisKeys.studentStatus(studentId);
-Map<Object, Object> status = redisTemplate.opsForHash().entries(key);
+func GetStudentStatus(ctx context.Context, studentID string) (map[string]string, error) {
+	key := fmt.Sprintf("dorm:student:%s:status", studentID)
+	return rdb.HGetAll(ctx, key).Result()
+}
 
 // 批量查询楼栋学生
-String setKey = RedisKeys.buildingStudents(building);
-Set<String> studentIds = redisTemplate.opsForSet().members(setKey);
+func GetBuildingStudents(ctx context.Context, building string) ([]string, error) {
+	key := fmt.Sprintf("dorm:building:%s:students", building)
+	return rdb.SMembers(ctx, key).Result()
+}
 
 // 幂等检查
-String dedupKey = RedisKeys.eventProcessed(eventId);
-if (Boolean.TRUE.equals(redisTemplate.hasKey(dedupKey))) {
-    log.debug("Deduplicated event: {}", eventId);
-    return;
+func CheckDedup(ctx context.Context, eventID string) (bool, error) {
+	key := fmt.Sprintf("dorm:event:processed:%s", eventID)
+	exists, err := rdb.Exists(ctx, key).Result()
+	return exists > 0, err
 }
 ```
 
@@ -568,25 +593,25 @@ if (Boolean.TRUE.equals(redisTemplate.hasKey(dedupKey))) {
 
 ### 7.1 业务数据量
 
-| 表 | 每行大小 | 日增量 | 月增量 | 年增量 |
-|----|---------|--------|--------|--------|
-| `dorm_entry_exit_event` | ~300 bytes | ~3 MB | ~90 MB | ~1.1 GB |
-| `dorm_nightly_report` | ~200 bytes | ~800 B | ~24 KB | ~288 KB |
-| `dorm_nightly_detail` | ~250 bytes | ~125 KB | ~3.75 MB | ~45 MB |
-| `dorm_stranger_record` | ~300 bytes | ~15 KB | ~450 KB | ~5.4 MB |
-| `dorm_alert_record` | ~400 bytes | ~40 KB | ~1.2 MB | ~14.4 MB |
-| `dorm_camera_log` | ~200 bytes | ~10 KB | ~300 KB | ~3.6 MB |
-| **合计** | | **~3.2 MB/日** | **~96 MB/月** | **~1.2 GB/年** |
+| 表                      | 每行大小   | 日增量         | 月增量        | 年增量         |
+| ----------------------- | ---------- | -------------- | ------------- | -------------- |
+| `dorm_entry_exit_event` | ~300 bytes | ~3 MB          | ~90 MB        | ~1.1 GB        |
+| `dorm_nightly_report`   | ~200 bytes | ~800 B         | ~24 KB        | ~288 KB        |
+| `dorm_nightly_detail`   | ~250 bytes | ~125 KB        | ~3.75 MB      | ~45 MB         |
+| `dorm_stranger_record`  | ~300 bytes | ~15 KB         | ~450 KB       | ~5.4 MB        |
+| `dorm_alert_record`     | ~400 bytes | ~40 KB         | ~1.2 MB       | ~14.4 MB       |
+| `dorm_camera_log`       | ~200 bytes | ~10 KB         | ~300 KB       | ~3.6 MB        |
+| **合计**                |            | **~3.2 MB/日** | **~96 MB/月** | **~1.2 GB/年** |
 
 ### 7.2 Redis 内存估算
 
-| Key 类型 | 数量 | 单条大小 | 总内存 |
-|----------|------|---------|--------|
-| 学生状态 | 500 | ~200 bytes | ~100 KB |
-| 楼栋状态 | 4 | ~100 bytes | ~400 B |
-| 事件去重 | 主动过期 | ~50 bytes | 可控 |
-| 配置缓存 | 30 | ~200 bytes | ~6 KB |
-| **合计** | | | **~200 KB 常驻** |
+| Key 类型 | 数量     | 单条大小   | 总内存           |
+| -------- | -------- | ---------- | ---------------- |
+| 学生状态 | 500      | ~200 bytes | ~100 KB          |
+| 楼栋状态 | 4        | ~100 bytes | ~400 B           |
+| 事件去重 | 主动过期 | ~50 bytes  | 可控             |
+| 配置缓存 | 30       | ~200 bytes | ~6 KB            |
+| **合计** |          |            | **~200 KB 常驻** |
 
 ---
 
@@ -604,55 +629,81 @@ if (Boolean.TRUE.equals(redisTemplate.hasKey(dedupKey))) {
 
 ### 8.2 清理策略
 
-| 数据 | 保留策略 | 清理方式 |
-|------|---------|---------|
-| 进出事件 (entry_exit) | 保留 90 天 | 定时任务 DELETE > 90d 或 DROP 历史分区 |
-| 陌生人记录 | 保留 30 天 | 定时任务 DELETE > 30d |
-| 告警记录 | 保留 90 天 | 定时任务 DELETE > 90d |
-| 摄像头日志 | 保留 30 天 | 定时任务 DELETE > 30d |
-| 查宿报表 | **永久保留** | 不做清理 |
-| 同步日志 | 保留 30 天 | 定时任务 DELETE > 30d |
-| Redis 状态缓存 | TTL 次日 06:00 | Redis 自动过期 |
-| Redis 去重缓存 | TTL 1 小时 | Redis 自动过期 |
+| 数据                  | 保留策略       | 清理方式                               |
+| --------------------- | -------------- | -------------------------------------- |
+| 进出事件 (entry_exit) | 保留 90 天     | 定时任务 DELETE > 90d 或 DROP 历史分区 |
+| 陌生人记录            | 保留 30 天     | 定时任务 DELETE > 30d                  |
+| 告警记录              | 保留 90 天     | 定时任务 DELETE > 90d                  |
+| 摄像头日志            | 保留 30 天     | 定时任务 DELETE > 30d                  |
+| 查宿报表              | **永久保留**   | 不做清理                               |
+| 同步日志              | 保留 30 天     | 定时任务 DELETE > 30d                  |
+| Redis 状态缓存        | TTL 次日 06:00 | Redis 自动过期                         |
+| Redis 去重缓存        | TTL 1 小时     | Redis 自动过期                         |
 
 ### 8.3 清理定时任务示例
 
-```java
-@Component
-@Slf4j
-public class DataCleanupTask {
+```go
+// internal/scheduler/data_cleanup_job.go
+package scheduler
 
-    @Autowired
-    private JdbcTemplate jdbcTemplate;
+import (
+	"context"
+	"fmt"
 
-    /**
-     * 每天凌晨 3:00 执行数据清理
-     */
-    @Scheduled(cron = "0 0 3 * * ?")
-    public void cleanupOldData() {
-        log.info("开始清理过期数据...");
+	"github.com/jmoiron/sqlx"
+	"go.uber.org/zap"
+)
 
-        // 删除 > 90 天的进出事件
-        int deletedEvents = jdbcTemplate.update(
-            "DELETE FROM dorm_entry_exit_event WHERE timestamp < DATE_SUB(NOW(), INTERVAL 90 DAY)");
-        log.info("清理事件: {} 条", deletedEvents);
+type DataCleanupJob struct {
+	logger *zap.Logger
+	db     *sqlx.DB
+}
 
-        // 删除 > 30 天的陌生人记录
-        int deletedStrangers = jdbcTemplate.update(
-            "DELETE FROM dorm_stranger_record WHERE detected_time < DATE_SUB(NOW(), INTERVAL 30 DAY)");
-        log.info("清理陌生人记录: {} 条", deletedStrangers);
+func NewDataCleanupJob(logger *zap.Logger, db *sqlx.DB) *DataCleanupJob {
+	return &DataCleanupJob{logger: logger, db: db}
+}
 
-        // 删除 > 90 天的告警记录
-        int deletedAlerts = jdbcTemplate.update(
-            "DELETE FROM dorm_alert_record WHERE occurred_at < DATE_SUB(NOW(), INTERVAL 90 DAY)");
-        log.info("清理告警记录: {} 条", deletedAlerts);
-    }
+// Run 每天凌晨 3:00 执行数据清理
+func (j *DataCleanupJob) Run() {
+	j.logger.Info("开始清理过期数据...")
+
+	ctx := context.Background()
+
+	// 删除 > 90 天的进出事件
+	result, err := j.db.ExecContext(ctx,
+		"DELETE FROM dorm_entry_exit_event WHERE timestamp < DATE_SUB(NOW(), INTERVAL 90 DAY)")
+	if err != nil {
+		j.logger.Error("清理事件失败", zap.Error(err))
+	} else {
+		affected, _ := result.RowsAffected()
+		j.logger.Info("清理事件", zap.Int64("count", affected))
+	}
+
+	// 删除 > 30 天的陌生人记录
+	result, err = j.db.ExecContext(ctx,
+		"DELETE FROM dorm_stranger_record WHERE detected_time < DATE_SUB(NOW(), INTERVAL 30 DAY)")
+	if err != nil {
+		j.logger.Error("清理陌生人记录失败", zap.Error(err))
+	} else {
+		affected, _ := result.RowsAffected()
+		j.logger.Info("清理陌生人记录", zap.Int64("count", affected))
+	}
+
+	// 删除 > 90 天的告警记录
+	result, err = j.db.ExecContext(ctx,
+		"DELETE FROM dorm_alert_record WHERE occurred_at < DATE_SUB(NOW(), INTERVAL 90 DAY)")
+	if err != nil {
+		j.logger.Error("清理告警记录失败", zap.Error(err))
+	} else {
+		affected, _ := result.RowsAffected()
+		j.logger.Info("清理告警记录", zap.Int64("count", affected))
+	}
 }
 ```
 
 ---
 
 > **本文件属于**: `doc/design/backend/02-database.md`  
-> **面向读者**: Java 后端开发（搭档）  
-> **迁移工具**: Flyway  
+> **面向读者**: Go 后端开发（搭档）  
+> **迁移工具**: 手动 SQL (`infra/mariadb/migrations/`)  
 > **数据库**: MariaDB 10.11+

@@ -8,6 +8,7 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/sims/campusvision/dormitory-service-go/internal/model/dto"
+	"github.com/sims/campusvision/dormitory-service-go/internal/model/entity"
 	"github.com/sims/campusvision/dormitory-service-go/internal/service"
 )
 
@@ -82,7 +83,11 @@ func (h *CameraHandler) GetCameras(c *gin.Context) {
 		return
 	}
 
-	Success(c, cameras)
+	c.JSON(http.StatusOK, APIResponseT[[]entity.DormCamera]{
+		Code:    http.StatusOK,
+		Message: "success",
+		Data:    cameras,
+	})
 }
 
 // GetCamera    GET /sims/dorm/cameras/:id

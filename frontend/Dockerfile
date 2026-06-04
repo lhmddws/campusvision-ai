@@ -1,9 +1,11 @@
 FROM node:20-alpine AS build
 WORKDIR /app
-COPY package.json package-lock.json* ./
-RUN npm ci --registry=https://registry.npmmirror.com --legacy-peer-deps
+ARG NPM_REGISTRY=https://registry.npmjs.org
+COPY package.json pnpm-lock.yaml* package-lock.json* ./
+RUN corepack enable && corepack prepare pnpm@latest --activate
+RUN pnpm install --registry=$NPM_REGISTRY
 COPY . .
-RUN npm run build:prod
+RUN pnpm build:prod
 
 FROM nginx:1.27-alpine
 COPY --from=build /app/dist /usr/share/nginx/html

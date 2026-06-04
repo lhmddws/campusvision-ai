@@ -1,0 +1,43 @@
+[build-system]
+requires = ["setuptools>=64", "wheel"]
+build-backend = "setuptools.backends._legacy:_Backend"
+
+[project]
+name = "campusvision-face-recognition"
+description = "Face detection, recognition, and behavior analysis service for CampusVision AI"
+readme = "README.md"
+requires-python = ">=3.11"
+license = {text = "MIT"}
+keywords = ["face-recognition", "surveillance", "computer-vision", "onnx"]
+authors = [
+    {name = "CampusVision AI"},
+]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3.11",
+    "Topic :: Scientific/Engineering :: Artificial Intelligence",
+    "Topic :: Multimedia :: Video",
+]
+dependencies = []  # Managed via requirements.txt, not pyproject.toml
+
+[project.urls]
+Homepage = "https://github.com/lhmddws/campusvision-ai"
+Repository = "https://github.com/lhmddws/campusvision-ai"
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["app", "app.*"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+python_files = ["test_*.py"]
+
+[tool.ruff]
+target-version = "py311"
+line-length = 120
+exclude = [".venv/", "tests/", "__pycache__/"]
+
+[tool.ruff.lint]
+select = ["F", "E", "W", "I", "N"]

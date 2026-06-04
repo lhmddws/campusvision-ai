@@ -45,7 +45,7 @@ const componentMap: Recordable<Component, ComponentName> = {
   RadioButton: ElRadioGroup,
   InputPassword: InputPassword,
   Editor: Editor,
-  TreeSelect: ElTreeSelect
+  TreeSelect: ElTreeSelect,
 };
 
 export { componentMap };

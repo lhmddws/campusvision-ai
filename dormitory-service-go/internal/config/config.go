@@ -15,6 +15,10 @@ type Config struct {
 	Redis    RedisConfig    `mapstructure:"redis"`
 	Kafka    KafkaConfig    `mapstructure:"kafka"`
 	JWT      JWTConfig      `mapstructure:"jwt"`
+	Auth     AuthConfig     `mapstructure:"auth"`
+	Face     FaceConfig     `mapstructure:"face"`
+	Camera   CameraConfig   `mapstructure:"camera"`
+	Gateway  GatewayConfig  `mapstructure:"gateway"`
 	Log      LogConfig      `mapstructure:"log"`
 }
 
@@ -54,6 +58,28 @@ type JWTConfig struct {
 	ExpirationHours  int    `mapstructure:"expiration_hours"`
 }
 
+// AuthConfig holds dev-mode auth settings.
+type AuthConfig struct {
+	AdminUsername string `mapstructure:"admin_username"`
+	AdminPassword string `mapstructure:"admin_password"`
+}
+
+// FaceConfig holds face recognition settings.
+type FaceConfig struct {
+	MatchThreshold float64 `mapstructure:"match_threshold"`
+	MatchKey       string  `mapstructure:"match_key"`
+}
+
+// CameraConfig holds camera management settings.
+type CameraConfig struct {
+	MaxCameras int `mapstructure:"max_cameras"`
+}
+
+// GatewayConfig holds stream-gateway connection settings.
+type GatewayConfig struct {
+	URL string `mapstructure:"url"`
+}
+
 // LogConfig holds logging settings.
 type LogConfig struct {
 	Level string `mapstructure:"level"`
@@ -85,6 +111,12 @@ func Load(configPath string) (*Config, error) {
 	v.SetDefault("kafka.max_poll_records", 500)
 	v.SetDefault("jwt.secret", "dev-secret-change-in-production")
 	v.SetDefault("jwt.expiration_hours", 24)
+	v.SetDefault("auth.admin_username", "admin")
+	v.SetDefault("auth.admin_password", "admin123")
+	v.SetDefault("face.match_threshold", 0.65)
+	v.SetDefault("face.match_key", "")
+	v.SetDefault("camera.max_cameras", 50)
+	v.SetDefault("gateway.url", "http://localhost:8080")
 	v.SetDefault("log.level", "info")
 
 	// --- Config file ---
@@ -147,6 +179,17 @@ func Load(configPath string) (*Config, error) {
 	// In production, this should match the main backend's JWT signing key.
 	if secret, ok := os.LookupEnv("JWT_SECRET"); ok {
 		v.Set("jwt.secret", secret)
+	}
+
+	if username, ok := os.LookupEnv("ADMIN_USERNAME"); ok {
+		v.Set("auth.admin_username", username)
+	}
+	if password, ok := os.LookupEnv("ADMIN_PASSWORD"); ok {
+		v.Set("auth.admin_password", password)
+	}
+
+	if key, ok := os.LookupEnv("FACE_MATCH_KEY"); ok {
+		v.Set("face.match_key", key)
 	}
 
 	var cfg Config

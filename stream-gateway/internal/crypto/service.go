@@ -34,10 +34,8 @@ type Service struct {
 }
 
 // devKey is the fallback key used when CAMERA_ENCRYPTION_KEY is not set.
-// WARNING: This is for development only — all modules must share the SAME
-// production key. dormitory-service-go/internal/util/crypto.go has a different
-// dev key ("0123456789abcdef0123456789abcdef"), so passwords encrypted by one
-// module cannot be decrypted by the other in dev mode.
+// WARNING: This is for development only. Both modules now share the same
+// dev key (01234567890123456789012345678901) and CAMERA_ENCRYPTION_KEY override.
 var devKey = []byte("01234567890123456789012345678901")
 
 // NewService creates a Service by reading CAMERA_ENCRYPTION_KEY from environment.
@@ -94,15 +92,15 @@ func (s *Service) Encrypt(plaintext []byte) (ciphertextBase64, nonceBase64 strin
 	// ciphertext = gcm_ciphertext || gcm_tag (16 bytes)
 	ciphertext := gcm.Seal(nil, nonce, plaintext, nil)
 
-	return base64.RawStdEncoding.EncodeToString(ciphertext),
-		base64.RawStdEncoding.EncodeToString(nonce),
+	return base64.StdEncoding.EncodeToString(ciphertext),
+		base64.StdEncoding.EncodeToString(nonce),
 		nil
 }
 
 // Decrypt decrypts ciphertext using AES-256-GCM.
 func (s *Service) Decrypt(ciphertextBase64, nonceBase64 string) ([]byte, error) {
 	s.warnIfDevKey()
-	nonce, err := base64.RawStdEncoding.DecodeString(nonceBase64)
+	nonce, err := decodeBase64(nonceBase64)
 	if err != nil {
 		return nil, fmt.Errorf("%w: invalid nonce: %v", ErrInvalidBase64, err)
 	}
@@ -111,7 +109,7 @@ func (s *Service) Decrypt(ciphertextBase64, nonceBase64 string) ([]byte, error) 
 		return nil, ErrInvalidNonceSize
 	}
 
-	ciphertext, err := base64.RawStdEncoding.DecodeString(ciphertextBase64)
+	ciphertext, err := decodeBase64(ciphertextBase64)
 	if err != nil {
 		return nil, fmt.Errorf("%w: invalid ciphertext: %v", ErrInvalidBase64, err)
 	}
@@ -146,4 +144,13 @@ func (s *Service) DecryptPassword(encrypted, nonce string) (string, error) {
 		return "", err
 	}
 	return string(plaintext), nil
+}
+
+// decodeBase64 decodes a base64 string with backward compatibility.
+// Prefers StdEncoding (current), falls back to RawStdEncoding (legacy).
+func decodeBase64(s string) ([]byte, error) {
+	if b, err := base64.StdEncoding.DecodeString(s); err == nil {
+		return b, nil
+	}
+	return base64.RawStdEncoding.DecodeString(s)
 }

@@ -9,7 +9,7 @@ export const useRenderSelect = (slots: Slots) => {
   const renderSelectOptions = (item: FormSchema) => {
     // 如果有别名，就取别名
     const labelAlias = item?.componentProps?.optionsAlias?.labelField;
-    return item?.componentProps?.options?.map((option) => {
+    return item?.componentProps?.options?.map(option => {
       if (option?.options?.length) {
         return (
           <ElOptionGroup label={option[labelAlias || 'label']}>
@@ -24,7 +24,6 @@ export const useRenderSelect = (slots: Slots) => {
         return renderSelectOptionItem(item, option);
       }
     });
-
   };
 
   // 渲染 select option item

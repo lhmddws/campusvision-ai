@@ -2,7 +2,7 @@
 
 > **文档归属**: 系统集成 → 主进程对接  
 > **对应 PRD**: PRD-004 (主进程对接)  
-> **版本**: v1.0 · **更新**: 2026-05-15  
+> **版本**: v1.0 · **更新**: 2026-05-15
 
 ---
 
@@ -29,12 +29,12 @@
 
 ### 1.2 核心原则
 
-| 原则 | 说明 |
-|------|------|
-| **不改业务代码** | Service / Mapper / 实体类 0 改动 |
-| **路径兼容** | API 路径从 `/api/dormitory/*` 变为 `/api/sims/dormitory/*`，旧路径保留过渡期内可用 |
-| **可回退** | 独立 JAR 模式保留，主进程出问题时能切回独立部署 |
-| **逐步迁移** | 不是大爆炸迁移，分 3 步走 |
+| 原则             | 说明                                                                               |
+| ---------------- | ---------------------------------------------------------------------------------- |
+| **不改业务代码** | Service / Mapper / 实体类 0 改动                                                   |
+| **路径兼容**     | API 路径从 `/api/dormitory/*` 变为 `/api/sims/dormitory/*`，旧路径保留过渡期内可用 |
+| **可回退**       | 独立 JAR 模式保留，主进程出问题时能切回独立部署                                    |
+| **逐步迁移**     | 不是大爆炸迁移，分 3 步走                                                          |
 
 ---
 
@@ -156,18 +156,18 @@ sims-main-process/                           ← 学管主项目
 
 ### 4.3 提取的模块包含
 
-| 包路径 | 是否改动 | 说明 |
-|--------|---------|------|
-| `service/` | ✅ 0 改动 | 直接复制 |
-| `repository/` | ✅ 0 改动 | 直接复制 |
-| `model/entity/` | ✅ 0 改动 | 直接复制 |
-| `model/enums/` | ✅ 0 改动 | 直接复制 |
-| `consumer/` | ✅ 0 改动 | Kafka 消费者 |
-| `scheduler/` | ✅ 0 改动 | 定时任务 |
-| `common/response/` | ⚠️ 移除 | 改用 sims-common 的 ApiResponse |
-| `common/exception/` | ⚠️ 移除 | 改用 sims-common 的 BusinessException |
-| `config/` | ⚠️ 移除 | 配置移至主进程 |
-| `controller/` | ⚠️ 重建 | 在主进程中新建，路径改为 `/api/sims/dormitory/*` |
+| 包路径              | 是否改动  | 说明                                             |
+| ------------------- | --------- | ------------------------------------------------ |
+| `service/`          | ✅ 0 改动 | 直接复制                                         |
+| `repository/`       | ✅ 0 改动 | 直接复制                                         |
+| `model/entity/`     | ✅ 0 改动 | 直接复制                                         |
+| `model/enums/`      | ✅ 0 改动 | 直接复制                                         |
+| `consumer/`         | ✅ 0 改动 | Kafka 消费者                                     |
+| `scheduler/`        | ✅ 0 改动 | 定时任务                                         |
+| `common/response/`  | ⚠️ 移除   | 改用 sims-common 的 ApiResponse                  |
+| `common/exception/` | ⚠️ 移除   | 改用 sims-common 的 BusinessException            |
+| `config/`           | ⚠️ 移除   | 配置移至主进程                                   |
+| `controller/`       | ⚠️ 重建   | 在主进程中新建，路径改为 `/api/sims/dormitory/*` |
 
 ---
 
@@ -175,14 +175,14 @@ sims-main-process/                           ← 学管主项目
 
 ### 5.1 新旧路径映射
 
-| 旧路径 (独立 JAR) | 新路径 (主进程) | 说明 |
-|-------------------|----------------|------|
-| `/api/dormitory/nightly-report/today` | `/api/sims/dormitory/nightly-report/today` | 查宿概览 |
-| `/api/dormitory/students/status` | `/api/sims/dormitory/students/status` | 人员状态 |
-| `/api/dormitory/events` | `/api/sims/dormitory/events` | 事件查询 |
-| `/api/dormitory/cameras` | `/api/sims/dormitory/cameras` | 摄像头管理 |
-| `/api/dormitory/config` | `/api/sims/dormitory/config` | 配置管理 |
-| `/api/dormitory/health` | `/api/sims/dormitory/health` | 健康检查 |
+| 旧路径 (独立 JAR)                     | 新路径 (主进程)                            | 说明       |
+| ------------------------------------- | ------------------------------------------ | ---------- |
+| `/api/dormitory/nightly-report/today` | `/api/sims/dormitory/nightly-report/today` | 查宿概览   |
+| `/api/dormitory/students/status`      | `/api/sims/dormitory/students/status`      | 人员状态   |
+| `/api/dormitory/events`               | `/api/sims/dormitory/events`               | 事件查询   |
+| `/api/dormitory/cameras`              | `/api/sims/dormitory/cameras`              | 摄像头管理 |
+| `/api/dormitory/config`               | `/api/sims/dormitory/config`               | 配置管理   |
+| `/api/dormitory/health`               | `/api/sims/dormitory/health`               | 健康检查   |
 
 ### 5.2 Controller 示例 (主进程版)
 
@@ -276,12 +276,12 @@ public class SecurityConfig {
 
 **迁移要点**:
 
-| 要点 | 操作 |
-|------|------|
-| 独立 JWT 校验 | 删除 `DormitoryTokenFilter` |
+| 要点                  | 操作                                       |
+| --------------------- | ------------------------------------------ |
+| 独立 JWT 校验         | 删除 `DormitoryTokenFilter`                |
 | 主进程 SecurityConfig | 添加 `/api/sims/dormitory/**` 到受保护路径 |
-| 角色权限 | 宿舍数据可设 `ROLE_DORM_MANAGER` 角色 |
-| 用户上下文 | 通过 `SecurityContextHolder` 获取当前用户 |
+| 角色权限              | 宿舍数据可设 `ROLE_DORM_MANAGER` 角色      |
+| 用户上下文            | 通过 `SecurityContextHolder` 获取当前用户  |
 
 ---
 
@@ -312,8 +312,8 @@ spring:
 mybatis-plus:
   # dormitory-core 的 Mapper 扫描路径
   mapper-locations:
-    - classpath:mapper/sims/**/*.xml      # 学管原 mapper
-    - classpath:mapper/dormitory/**/*.xml  # 宿舍模块 mapper
+    - classpath:mapper/sims/**/*.xml # 学管原 mapper
+    - classpath:mapper/dormitory/**/*.xml # 宿舍模块 mapper
 
   # 实体扫描
   type-aliases-package: com.sims.common.entity, com.sims.dormitory.model.entity
@@ -321,12 +321,12 @@ mybatis-plus:
 
 ### 7.3 表名冲突检查
 
-| dormitory 表 | 学管已有表 | 冲突 |
-|-------------|----------|------|
-| `dorm_student_assignment` | ❌ 无 | ✅ 无冲突 |
-| `dorm_student_status` | ❌ 无 | ✅ 无冲突 |
-| `dorm_entry_exit_event` | ❌ 无 | ✅ 无冲突 |
-| 全部 `dorm_*` 前缀 | 各异 | ✅ 无冲突 |
+| dormitory 表              | 学管已有表 | 冲突      |
+| ------------------------- | ---------- | --------- |
+| `dorm_student_assignment` | ❌ 无      | ✅ 无冲突 |
+| `dorm_student_status`     | ❌ 无      | ✅ 无冲突 |
+| `dorm_entry_exit_event`   | ❌ 无      | ✅ 无冲突 |
+| 全部 `dorm_*` 前缀        | 各异       | ✅ 无冲突 |
 
 > 全部 dormitory 表使用 `dorm_` 前缀，与学管系统表名无冲突。
 
@@ -342,7 +342,7 @@ spring:
 ```
 
 独立部署时使用 `dorm:` 前缀  
-主进程中仍保持 `dorm:` 前缀   
+主进程中仍保持 `dorm:` 前缀  
 → 与学管系统的 `sims:` 前缀天然隔离。
 
 ---
@@ -422,26 +422,26 @@ public class DormitoryProperties {
 
 ### 9.1 Phase 2 → Phase 3 迁移步骤
 
-| 步骤 | 操作 | 风险 | 回退 |
-|------|------|------|------|
-| 1 | 创建 `dormitory-core` Maven 模块，复制 service/repository/model/consumer/scheduler | 低 | 删除模块 |
-| 2 | 独立 JAR 中排除 controller/config，验证 dormitory-core 编译通过 | 低 | 回退代码 |
-| 3 | 主进程新建 `DormitoryController`，路径 `/api/sims/dormitory/*`，调用 dormitory-core 的 Service | 中 | 保留旧 controller |
-| 4 | 主进程添加宿舍模块配置段，Kafka/Redis/DB 复用主进程配置 | 中 | 切回独立配置 |
-| 5 | 独立 JAR 去掉 authentication filter，注册主进程 SecurityConfig | 低 | 恢复 filter |
-| 6 | 测试环境全面回归 | 高 | 修复问题 |
-| 7 | 灰度上线，观察 3 天 | 高 | 切回独立 JAR |
-| 8 | 下线独立 JAR 的 8080 端口 | 低 | 重启独立 JAR |
+| 步骤 | 操作                                                                                           | 风险 | 回退              |
+| ---- | ---------------------------------------------------------------------------------------------- | ---- | ----------------- |
+| 1    | 创建 `dormitory-core` Maven 模块，复制 service/repository/model/consumer/scheduler             | 低   | 删除模块          |
+| 2    | 独立 JAR 中排除 controller/config，验证 dormitory-core 编译通过                                | 低   | 回退代码          |
+| 3    | 主进程新建 `DormitoryController`，路径 `/api/sims/dormitory/*`，调用 dormitory-core 的 Service | 中   | 保留旧 controller |
+| 4    | 主进程添加宿舍模块配置段，Kafka/Redis/DB 复用主进程配置                                        | 中   | 切回独立配置      |
+| 5    | 独立 JAR 去掉 authentication filter，注册主进程 SecurityConfig                                 | 低   | 恢复 filter       |
+| 6    | 测试环境全面回归                                                                               | 高   | 修复问题          |
+| 7    | 灰度上线，观察 3 天                                                                            | 高   | 切回独立 JAR      |
+| 8    | 下线独立 JAR 的 8080 端口                                                                      | 低   | 重启独立 JAR      |
 
 ### 9.2 需主进程配合的准备工作
 
-| 事项 | 谁做 | 说明 |
-|------|------|------|
-| `sims-common` 模块提供 `ApiResponse` + `BusinessException` | 主进程开发 | 确保与 dormitory 版本的签名一致 |
-| 主进程 `application.yml` 添加 `dormitory.*` 配置段 | 主进程开发 | 独立部署时不需要 |
-| 主进程 `SecurityConfig` 添加 `/api/sims/dormitory/**` 路由 | 主进程开发 | 统一认证 |
-| 数据库表 `dorm_*` 确认无冲突 | 双方确认 | `dorm_` 前缀已保证无冲突 |
-| Kafka Topic `t_dorm_event` 生产/消费确认 | 感知层/本模块确认 | 格式不变 |
+| 事项                                                       | 谁做              | 说明                            |
+| ---------------------------------------------------------- | ----------------- | ------------------------------- |
+| `sims-common` 模块提供 `ApiResponse` + `BusinessException` | 主进程开发        | 确保与 dormitory 版本的签名一致 |
+| 主进程 `application.yml` 添加 `dormitory.*` 配置段         | 主进程开发        | 独立部署时不需要                |
+| 主进程 `SecurityConfig` 添加 `/api/sims/dormitory/**` 路由 | 主进程开发        | 统一认证                        |
+| 数据库表 `dorm_*` 确认无冲突                               | 双方确认          | `dorm_` 前缀已保证无冲突        |
+| Kafka Topic `t_dorm_event` 生产/消费确认                   | 感知层/本模块确认 | 格式不变                        |
 
 ---
 
@@ -449,12 +449,12 @@ public class DormitoryProperties {
 
 ### 10.1 什么情况下回退
 
-| 问题 | 严重程度 | 操作 |
-|------|---------|------|
-| 接入后查宿 API 不可用 | critical | 停主进程宿舍模块，启独立 JAR |
-| 接入后主进程启动失败 | critical | 回退 dormitory-core 代码版本 |
-| 接入后性能下降 > 20% | high | 排查瓶颈，必要时独立 JAR |
-| 接入后认证异常 | medium | 临时允许 `/api/sims/dormitory/**` 公开访问 |
+| 问题                  | 严重程度 | 操作                                       |
+| --------------------- | -------- | ------------------------------------------ |
+| 接入后查宿 API 不可用 | critical | 停主进程宿舍模块，启独立 JAR               |
+| 接入后主进程启动失败  | critical | 回退 dormitory-core 代码版本               |
+| 接入后性能下降 > 20%  | high     | 排查瓶颈，必要时独立 JAR                   |
+| 接入后认证异常        | medium   | 临时允许 `/api/sims/dormitory/**` 公开访问 |
 
 ### 10.2 回退操作
 

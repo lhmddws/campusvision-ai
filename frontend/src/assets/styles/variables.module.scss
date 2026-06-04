@@ -9,26 +9,26 @@ $yellow: #fec171;
 $panGreen: #30b08f;
 $orange: #ff9d2b;
 
-// 默认菜单主题风格
+// 默认菜单主题风格 (dark sidebar theme)
 
-$base-menu-color: #1f2329;
-$base-sub-menu-color: #63656a;
-$base-menu-color-active: #63656a;
-$base-sub-menu-color-active: #1f2329;
-$base-menu-background: #fafafa;
-$base-logo-title-color: #1f2329;
-$base-menu-bg-active: rgba(0, 0, 0, 0.05);
+$base-menu-color: rgba(255, 255, 255, 0.8);
+$base-sub-menu-color: rgba(255, 255, 255, 0.65);
+$base-menu-color-active: #ffffff;
+$base-sub-menu-color-active: #ffffff;
+$base-menu-background: #001529;
+$base-logo-title-color: #ffffff;
+$base-menu-bg-active: rgba(255, 255, 255, 0.08);
 
 $base-menu-light-color: rgba(0, 0, 0, 0.7);
 $base-menu-light-background: #fafafa;
 $base-logo-light-title-color: #001529;
 
-$base-sub-menu-background: #fafafa;
-$base-sub-menu-hover: rgba(0, 0, 0, 0.03);
+$base-sub-menu-background: #000c17;
+$base-sub-menu-hover: rgba(255, 255, 255, 0.05);
 
-$base-text-color: #1F2329;
-$base-text-second-color: #63656A;
-$base-text-three-color: #A5A7A9;
+$base-text-color: #1f2329;
+$base-text-second-color: #63656a;
+$base-text-three-color: #a5a7a9;
 
 // 自定义暗色菜单风格
 /**
@@ -45,13 +45,26 @@ $base-sub-menu-background:#000c17;
 $base-sub-menu-hover:#001528;
 */
 
-$--color-primary: #02A797;
-$--color-success: #67C23A;
-$--color-warning: #E6A23C;
-$--color-danger: #F56C6C;
+$--color-primary: #02a797;
+$--color-success: #67c23a;
+$--color-warning: #e6a23c;
+$--color-danger: #f56c6c;
 $--color-info: #909399;
 
-$base-sidebar-width: 224px;
+// CampusVision AI theme colors
+$primary-color: #1890ff;
+$success-color: #52c41a;
+$warning-color: #faad14;
+$danger-color: #ff4d4f;
+$sidebar-bg: #001529;
+$sidebar-text: rgba(255, 255, 255, 0.8);
+$sidebar-active: #1890ff;
+$page-bg: #f0f2f5;
+$card-bg: #ffffff;
+$text-primary: #262626;
+$text-secondary: #8c8c8c;
+
+$base-sidebar-width: 220px;
 
 // 命名空间
 $namespace: z;
@@ -78,4 +91,15 @@ $elNamespace: el;
   warningColor: $--color-warning;
   namespace: $namespace;
   elNamespace: $elNamespace;
+  // CampusVision AI theme
+  cvPrimary: $primary-color;
+  cvSuccess: $success-color;
+  cvWarning: $warning-color;
+  cvDanger: $danger-color;
+  cvSidebarBg: $sidebar-bg;
+  cvSidebarActive: $sidebar-active;
+  cvPageBg: $page-bg;
+  cvCardBg: $card-bg;
+  cvTextPrimary: $text-primary;
+  cvTextSecondary: $text-secondary;
 }

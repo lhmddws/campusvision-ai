@@ -15,7 +15,7 @@
       :data="tableObject.tableList"
       :loading="tableObject.loading"
       :pagination="{
-        total: tableObject.total
+        total: tableObject.total,
       }"
       @register="register"
     >
@@ -42,25 +42,25 @@ import { reactive } from 'vue';
 import { useI18n } from '@/hooks/web/useI18n';
 import { useTable } from '@/hooks/web/useTable';
 import { CrudSchema, useCrudSchemas } from '@/hooks/web/useCrudSchemas';
-import {listUser} from '@/api/system/user';
+import { listUser } from '@/api/system/user';
 import { listDept } from '@/api/system/dept';
 
 export type TableData = {
-  id: string
-  author: string
-  title: string
-  content: string
-  importance: number
-  display_time: string
-  pageviews: number
-}
+  id: string;
+  author: string;
+  title: string;
+  content: string;
+  importance: number;
+  display_time: string;
+  pageviews: number;
+};
 const { t } = useI18n();
 
 const crudSchemas = reactive<CrudSchema[]>([
   {
     field: 'userId',
     label: '用户编号',
-    width: 120
+    width: 120,
   },
   {
     field: 'userName',
@@ -69,23 +69,22 @@ const crudSchemas = reactive<CrudSchema[]>([
       show: true,
       component: 'Input',
       componentProps: {
-        placeholder: '请输入用户名称'
-      }
+        placeholder: '请输入用户名称',
+      },
     },
-    width: 120
+    width: 120,
   },
   {
     field: 'nickName',
-    label:  "用户昵称",
+    label: '用户昵称',
     search: {
       show: true,
       component: 'Input',
       componentProps: {
-        placeholder: '请输入用户昵称'
-      }
+        placeholder: '请输入用户昵称',
+      },
     },
-    width: 120
-
+    width: 120,
   },
   {
     field: 'deptName',
@@ -97,45 +96,44 @@ const crudSchemas = reactive<CrudSchema[]>([
       componentProps: {
         placeholder: '请输入部门',
         optionsAlias: {
-          labelField: 'deptName'
-        }
-      }
+          labelField: 'deptName',
+        },
+      },
     },
-    width: 220
+    width: 220,
   },
   {
     field: 'deptName',
     label: '部门',
-    width: 220
+    width: 220,
   },
   {
     field: 'deptName',
     label: '部门',
-    width: 220
+    width: 220,
   },
   {
     field: 'deptName',
     label: '部门',
-    width: 220
+    width: 220,
   },
   {
     field: 'deptName',
     label: '部门',
-    width: 220
+    width: 220,
   },
 
   {
     field: 'createTime',
     label: '创建时间',
-    width: 220
+    width: 220,
   },
   {
     field: 'action',
     label: t('tableDemo.action'),
     fixed: 'right',
-    width: 180
-
-  }
+    width: 180,
+  },
 ]);
 
 const { allSchemas } = useCrudSchemas(crudSchemas);
@@ -146,34 +144,28 @@ const btns = reactive([
     type: 'primary',
     auth: ['business:onConfirm:push'],
     icon: 'yijiantuisong',
-
   },
   {
     name: '一键办结',
     type: 'primary',
     auth: ['business:onConfirm:finish'],
     icon: 'yijianbanjie',
-
   },
   {
     name: '导出',
     auth: ['business:onConfirm:export'],
     icon: 'daochu',
-
   },
 ]);
-
 
 const { register, tableObject, methods } = useTable<TableData>({
   getListApi: listUser,
   response: {
     list: 'rows',
-    total: 'total'
-  }
+    total: 'total',
+  },
 });
 
 const { getList, setSearchParams } = methods;
 getList();
-
 </script>
-

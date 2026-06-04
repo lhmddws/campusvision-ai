@@ -36,3 +36,20 @@ type StudentStatusDTO struct {
 	RoomID     int64  `json:"room_id"`
 	Status     string `json:"status"`
 }
+
+// InspectionStudentDTO is the DTO for a single student in the inspection roster.
+type InspectionStudentDTO struct {
+	StudentID   string `json:"student_id"`
+	StudentName string `json:"student_name"`
+	Status      string `json:"status"`
+}
+
+// InspectionRoomDTO is the DTO for a room's inspection roster with aggregated counts.
+type InspectionRoomDTO struct {
+	Building       string                  `json:"building"`
+	Room           string                  `json:"room"`
+	TotalStudents  int                     `json:"total_students"`
+	PresentCount   int                     `json:"present_count"`
+	UnknownCount   int                     `json:"unknown_count"`
+	Students       []InspectionStudentDTO  `json:"students"`
+}

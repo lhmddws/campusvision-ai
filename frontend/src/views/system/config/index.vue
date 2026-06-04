@@ -92,11 +92,7 @@
       </ElRow>
     </el-form>
 
-    <el-table
-      v-loading="loading"
-      :data="configList"
-      @selectionChange="handleSelectionChange"
-    >
+    <el-table v-loading="loading" :data="configList" @selectionChange="handleSelectionChange">
       <el-table-column type="selection" width="55" align="center" />
       <el-table-column label="参数主键" align="center" prop="configId" />
       <el-table-column
@@ -122,12 +118,7 @@
           <dict-tag :options="sys_yes_no" :value="scope.row.configType" />
         </template>
       </el-table-column>
-      <el-table-column
-        label="备注"
-        align="center"
-        prop="remark"
-        :show-overflow-tooltip="true"
-      />
+      <el-table-column label="备注" align="center" prop="remark" :show-overflow-tooltip="true" />
       <el-table-column label="创建时间" align="center" prop="createTime" width="180">
         <template #default="scope">
           <span>{{ parseTime(scope.row.createTime) }}</span>
@@ -209,18 +200,12 @@ import {
   addConfig,
   updateConfig,
   refreshCache,
-} from "@/api/system/config";
-import { downLoadExcel, parseTime } from "@/utils/ruoyi";
-import {
-  getCurrentInstance,
-  ComponentInternalInstance,
-  ref,
-  reactive,
-  toRefs,
-} from "vue";
+} from '@/api/system/config';
+import { downLoadExcel, parseTime } from '@/utils/ruoyi';
+import { getCurrentInstance, ComponentInternalInstance, ref, reactive, toRefs } from 'vue';
 
 const { proxy } = getCurrentInstance() as ComponentInternalInstance;
-const { sys_yes_no } = proxy!.useDict("sys_yes_no");
+const { sys_yes_no } = proxy!.useDict('sys_yes_no');
 
 const configList = ref<any[]>([]);
 const open = ref(false);
@@ -230,7 +215,7 @@ const ids = ref<number[]>([]);
 const single = ref(true);
 const multiple = ref(true);
 const total = ref(0);
-const title = ref("");
+const title = ref('');
 const dateRange = ref<any>([]);
 
 const data = reactive<{
@@ -247,9 +232,9 @@ const data = reactive<{
     configType: undefined,
   },
   rules: {
-    configName: [{ required: true, message: "参数名称不能为空", trigger: "blur" }],
-    configKey: [{ required: true, message: "参数键名不能为空", trigger: "blur" }],
-    configValue: [{ required: true, message: "参数键值不能为空", trigger: "blur" }],
+    configName: [{ required: true, message: '参数名称不能为空', trigger: 'blur' }],
+    configKey: [{ required: true, message: '参数键名不能为空', trigger: 'blur' }],
+    configValue: [{ required: true, message: '参数键值不能为空', trigger: 'blur' }],
   },
 });
 
@@ -258,13 +243,11 @@ const { queryParams, form, rules } = toRefs(data);
 /** 查询参数列表 */
 function getList() {
   loading.value = true;
-  listConfig(proxy?.addDateRange(queryParams.value, dateRange.value)).then(
-    (response: any) => {
-      configList.value = response.rows;
-      total.value = response.total;
-      loading.value = false;
-    }
-  );
+  listConfig(proxy?.addDateRange(queryParams.value, dateRange.value)).then((response: any) => {
+    configList.value = response.rows;
+    total.value = response.total;
+    loading.value = false;
+  });
 }
 /** 取消按钮 */
 function cancel() {
@@ -278,10 +261,10 @@ function reset() {
     configName: undefined,
     configKey: undefined,
     configValue: undefined,
-    configType: "Y",
+    configType: 'Y',
     remark: undefined,
   };
-  proxy?.resetForm("configRef");
+  proxy?.resetForm('configRef');
 }
 /** 搜索按钮操作 */
 function handleQuery() {
@@ -291,12 +274,12 @@ function handleQuery() {
 /** 重置按钮操作 */
 function resetQuery() {
   dateRange.value = [];
-  proxy?.resetForm("queryRef");
+  proxy?.resetForm('queryRef');
   handleQuery();
 }
 /** 多选框选中数据 */
 function handleSelectionChange(selection: any[]) {
-  ids.value = selection.map((item) => item.configId);
+  ids.value = selection.map(item => item.configId);
   single.value = selection.length !== 1;
   multiple.value = !selection.length;
 }
@@ -304,31 +287,31 @@ function handleSelectionChange(selection: any[]) {
 function handleAdd() {
   reset();
   open.value = true;
-  title.value = "添加参数";
+  title.value = '添加参数';
 }
 /** 修改按钮操作 */
 function handleUpdate(row: any) {
   reset();
   const configId = row.configId || ids.value;
-  getConfig(configId).then((response) => {
+  getConfig(configId).then(response => {
     form.value = response.data;
     open.value = true;
-    title.value = "修改参数";
+    title.value = '修改参数';
   });
 }
 /** 提交按钮 */
 function submitForm() {
-  (proxy?.$refs["configRef"] as any).validate((valid: any) => {
+  (proxy?.$refs['configRef'] as any).validate((valid: any) => {
     if (valid) {
       if (form.value.configId) {
-        updateConfig(form.value).then((response) => {
-          proxy?.$modal.msgSuccess("修改成功");
+        updateConfig(form.value).then(response => {
+          proxy?.$modal.msgSuccess('修改成功');
           open.value = false;
           getList();
         });
       } else {
-        addConfig(form.value).then((response) => {
-          proxy?.$modal.msgSuccess("新增成功");
+        addConfig(form.value).then(response => {
+          proxy?.$modal.msgSuccess('新增成功');
           open.value = false;
           getList();
         });
@@ -346,7 +329,7 @@ function handleDelete(row: any) {
     })
     .then(() => {
       getList();
-      proxy!.$modal.msgSuccess("删除成功");
+      proxy!.$modal.msgSuccess('删除成功');
     })
     .catch((e: any) => {
       console.log(e);
@@ -355,17 +338,17 @@ function handleDelete(row: any) {
 /** 导出按钮操作 */
 function handleExport() {
   downLoadExcel(
-    "system/config/export",
+    'system/config/export',
     {
       ...queryParams.value,
     },
-    `config_${new Date().getTime()}.xlsx`
+    `config_${new Date().getTime()}.xlsx`,
   );
 }
 /** 刷新缓存按钮操作 */
 function handleRefreshCache() {
   refreshCache().then(() => {
-    proxy?.$modal.msgSuccess("刷新缓存成功");
+    proxy?.$modal.msgSuccess('刷新缓存成功');
   });
 }
 

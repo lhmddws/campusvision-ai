@@ -8,7 +8,7 @@ pipeline.
 Features
 --------
 * Event-type mapping (long descriptive name → short ≤8 char code).
-* Assertion enforcement: ``event_type`` **must** be ≤ 8 characters (DB constraint).
+* Validation: ``event_type`` **must** be ≤ 8 characters (DB constraint).
 * Cooldown per ``event_type`` to avoid flooding Kafka with duplicates.
 * In-memory buffer (max 1000) when Kafka is unavailable; auto-flush on next
   successful publish.
@@ -85,7 +85,7 @@ class BehaviorEventPublisher:
 
         Raises
         ------
-        AssertionError
+        ValueError
             If ``event_type`` is longer than 8 characters.
         """
         if not self.config.behavior.enabled:
@@ -98,9 +98,8 @@ class BehaviorEventPublisher:
             event_type = mapping[event_type]
 
         # Enforce DB constraint: event_type VARCHAR(8)
-        assert len(event_type) <= 8, (
-            f"event_type '{event_type}' ({len(event_type)} chars) exceeds 8 char limit"
-        )
+        if len(event_type) > 8:
+            raise ValueError(f"event_type '{event_type}' ({len(event_type)} chars) exceeds 8 char limit")
 
         now = time.time()
 

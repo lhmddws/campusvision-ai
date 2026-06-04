@@ -14,10 +14,10 @@ export const crudSchemas = reactive<CrudSchema[]>([
       component: 'Input',
       componentProps: {
         style: {
-          width: '200px'
+          width: '200px',
         },
-        placeholder: '请输入角色名称'
-      }
+        placeholder: '请输入角色名称',
+      },
     },
   },
   {
@@ -28,16 +28,16 @@ export const crudSchemas = reactive<CrudSchema[]>([
       component: 'Input',
       componentProps: {
         style: {
-          width: '200px'
+          width: '200px',
         },
-        placeholder: '请输入角色名称'
-      }
+        placeholder: '请输入角色名称',
+      },
     },
   },
   {
     field: 'roleSort',
     label: '显示顺序',
-    width: 80
+    width: 80,
   },
   {
     field: 'status',
@@ -48,47 +48,47 @@ export const crudSchemas = reactive<CrudSchema[]>([
       dictName: 'sys_normal_disable',
       componentProps: {
         placeholder: '请选择角色状态',
-        options: []
-      }
+        options: [],
+      },
     },
-    width: 120
+    width: 120,
   },
   {
     field: 'searchTime',
     label: '查询时间',
-    search:{
+    search: {
       show: true,
       component: 'DatePicker',
       componentProps: {
         type: 'daterange',
-        rangeSeparator:"-",
+        rangeSeparator: '-',
         startPlaceholder: '开始日期',
         endPlaceholder: '结束日期',
-        valueFormat:"YYYY-MM-DD",
-        style:{
-          width: '240px'
+        valueFormat: 'YYYY-MM-DD',
+        style: {
+          width: '240px',
         },
         trueNames: ['beginTime', 'endTime'],
-        onChange: (val: any)=>{
+        onChange: (val: any) => {
           console.log(val);
-        }
-      }
+        },
+      },
     },
     table: {
-      show: false
+      show: false,
     },
   },
   {
     field: 'createTime',
     label: '创建时间',
-    width: 220
+    width: 220,
   },
   {
     field: 'action',
     label: '操作',
     fixed: 'right',
-    width: 280
-  }
+    width: 280,
+  },
 ]);
 
 export const roleSchemas = reactive<FormSchema[]>([
@@ -97,7 +97,7 @@ export const roleSchemas = reactive<FormSchema[]>([
     label: '角色名称',
     component: 'Input',
     colProps: {
-      span: 24
+      span: 24,
     },
     componentProps: {
       placeholder: '请输入角色名称',
@@ -109,7 +109,7 @@ export const roleSchemas = reactive<FormSchema[]>([
     component: 'Input',
     labelMessage: '控制器中定义的权限字符，如：@PreAuthorize(`@ss.hasRole("admin")`)',
     colProps: {
-      span: 24
+      span: 24,
     },
     componentProps: {
       placeholder: '请输入权限字符',
@@ -120,16 +120,16 @@ export const roleSchemas = reactive<FormSchema[]>([
     label: '角色排序',
     component: 'InputNumber',
     colProps: {
-      span: 24
+      span: 24,
     },
     componentProps: {
-      controlsPosition:"right",
+      controlsPosition: 'right',
       min: 0,
       style: {
-        width: '100%'
-      }
+        width: '100%',
+      },
     },
-    value: 0
+    value: 0,
   },
   {
     field: 'status',
@@ -137,7 +137,7 @@ export const roleSchemas = reactive<FormSchema[]>([
     component: 'Radio',
     api: getDicts('sys_normal_disable'),
     colProps: {
-      span: 24
+      span: 24,
     },
     value: '0',
     componentProps: {
@@ -146,15 +146,15 @@ export const roleSchemas = reactive<FormSchema[]>([
         valueField: 'dictValue',
       },
       style: {
-        width: '100%'
-      }
-    }
+        width: '100%',
+      },
+    },
   },
   {
     field: 'menuRole',
     label: '菜单权限',
     colProps: {
-      span: 24
+      span: 24,
     },
   },
   {
@@ -162,23 +162,22 @@ export const roleSchemas = reactive<FormSchema[]>([
     label: '备注',
     component: 'Input',
     colProps: {
-      span: 24
+      span: 24,
     },
     componentProps: {
       type: 'textarea',
-      placeholder: '请输入备注信息'
-    }
+      placeholder: '请输入备注信息',
+    },
   },
 ]);
 
 export const assignScopeSchemas = reactive<FormSchema[]>([
-
   {
     field: 'roleName',
     label: '角色名称',
     component: 'Input',
     colProps: {
-      span: 24
+      span: 24,
     },
     componentProps: {
       disabled: true,
@@ -190,7 +189,7 @@ export const assignScopeSchemas = reactive<FormSchema[]>([
     label: '权限字符',
     component: 'Input',
     colProps: {
-      span: 24
+      span: 24,
     },
     componentProps: {
       disabled: true,
@@ -202,16 +201,15 @@ export const assignScopeSchemas = reactive<FormSchema[]>([
     label: '权限范围',
     component: 'Select',
     colProps: {
-      span: 24
-    }
+      span: 24,
+    },
   },
   {
     field: 'menuRole',
     label: '数据权限',
     colProps: {
-      span: 24
+      span: 24,
     },
-    hidden: true
+    hidden: true,
   },
 ]);
-

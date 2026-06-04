@@ -8,16 +8,6 @@ const (
 	EventTypeExit  EventType = "exit"
 )
 
-// IsValid returns true if the event type is recognized.
-func (e EventType) IsValid() bool {
-	switch e {
-	case EventTypeEntry, EventTypeExit:
-		return true
-	default:
-		return false
-	}
-}
-
 // CameraStatus represents camera operational status.
 type CameraStatus string
 

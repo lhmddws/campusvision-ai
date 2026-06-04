@@ -1,7 +1,5 @@
 /* eslint-disable camelcase */
-import axios , {
-  AxiosInstance
-} from 'axios';
+import axios, { AxiosInstance } from 'axios';
 import { ElNotification, ElMessageBox, ElMessage, ElLoading } from 'element-plus';
 import { getToken } from '@/utils/auth';
 import errorCode from '@/utils/errorCode';
@@ -59,8 +57,8 @@ service.interceptors.request.use(
         const interval = 1000; // 间隔时间(ms)，小于此时间视为重复提交
         if (
           s_data === requestObj.data &&
-                    requestObj.time - s_time < interval &&
-                    s_url === requestObj.url
+          requestObj.time - s_time < interval &&
+          s_url === requestObj.url
         ) {
           const message = '数据正在处理，请勿重复提交';
           console.warn(`[${s_url}]: ` + message);
@@ -75,7 +73,7 @@ service.interceptors.request.use(
   error => {
     console.log(error);
     Promise.reject(error);
-  }
+  },
 );
 
 // 响应拦截器
@@ -147,7 +145,7 @@ service.interceptors.response.use(
       duration: 5 * 1000,
     });
     return Promise.reject(error);
-  }
+  },
 );
 
 // 通用下载方法

@@ -33,12 +33,7 @@
         />
       </template>
       <template #action="{ row }">
-        <ElButton
-          v-hasPermi="['system:role:edit']"
-          type="primary"
-          text
-          @click="handleUpdate(row)"
-        >
+        <ElButton v-hasPermi="['system:role:edit']" type="primary" text @click="handleUpdate(row)">
           修改
         </ElButton>
         <ElButton
@@ -70,34 +65,44 @@
     </BasicTable>
 
     <!-- 添加角色 -->
-    <CreateRole v-model:visible="showCreateRole" :roleData="roleData" :title="roleTitle" @submit="getList"/>
+    <CreateRole
+      v-model:visible="showCreateRole"
+      :roleData="roleData"
+      :title="roleTitle"
+      @submit="getList"
+    />
 
     <!-- 数据权限 -->
-    <AssignPermissions v-model:visible="showPermissions" :roleData="permData" title="分配数据权限" @submit="getList" @close="close"/>
+    <AssignPermissions
+      v-model:visible="showPermissions"
+      :roleData="permData"
+      title="分配数据权限"
+      @submit="getList"
+      @close="close"
+    />
   </ContentWrap>
 </template>
 
 <script setup name="Role" lang="ts">
-import { Search } from "@/components/Search";
-import { ContentWrap } from "@/components/ContentWrap";
-import { BasicTable } from "@/components/Table";
-import { useTable } from "@/hooks/web/useTable";
-import { useCrudSchemas } from "@/hooks/web/useCrudSchemas";
-import { crudSchemas } from "./role.config";
-import CreateRole from "./CreateRole.vue";
-import AssignPermissions from "./AssignPermissions.vue";
-import {  getCurrentInstance,  ComponentInternalInstance,  ref,  reactive,} from "vue";
+import { Search } from '@/components/Search';
+import { ContentWrap } from '@/components/ContentWrap';
+import { BasicTable } from '@/components/Table';
+import { useTable } from '@/hooks/web/useTable';
+import { useCrudSchemas } from '@/hooks/web/useCrudSchemas';
+import { crudSchemas } from './role.config';
+import CreateRole from './CreateRole.vue';
+import AssignPermissions from './AssignPermissions.vue';
+import { getCurrentInstance, ComponentInternalInstance, ref, reactive } from 'vue';
 import { downLoadExcel } from '@/utils/ruoyi';
-import {  delRole,  listRole,} from "@/api/system/role";
-import { useRouter } from "vue-router";
-
+import { delRole, listRole } from '@/api/system/role';
+import { useRouter } from 'vue-router';
 
 const router = useRouter();
 
 const { allSchemas } = useCrudSchemas(crudSchemas);
 const { proxy } = getCurrentInstance() as ComponentInternalInstance;
 const refreshTable = ref(true);
-const roleTitle = ref("添加角色");
+const roleTitle = ref('添加角色');
 const roleData = ref();
 const permData = ref();
 const showCreateRole = ref(false);
@@ -108,31 +113,31 @@ const searchRef = ref();
 
 const btns = reactive([
   {
-    name: "新增",
-    type: "primary",
-    auth: ["system:role:add"],
-    icon: "xinzeng",
-    handler: ()=> {
+    name: '新增',
+    type: 'primary',
+    auth: ['system:role:add'],
+    icon: 'xinzeng',
+    handler: () => {
       handleUpdate();
-    }
+    },
   },
   {
-    name: "删除",
-    type: "danger",
-    auth: ["system:role:remove"],
-    icon: "shanchu",
+    name: '删除',
+    type: 'danger',
+    auth: ['system:role:remove'],
+    icon: 'shanchu',
     disabled: isDisabled,
-    handler: ()=> {
+    handler: () => {
       handleDelete();
-    }
+    },
   },
   {
-    name: "导出",
-    auth: ["system:role:export"],
-    icon: "daochu",
-    handler: ()=> {
+    name: '导出',
+    auth: ['system:role:export'],
+    icon: 'daochu',
+    handler: () => {
       handleExport();
-    }
+    },
   },
 ]);
 
@@ -140,21 +145,20 @@ const { register, tableObject, methods } = useTable({
   getListApi: listRole as any,
   delListApi: delRole as any,
   response: {
-    list: "rows",
-    total: "total",
+    list: 'rows',
+    total: 'total',
   },
 });
 const { getList, setSearchParams, delList, getSelections } = methods;
 getList();
 
-const selectChange = (selected: any[])=>{
+const selectChange = (selected: any[]) => {
   isDisabled.value = selected.length < 1;
   isUpdate.value = selected.length !== 1;
 };
 
-
 const handleUpdate = (row?: any) => {
-  if(row.roleId !== undefined){
+  if (row.roleId !== undefined) {
     roleData.value = row;
     roleTitle.value = '修改角色';
   }
@@ -162,7 +166,7 @@ const handleUpdate = (row?: any) => {
 };
 
 const handleDelete = async (row?: any) => {
-  const roleIds = row?.roleId ? [row?.roleId] : (await getSelections()).map(d=>d.roleId);
+  const roleIds = row?.roleId ? [row?.roleId] : (await getSelections()).map(d => d.roleId);
   proxy!.$modal
     .confirm('是否确认删除角色编号为"' + roleIds + '"的数据项?')
     .then(function () {
@@ -170,7 +174,7 @@ const handleDelete = async (row?: any) => {
     })
     .then(() => {
       getList();
-      proxy!.$modal.msgSuccess("删除成功");
+      proxy!.$modal.msgSuccess('删除成功');
     })
     .catch((e: any) => {
       console.log(e);
@@ -185,8 +189,7 @@ const close = () => {
 };
 const handleAuthUser = (row?: any) => {
   console.log(row);
-  router.push("/system/role-auth/user/" + row.roleId);
-
+  router.push('/system/role-auth/user/' + row.roleId);
 };
 const handleStatusChange = (row?: any) => {
   console.log(row);
@@ -195,11 +198,11 @@ const handleStatusChange = (row?: any) => {
 
 async function handleExport() {
   downLoadExcel(
-    "system/role/export",
+    'system/role/export',
     {
       ...(await searchRef.value.methods.getFormData()),
     },
-    `role_${new Date().getTime()}.xlsx`
+    `role_${new Date().getTime()}.xlsx`,
   );
 }
 </script>

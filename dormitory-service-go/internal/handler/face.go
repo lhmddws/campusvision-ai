@@ -3,9 +3,14 @@ package handler
 import (
 	"math"
 	"net/http"
+	"strconv"
 
 	"github.com/gin-gonic/gin"
+
+	"github.com/sims/campusvision/dormitory-service-go/internal/model/entity"
 )
+
+const embeddingDim = 512
 
 // FaceMatchRequest is the JSON body for POST /api/face/match.
 type FaceMatchRequest struct {
@@ -26,20 +31,24 @@ type FaceMatch struct {
 	Confidence float64 `json:"confidence"`
 }
 
-type faceEmbeddingRow struct {
-	ID        int64
-	Name      string
-	StudentID string
-	Embedding []byte
-}
-
 const matchThreshold = 0.65
 
 // FaceMatch performs cosine similarity matching against stored face embeddings.
 // POST /api/face/match
 func (h *Handler) FaceMatch(c *gin.Context) {
+	if h.FaceMatchKey != "" {
+		apiKey := c.GetHeader("X-API-Key")
+		if apiKey != h.FaceMatchKey {
+			c.JSON(http.StatusUnauthorized, FaceMatchResponse{
+				Success: false,
+				Error:   "invalid or missing API key",
+			})
+			return
+		}
+	}
+
 	var req FaceMatchRequest
-	if err := c.ShouldBindJSON(&req); err != nil || len(req.Embedding) != 512 {
+	if err := c.ShouldBindJSON(&req); err != nil || len(req.Embedding) != embeddingDim {
 		c.JSON(http.StatusBadRequest, FaceMatchResponse{
 			Success: false,
 			Error:   "invalid embedding (must be 512 floats)",
@@ -47,7 +56,17 @@ func (h *Handler) FaceMatch(c *gin.Context) {
 		return
 	}
 
-	rows, err := h.DB.QueryContext(c.Request.Context(), "SELECT id, name, student_id, embedding FROM face_embedding")
+	limit, _ := strconv.Atoi(c.DefaultQuery("limit", "100"))
+	offset, _ := strconv.Atoi(c.DefaultQuery("offset", "0"))
+	if limit < 1 || limit > 1000 {
+		limit = 100
+	}
+	if offset < 0 {
+		offset = 0
+	}
+
+	query := "SELECT id, name, student_id, embedding FROM face_embedding LIMIT ? OFFSET ?"
+	rows, err := h.DB.QueryContext(c.Request.Context(), query, limit, offset)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, FaceMatchResponse{
 			Success: false,
@@ -55,23 +74,28 @@ func (h *Handler) FaceMatch(c *gin.Context) {
 		})
 		return
 	}
-	defer rows.Close()
+	defer func() { _ = rows.Close() }()
+
+	threshold := h.FaceMatchThreshold
+	if threshold <= 0 {
+		threshold = matchThreshold
+	}
 
 	var bestMatch *FaceMatch
 	var bestScore float64
 
 	for rows.Next() {
-		var row faceEmbeddingRow
+		var row entity.FaceEmbedding
 		if err := rows.Scan(&row.ID, &row.Name, &row.StudentID, &row.Embedding); err != nil {
 			continue
 		}
 		storedEmb := bytesToFloats(row.Embedding)
-		if len(storedEmb) != 512 {
+		if len(storedEmb) != embeddingDim {
 			continue
 		}
 
 		score := cosineSimilarity(req.Embedding, storedEmb)
-		if score > bestScore && score >= matchThreshold {
+		if score > bestScore && score >= threshold {
 			bestScore = score
 			bestMatch = &FaceMatch{
 				Name:       row.Name,
@@ -79,6 +103,14 @@ func (h *Handler) FaceMatch(c *gin.Context) {
 				Confidence: math.Round(score*100) / 100,
 			}
 		}
+	}
+
+	if err := rows.Err(); err != nil {
+		c.JSON(http.StatusInternalServerError, FaceMatchResponse{
+			Success: false,
+			Error:   "row iteration failed",
+		})
+		return
 	}
 
 	c.JSON(http.StatusOK, FaceMatchResponse{

@@ -1,0 +1,108 @@
+version: 2
+updates:
+  - package-ecosystem: gomod
+    directory: /stream-gateway/
+    schedule:
+      interval: weekly
+    target-branch: main
+    labels:
+      - dependencies
+    reviewers:
+      - lhmddws
+    assignees:
+      - lhmddws
+    open-pull-requests-limit: 10
+    versioning-strategy: increase-if-necessary
+
+  - package-ecosystem: gomod
+    directory: /dormitory-service-go/
+    schedule:
+      interval: weekly
+    target-branch: main
+    labels:
+      - dependencies
+    reviewers:
+      - lhmddws
+    assignees:
+      - lhmddws
+    open-pull-requests-limit: 10
+    versioning-strategy: increase-if-necessary
+
+  - package-ecosystem: pip
+    directory: /face-recognition/
+    schedule:
+      interval: weekly
+    target-branch: main
+    labels:
+      - dependencies
+    reviewers:
+      - lhmddws
+    assignees:
+      - lhmddws
+    open-pull-requests-limit: 10
+
+  - package-ecosystem: npm
+    directory: /frontend/
+    schedule:
+      interval: weekly
+    target-branch: main
+    labels:
+      - dependencies
+    reviewers:
+      - lhmddws
+    assignees:
+      - lhmddws
+    open-pull-requests-limit: 10
+    versioning-strategy: increase-if-necessary
+
+  - package-ecosystem: docker
+    directory: /stream-gateway/
+    schedule:
+      interval: monthly
+    target-branch: main
+    labels:
+      - dependencies
+    reviewers:
+      - lhmddws
+    assignees:
+      - lhmddws
+    open-pull-requests-limit: 10
+
+  - package-ecosystem: docker
+    directory: /dormitory-service-go/
+    schedule:
+      interval: monthly
+    target-branch: main
+    labels:
+      - dependencies
+    reviewers:
+      - lhmddws
+    assignees:
+      - lhmddws
+    open-pull-requests-limit: 10
+
+  - package-ecosystem: docker
+    directory: /face-recognition/
+    schedule:
+      interval: monthly
+    target-branch: main
+    labels:
+      - dependencies
+    reviewers:
+      - lhmddws
+    assignees:
+      - lhmddws
+    open-pull-requests-limit: 10
+
+  - package-ecosystem: docker
+    directory: /frontend/
+    schedule:
+      interval: monthly
+    target-branch: main
+    labels:
+      - dependencies
+    reviewers:
+      - lhmddws
+    assignees:
+      - lhmddws
+    open-pull-requests-limit: 10

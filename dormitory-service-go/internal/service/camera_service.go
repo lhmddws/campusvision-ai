@@ -1,14 +1,14 @@
 package service
 
 import (
-	"context"
 	"database/sql"
 	"errors"
 	"fmt"
-	"log"
+	"io"
 	"net/http"
 	"net/url"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/sims/campusvision/dormitory-service-go/internal/client"
@@ -16,15 +16,19 @@ import (
 	"github.com/sims/campusvision/dormitory-service-go/internal/model/entity"
 	"github.com/sims/campusvision/dormitory-service-go/internal/repository"
 	"github.com/sims/campusvision/dormitory-service-go/internal/util"
+	"go.uber.org/zap"
 )
 
 // CameraService handles camera lifecycle management.
 type CameraService struct {
-	cameraRepo  *repository.CameraRepository
+	cameraRepo   *repository.CameraRepository
 	eventLogRepo *repository.EventLogRepository
 	cameraLogRepo *repository.CameraLogRepository
-	pushClient  *client.PushClient
-	gatewayURL  string
+	pushClient   *client.PushClient
+	gatewayURL   string
+	maxCameras   int
+	logger       *zap.Logger
+	mu           sync.Mutex
 }
 
 // NewCameraService creates a new CameraService.
@@ -34,25 +38,46 @@ func NewCameraService(
 	cameraLogRepo *repository.CameraLogRepository,
 	pushClient *client.PushClient,
 	gatewayURL string,
+	maxCameras int,
+	logger *zap.Logger,
 ) *CameraService {
+	if maxCameras <= 0 {
+		maxCameras = 50
+	}
+	if logger == nil {
+		logger, _ = zap.NewDevelopment()
+	}
 	return &CameraService{
 		cameraRepo:   cameraRepo,
 		eventLogRepo:  eventLogRepo,
 		cameraLogRepo: cameraLogRepo,
 		pushClient:   pushClient,
 		gatewayURL:   gatewayURL,
+		maxCameras:   maxCameras,
+		logger:       logger,
 	}
+}
+
+func (s *CameraService) log() *zap.Logger {
+	if s.logger == nil {
+		return zap.NewNop()
+	}
+	return s.logger
 }
 
 // RegisterCamera creates a new camera entry with RTSP URL parsing and push notification.
 func (s *CameraService) RegisterCamera(dto dto.CameraCreateDTO) (*entity.DormCamera, error) {
-	all, err := s.cameraRepo.FindAll(context.Background())
+	s.mu.Lock()
+	all, err := s.cameraRepo.FindAll(serviceCtx())
 	if err != nil {
+		s.mu.Unlock()
 		return nil, fmt.Errorf("count cameras: %w", err)
 	}
-	if len(all) >= 50 {
+	if len(all) >= s.maxCameras {
+		s.mu.Unlock()
 		return nil, ErrCameraLimitExceeded
 	}
+	s.mu.Unlock()
 
 	var passwordEnc, nonce sql.NullString
 	if dto.RtspURL != "" {
@@ -63,12 +88,12 @@ func (s *CameraService) RegisterCamera(dto dto.CameraCreateDTO) (*entity.DormCam
 					if ep, encErr := util.EncryptPassword(pass); encErr == nil {
 						passwordEnc = toNullString(ep.Ciphertext)
 						nonce = toNullString(ep.Nonce)
-						log.Printf("[CameraService] Password encrypted for camera %s", dto.CameraID)
+						s.log().Info("password encrypted", zap.String("camera_id", dto.CameraID))
 					}
 				}
 			}
 		} else {
-			log.Printf("[CameraService] Failed to parse RTSP URL: %v", err)
+			s.log().Warn("failed to parse RTSP URL", zap.Error(err))
 		}
 	}
 
@@ -88,7 +113,7 @@ func (s *CameraService) RegisterCamera(dto dto.CameraCreateDTO) (*entity.DormCam
 		UpdatedAt:   time.Now(),
 	}
 
-	id, err := s.cameraRepo.Create(context.Background(), cam)
+	id, err := s.cameraRepo.Create(serviceCtx(), cam)
 	if err != nil {
 		return nil, fmt.Errorf("create camera: %w", err)
 	}
@@ -99,7 +124,7 @@ func (s *CameraService) RegisterCamera(dto dto.CameraCreateDTO) (*entity.DormCam
 	// Push notification (best-effort)
 	if s.pushClient != nil {
 		if err := s.pushClient.NotifyRegister(*cam); err != nil {
-			log.Printf("[CameraService] Push notification failed for register: %v", err)
+			s.log().Warn("push notification failed for register", zap.Error(err))
 		}
 	}
 
@@ -108,7 +133,7 @@ func (s *CameraService) RegisterCamera(dto dto.CameraCreateDTO) (*entity.DormCam
 
 // UpdateCamera patches an existing camera and sends push notification.
 func (s *CameraService) UpdateCamera(cameraID string, dto dto.CameraUpdateDTO) (*entity.DormCamera, error) {
-	cam, err := s.cameraRepo.FindByCameraID(context.Background(), cameraID)
+	cam, err := s.cameraRepo.FindByCameraID(serviceCtx(), cameraID)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return nil, ErrNotFound
@@ -142,13 +167,13 @@ func (s *CameraService) UpdateCamera(cameraID string, dto dto.CameraUpdateDTO) (
 	}
 	cam.UpdatedAt = time.Now()
 
-	if err := s.cameraRepo.Update(context.Background(), cam); err != nil {
+	if err := s.cameraRepo.Update(serviceCtx(), cam); err != nil {
 		return nil, fmt.Errorf("update camera: %w", err)
 	}
 
 	if s.pushClient != nil {
 		if err := s.pushClient.NotifyUpdate(cameraID, *cam); err != nil {
-			log.Printf("[CameraService] Push notification failed for update: %v", err)
+			s.log().Warn("push notification failed for update", zap.Error(err))
 		}
 	}
 
@@ -157,7 +182,7 @@ func (s *CameraService) UpdateCamera(cameraID string, dto dto.CameraUpdateDTO) (
 
 // DeleteCamera removes a camera and sends push notification.
 func (s *CameraService) DeleteCamera(cameraID string) error {
-	cam, err := s.cameraRepo.FindByCameraID(context.Background(), cameraID)
+	cam, err := s.cameraRepo.FindByCameraID(serviceCtx(), cameraID)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return ErrNotFound
@@ -167,13 +192,13 @@ func (s *CameraService) DeleteCamera(cameraID string) error {
 
 	s.insertCameraLog(cam, cam.Status, "DELETED", "Camera deleted")
 
-	if err := s.cameraRepo.Delete(context.Background(), cam.ID); err != nil {
+	if err := s.cameraRepo.Delete(serviceCtx(), cam.ID); err != nil {
 		return fmt.Errorf("delete camera: %w", err)
 	}
 
 	if s.pushClient != nil {
 		if err := s.pushClient.NotifyDelete(cameraID); err != nil {
-			log.Printf("[CameraService] Push notification failed for delete: %v", err)
+			s.log().Warn("push notification failed for delete", zap.Error(err))
 		}
 	}
 
@@ -183,7 +208,7 @@ func (s *CameraService) DeleteCamera(cameraID string) error {
 // GetByCameraID finds a camera by its unique camera ID.
 // Returns ErrNotFound if the camera does not exist.
 func (s *CameraService) GetByCameraID(cameraID string) (*entity.DormCamera, error) {
-	cam, err := s.cameraRepo.FindByCameraID(context.Background(), cameraID)
+	cam, err := s.cameraRepo.FindByCameraID(serviceCtx(), cameraID)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return nil, ErrNotFound
@@ -196,9 +221,9 @@ func (s *CameraService) GetByCameraID(cameraID string) (*entity.DormCamera, erro
 // GetCameras lists cameras, optionally filtered by building.
 func (s *CameraService) GetCameras(building string) ([]entity.DormCamera, error) {
 	if building != "" {
-		return s.cameraRepo.FindByBuilding(context.Background(), building)
+		return s.cameraRepo.FindByBuilding(serviceCtx(), building)
 	}
-	return s.cameraRepo.FindAll(context.Background(), "camera_id ASC")
+	return s.cameraRepo.FindAll(serviceCtx(), "camera_id ASC")
 }
 
 // GetCameraStatus returns a status summary for all cameras (optionally filtered by building).
@@ -206,9 +231,9 @@ func (s *CameraService) GetCameraStatus(building string) (map[string]interface{}
 	var cameras []entity.DormCamera
 	var err error
 	if building != "" {
-		cameras, err = s.cameraRepo.FindByBuilding(context.Background(), building)
+		cameras, err = s.cameraRepo.FindByBuilding(serviceCtx(), building)
 	} else {
-		cameras, err = s.cameraRepo.FindAll(context.Background())
+		cameras, err = s.cameraRepo.FindAll(serviceCtx())
 	}
 	if err != nil {
 		return nil, fmt.Errorf("list cameras: %w", err)
@@ -258,12 +283,12 @@ func (s *CameraService) GetCameraStatus(building string) (map[string]interface{}
 
 // UpdateLastEventTime updates the last_event_time for a camera to now.
 func (s *CameraService) UpdateLastEventTime(cameraID string) error {
-	return s.cameraRepo.UpdateLastEventTime(context.Background(), cameraID)
+	return s.cameraRepo.UpdateLastEventTime(serviceCtx(), cameraID)
 }
 
 // HealthCheck pings the stream-gateway health endpoint and updates camera status.
 func (s *CameraService) HealthCheck(cameraID string) error {
-	cam, err := s.cameraRepo.FindByCameraID(context.Background(), cameraID)
+	cam, err := s.cameraRepo.FindByCameraID(serviceCtx(), cameraID)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return ErrNotFound
@@ -278,16 +303,17 @@ func (s *CameraService) HealthCheck(cameraID string) error {
 	client := &http.Client{Timeout: 5 * time.Second}
 	resp, err := client.Get(gatewayURL)
 	if err == nil {
-		resp.Body.Close()
+		_, _ = io.Copy(io.Discard, resp.Body)
+		_ = resp.Body.Close()
 		if resp.StatusCode == http.StatusOK {
 			newStatus = "online"
 		}
 	}
 
-	if err := s.cameraRepo.UpdateStatus(context.Background(), cameraID, newStatus, 0, 0); err != nil {
+	if err := s.cameraRepo.UpdateStatus(serviceCtx(), cameraID, newStatus, 0, 0); err != nil {
 		return fmt.Errorf("update status: %w", err)
 	}
-	if err := s.cameraRepo.UpdateHealthCheck(context.Background(), cameraID); err != nil {
+	if err := s.cameraRepo.UpdateHealthCheck(serviceCtx(), cameraID); err != nil {
 		return fmt.Errorf("update health check: %w", err)
 	}
 
@@ -304,12 +330,12 @@ func (s *CameraService) HealthCheck(cameraID string) error {
 
 // ListEnabledCameras returns all cameras where enabled = true.
 func (s *CameraService) ListEnabledCameras() ([]entity.DormCamera, error) {
-	return s.cameraRepo.FindEnabled(context.Background())
+	return s.cameraRepo.FindEnabled(serviceCtx())
 }
 
 // ListOnlineCameras returns all cameras with status = "online" and enabled = true.
 func (s *CameraService) ListOnlineCameras() ([]entity.DormCamera, error) {
-	all, err := s.cameraRepo.FindAll(context.Background())
+	all, err := s.cameraRepo.FindAll(serviceCtx())
 	if err != nil {
 		return nil, err
 	}
@@ -324,7 +350,7 @@ func (s *CameraService) ListOnlineCameras() ([]entity.DormCamera, error) {
 
 // QuerySnapshots returns paginated event logs for a camera within a time range.
 func (s *CameraService) QuerySnapshots(cameraID string, startTime, endTime time.Time, page, size int) ([]entity.DormEventLog, int64, error) {
-	return s.eventLogRepo.FindWithPagination(context.Background(), "", cameraID, "", "", &startTime, &endTime, page, size)
+	return s.eventLogRepo.FindWithPagination(serviceCtx(), "", cameraID, "", "", &startTime, &endTime, page, size)
 }
 
 func (s *CameraService) insertCameraLog(cam *entity.DormCamera, statusFrom, statusTo, reason string) {
@@ -338,8 +364,8 @@ func (s *CameraService) insertCameraLog(cam *entity.DormCamera, statusFrom, stat
 	if statusFrom != "" {
 		entry.StatusFrom = toNullString(statusFrom)
 	}
-	if _, err := s.cameraLogRepo.Create(context.Background(), entry); err != nil {
-		log.Printf("[CameraService] Failed to insert camera log: %v", err)
+	if _, err := s.cameraLogRepo.Create(serviceCtx(), entry); err != nil {
+		s.log().Warn("failed to insert camera log", zap.Error(err))
 	}
 }
 

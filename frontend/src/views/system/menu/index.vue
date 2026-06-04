@@ -30,22 +30,20 @@
         </ElCol>
         <ElCol :span="6">
           <el-form-item>
-        <el-button type="primary" icon="Search" @click="handleQuery">搜索</el-button>
-        <el-button icon="Refresh" @click="resetQuery">重置</el-button>
-      </el-form-item>
+            <el-button type="primary" icon="Search" @click="handleQuery">搜索</el-button>
+            <el-button icon="Refresh" @click="resetQuery">重置</el-button>
+          </el-form-item>
         </ElCol>
         <ElCol :span="18" class="flex justify-end">
           <el-button
-          v-hasPermi="['system:menu:add']"
-          type="primary"
-          plain
-          icon="Plus"
-          @click="handleAdd"
-          >新增</el-button
-        >
-        <el-button type="info" plain icon="Sort" @click="toggleExpandAll"
-          >展开/折叠</el-button
-        >
+            v-hasPermi="['system:menu:add']"
+            type="primary"
+            plain
+            icon="Plus"
+            @click="handleAdd"
+            >新增</el-button
+          >
+          <el-button type="info" plain icon="Sort" @click="toggleExpandAll">展开/折叠</el-button>
         </ElCol>
       </ElRow>
     </el-form>
@@ -180,21 +178,14 @@
           </el-col>
           <el-col :span="12">
             <el-form-item label="显示排序" prop="orderNum">
-              <el-input-number
-                v-model="form.orderNum"
-                controls-position="right"
-                :min="0"
-              />
+              <el-input-number v-model="form.orderNum" controls-position="right" :min="0" />
             </el-form-item>
           </el-col>
           <el-col v-if="form.menuType != 'F'" :span="12">
             <el-form-item>
               <template #label>
                 <span>
-                  <el-tooltip
-                    content="选择是外链则路由地址需要以`http(s)://`开头"
-                    placement="top"
-                  >
+                  <el-tooltip content="选择是外链则路由地址需要以`http(s)://`开头" placement="top">
                     <el-icon><question-filled /></el-icon> </el-tooltip
                   >是否外链
                 </span>
@@ -239,11 +230,7 @@
           </el-col>
           <el-col v-if="form.menuType != 'M'" :span="12">
             <el-form-item>
-              <el-input
-                v-model="form.perms"
-                placeholder="请输入权限标识"
-                maxlength="100"
-              />
+              <el-input v-model="form.perms" placeholder="请输入权限标识" maxlength="100" />
               <template #label>
                 <span>
                   <el-tooltip
@@ -259,11 +246,7 @@
           </el-col>
           <el-col v-if="form.menuType == 'C'" :span="12">
             <el-form-item>
-              <el-input
-                v-model="form.query"
-                placeholder="请输入路由参数"
-                maxlength="255"
-              />
+              <el-input v-model="form.query" placeholder="请输入路由参数" maxlength="255" />
               <template #label>
                 <span>
                   <el-tooltip
@@ -310,12 +293,9 @@
                 </span>
               </template>
               <el-radio-group v-model="form.visible">
-                <el-radio
-                  v-for="dict in sys_show_hide"
-                  :key="dict.value"
-                  :label="dict.value"
-                  >{{ dict.label }}</el-radio
-                >
+                <el-radio v-for="dict in sys_show_hide" :key="dict.value" :label="dict.value">{{
+                  dict.label
+                }}</el-radio>
               </el-radio-group>
             </el-form-item>
           </el-col>
@@ -356,11 +336,11 @@
 
 <script setup name="Menu" lang="ts">
 /* eslint-disable camelcase */
-import { addMenu, delMenu, getMenu, listMenu, updateMenu } from "@/api/system/menu";
-import SvgIcon from "@/components/SvgIcon/index.vue";
-import IconSelect from "@/components/IconSelect/index.vue";
-import { ClickOutside as vClickOutside } from "element-plus";
-import { parseTime } from "@/utils/ruoyi";
+import { addMenu, delMenu, getMenu, listMenu, updateMenu } from '@/api/system/menu';
+import SvgIcon from '@/components/SvgIcon/index.vue';
+import IconSelect from '@/components/IconSelect/index.vue';
+import { ClickOutside as vClickOutside } from 'element-plus';
+import { parseTime } from '@/utils/ruoyi';
 import {
   getCurrentInstance,
   ComponentInternalInstance,
@@ -368,20 +348,17 @@ import {
   reactive,
   toRefs,
   nextTick,
-} from "vue";
+} from 'vue';
 
 const { proxy } = getCurrentInstance() as ComponentInternalInstance;
 
-const { sys_show_hide, sys_normal_disable } = proxy!.useDict(
-  "sys_show_hide",
-  "sys_normal_disable"
-);
+const { sys_show_hide, sys_normal_disable } = proxy!.useDict('sys_show_hide', 'sys_normal_disable');
 
 const menuList = ref<any[]>([]);
 const open = ref(false);
 const loading = ref(true);
 const showSearch = ref(true);
-const title = ref("");
+const title = ref('');
 const menuOptions = ref<any[]>([]);
 const isExpandAll = ref(false);
 const refreshTable = ref(true);
@@ -399,9 +376,9 @@ const data = reactive<{
     visible: undefined,
   },
   rules: {
-    menuName: [{ required: true, message: "菜单名称不能为空", trigger: "blur" }],
-    orderNum: [{ required: true, message: "菜单顺序不能为空", trigger: "blur" }],
-    path: [{ required: true, message: "路由地址不能为空", trigger: "blur" }],
+    menuName: [{ required: true, message: '菜单名称不能为空', trigger: 'blur' }],
+    orderNum: [{ required: true, message: '菜单顺序不能为空', trigger: 'blur' }],
+    path: [{ required: true, message: '路由地址不能为空', trigger: 'blur' }],
   },
 });
 
@@ -410,8 +387,8 @@ const { queryParams, form, rules } = toRefs(data);
 /** 查询菜单列表 */
 function getList() {
   loading.value = true;
-  listMenu(queryParams.value).then((response) => {
-    menuList.value = proxy!.handleTree(response.data, "menuId");
+  listMenu(queryParams.value).then(response => {
+    menuList.value = proxy!.handleTree(response.data, 'menuId');
     loading.value = false;
   });
 }
@@ -419,8 +396,8 @@ function getList() {
 function getTreeselect() {
   menuOptions.value = [];
   listMenu().then((response: any) => {
-    const menu: any = { menuId: 0, menuName: "主类目", children: [] };
-    menu.children = proxy!.handleTree(response.data, "menuId");
+    const menu: any = { menuId: 0, menuName: '主类目', children: [] };
+    menu.children = proxy!.handleTree(response.data, 'menuId');
     menuOptions.value.push(menu);
   });
 }
@@ -436,14 +413,14 @@ function reset() {
     parentId: 0,
     menuName: undefined,
     icon: undefined,
-    menuType: "M",
+    menuType: 'M',
     orderNum: undefined,
-    isFrame: "1",
-    isCache: "0",
-    visible: "0",
-    status: "0",
+    isFrame: '1',
+    isCache: '0',
+    visible: '0',
+    status: '0',
   };
-  proxy!.resetForm("menuRef");
+  proxy!.resetForm('menuRef');
 }
 /** 展示下拉图标 */
 function showSelectIcon() {
@@ -457,10 +434,9 @@ function selected(name: string) {
 }
 /** 图标外层点击隐藏下拉列表 */
 function hideSelectIcon(event: any) {
-  let elem =
-    event.relatedTarget || event.srcElement || event.target || event.currentTarget;
+  let elem = event.relatedTarget || event.srcElement || event.target || event.currentTarget;
   let className = elem.className;
-  if (className !== "el-input__inner") {
+  if (className !== 'el-input__inner') {
     showChooseIcon.value = false;
   }
 }
@@ -470,7 +446,7 @@ function handleQuery() {
 }
 /** 重置按钮操作 */
 function resetQuery() {
-  proxy!.resetForm("queryRef");
+  proxy!.resetForm('queryRef');
   handleQuery();
 }
 /** 新增按钮操作 */
@@ -483,7 +459,7 @@ function handleAdd(row: any) {
     form.value.parentId = 0;
   }
   open.value = true;
-  title.value = "添加菜单";
+  title.value = '添加菜单';
 }
 /** 展开/折叠操作 */
 function toggleExpandAll() {
@@ -497,25 +473,25 @@ function toggleExpandAll() {
 async function handleUpdate(row: any) {
   reset();
   await getTreeselect();
-  getMenu(row.menuId).then((response) => {
+  getMenu(row.menuId).then(response => {
     form.value = response.data;
     open.value = true;
-    title.value = "修改菜单";
+    title.value = '修改菜单';
   });
 }
 /** 提交按钮 */
 function submitForm() {
-  (proxy?.$refs["menuRef"] as any).validate((valid: any) => {
+  (proxy?.$refs['menuRef'] as any).validate((valid: any) => {
     if (valid) {
       if (form.value.menuId !== undefined) {
-        updateMenu(form.value).then((response) => {
-          proxy!.$modal.msgSuccess("修改成功");
+        updateMenu(form.value).then(response => {
+          proxy!.$modal.msgSuccess('修改成功');
           open.value = false;
           getList();
         });
       } else {
-        addMenu(form.value).then((response) => {
-          proxy!.$modal.msgSuccess("新增成功");
+        addMenu(form.value).then(response => {
+          proxy!.$modal.msgSuccess('新增成功');
           open.value = false;
           getList();
         });
@@ -532,7 +508,7 @@ function handleDelete(row: any) {
     })
     .then(() => {
       getList();
-      proxy!.$modal.msgSuccess("删除成功");
+      proxy!.$modal.msgSuccess('删除成功');
     })
     .catch((e: any) => {
       console.log(e);

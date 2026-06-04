@@ -61,7 +61,7 @@ module.exports = {
     'vue/multi-word-component-names': 0,
     'vue/html-indent': 0,
     'vue/v-on-event-hyphenation': [2, 'never'],
-    "@typescript-eslint/no-explicit-any": ["off"],
+    '@typescript-eslint/no-explicit-any': ['off'],
     // Enable vue/script-setup-uses-vars rule
   },
 };

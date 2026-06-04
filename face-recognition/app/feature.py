@@ -45,7 +45,8 @@ class FeatureExtractor:
         return cv2.resize(face_img, (112, 112))
 
     def _onnx_extract(self, face_img: np.ndarray) -> np.ndarray:
-        assert self.session is not None  # guarded by extract()
+        if self.session is None:
+            return np.zeros(self.embedding_size, dtype=np.float32)
         img = face_img.astype(np.float32) / 255.0
         img = np.transpose(img, (2, 0, 1))[None, ...]
         inputs = {self.session.get_inputs()[0].name: img}
@@ -55,7 +56,11 @@ class FeatureExtractor:
         return embedding / norm if norm > 0 else embedding
 
     def _fallback_embedding(self, face_img: np.ndarray) -> np.ndarray:
-        # Placeholder: resize + flatten + normalize for dev testing
         feat = cv2.resize(face_img, (32, 32)).flatten().astype(np.float32)
+        # Truncate or pad to match onnx embedding dimension
+        if len(feat) > self.embedding_size:
+            feat = feat[:self.embedding_size]
+        elif len(feat) < self.embedding_size:
+            feat = np.pad(feat, (0, self.embedding_size - len(feat)))
         norm = np.linalg.norm(feat)
         return feat / norm if norm > 0 else feat

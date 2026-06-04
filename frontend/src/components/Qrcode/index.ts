@@ -1,3 +1,3 @@
-import Qrcode from './src/Qrcode.vue'
+import Qrcode from './src/Qrcode.vue';
 
-export { Qrcode }
+export { Qrcode };

@@ -10,17 +10,17 @@ campusvision-ai
 
 含义：
 
-* Campus：校园
-* Vision：视觉分析
-* AI：智能分析
+- Campus：校园
+- Vision：视觉分析
+- AI：智能分析
 
 适合：
 
-* 学校监控
-* 人员轨迹
-* 人脸识别
-* 视频结构化
-* AI安防
+- 学校监控
+- 人员轨迹
+- 人脸识别
+- 视频结构化
+- AI安防
 
 ---
 
@@ -28,20 +28,21 @@ campusvision-ai
 
 推荐采用多仓库模式。
 
-## 1. AI 推理服务
+## 1. 人脸识别服务
 
 ```text
-campusvision-ai-engine
+face-recognition
 ```
 
 职责：
 
-* YOLO人体检测
-* ByteTrack目标跟踪
-* InsightFace人脸识别
-* ReID特征提取
-* TensorRT推理
-* CUDA调度
+- RetinaFace 人脸检测 (ONNX)
+- ArcFace 特征提取 (ONNX)
+- Haar Cascade 降级方案
+- 多人脸追踪 (IoU matching)
+- 方向检测 (ROI line crossing)
+- 行为分析 (可选)
+- Kafka 事件发布
 
 推荐语言：
 
@@ -54,16 +55,16 @@ Python
 ## 2. RTSP 流处理服务
 
 ```text
-campusvision-stream-gateway
+stream-gateway/
 ```
 
 职责：
 
-* RTSP拉流
-* FFmpeg解码
-* 摄像头重连
-* 抽帧
-* Kafka推送
+- RTSP拉流
+- FFmpeg解码
+- 摄像头重连
+- 抽帧
+- Kafka推送
 
 推荐语言：
 
@@ -81,13 +82,13 @@ dormitory-service-go
 
 职责：
 
-* 事件消费处理
-* 学生状态管理
-* 每晚查宿统计
-* 告警管理
-* 报表 API
-* 摄像头管理
-* 数据统计
+- 事件消费处理
+- 学生状态管理
+- 每晚查宿统计
+- 告警管理
+- 报表 API
+- 摄像头管理
+- 数据统计
 
 推荐技术：
 
@@ -103,16 +104,16 @@ Redis
 ## 4. 前端系统
 
 ```text
-campusvision-web
+frontend/
 ```
 
 职责：
 
-* 实时监控页面
-* AI告警页面
-* 轨迹查询
-* 摄像头地图
-* 管理后台
+- 实时监控页面
+- AI告警页面
+- 轨迹查询
+- 摄像头地图
+- 管理后台
 
 推荐技术：
 
@@ -131,9 +132,11 @@ RTSP Cameras
         ↓
 Stream Gateway
         ↓
-Kafka / Redis Stream
+Kafka (t_dorm_frame)
         ↓
-AI Engine
+Face Recognition (Python)
+        ↓
+Kafka (t_dorm_event)
         ↓
 Redis / MariaDB
         ↓
@@ -152,65 +155,64 @@ Vue Web
 
 ### 人员识别
 
-* 人脸识别
-* 人体检测
-* ReID追踪
-* 陌生人识别
-* 黑名单告警
+- RetinaFace 人脸检测
+- ArcFace 人脸识别
+- 多人脸追踪
+- 陌生人识别
+- 黑名单告警
 
 ---
 
 ### 视频分析
 
-* 实时RTSP分析
-* 多摄像头支持
-* 抽帧分析
-* GPU推理
-* 视频结构化
+- 实时RTSP分析
+- 多摄像头支持
+- 抽帧分析
+- GPU推理
+- 视频结构化
 
 ---
 
 ### 安防能力
 
-* 区域入侵
-* 越界检测
-* 聚集检测
-* 徘徊检测
-* 行为分析
+- 区域入侵
+- 越界检测
+- 聚集检测
+- 徘徊检测
+- 行为分析
 
 ---
 
 ### 轨迹系统
 
-* 人员轨迹回放
-* 跨摄像头追踪
-* 时间轴分析
-* 区域热力图
+- 人员轨迹回放
+- 跨摄像头追踪
+- 时间轴分析
+- 区域热力图
 
 ---
 
 # 四、推荐技术栈
 
-## AI Engine
+## Face Recognition
 
-| 模块    | 技术          |
-| ----- | ----------- |
-| 推理框架  | TensorRT    |
-| 人体检测  | YOLOv11     |
-| 多目标跟踪 | ByteTrack   |
-| 人脸识别  | InsightFace |
-| ReID  | FastReID    |
-| GPU   | CUDA        |
-| 服务框架  | FastAPI     |
+| 模块     | 技术                    |
+| -------- | ----------------------- |
+| 推理框架 | ONNX Runtime            |
+| 人脸检测 | RetinaFace-ResNet50     |
+| 特征提取 | ArcFace-ResNet100       |
+| 降级方案 | Haar Cascade (OpenCV)   |
+| 人脸追踪 | Greedy IoU matching     |
+| 服务框架 | Kafka consumer/producer |
 
 ---
 
 ## Stream Gateway
 
-| 模块   | 技术        |
-| ---- | --------- |
-| 拉流   | FFmpeg    |
-| RTSP | GStreamer |
+| 模块     | 技术      |
+| -------- | --------- |
+| 拉流     | FFmpeg    |
+| RTSP     | GStreamer |
 | 服务语言 | Go        |
 | 消息队列 | Kafka     |
 
@@ -218,47 +220,53 @@ Vue Web
 
 ## Dormitory Service (Go)
 
-| 模块   | 技术        |
-| ---- | --------- |
-| 后端   | Gin        |
-| 数据库  | MariaDB   |
-| 缓存   | Redis      |
-| 消息   | Kafka      |
-| 文件存储 | MinIO     |
+| 模块     | 技术    |
+| -------- | ------- |
+| 后端     | Gin     |
+| 数据库   | MariaDB |
+| 缓存     | Redis   |
+| 消息     | Kafka   |
+| 文件存储 | MinIO   |
 
 ---
 
 ## Web
 
-| 模块   | 技术           |
-| ---- | ------------ |
+| 模块     | 技术         |
+| -------- | ------------ |
 | 前端框架 | Vue3         |
-| UI   | Element Plus |
+| UI       | Element Plus |
 | 状态管理 | Pinia        |
 | 实时通信 | WebSocket    |
-| 地图   | OpenLayers   |
+| 地图     | OpenLayers   |
 
 ---
 
 # 五、目录结构建议
 
-## AI Engine
+## Face Recognition
 
 ```text
-campusvision-ai-engine/
+face-recognition/
 ├── app/
-│   ├── api/
-│   ├── models/
-│   ├── services/
-│   ├── trackers/
-│   ├── reid/
-│   ├── face/
-│   ├── stream/
-│   └── utils/
-├── weights/
-├── scripts/
-├── docker/
-└── requirements.txt
+│   ├── main.py           # 入口 & pipeline 编排
+│   ├── detector.py       # RetinaFace + Haar Cascade
+│   ├── feature.py        # ArcFace 特征提取
+│   ├── matcher.py        # 人脸匹配 (调用 dormitory-service-go)
+│   ├── tracker.py        # IoU 多人脸追踪
+│   ├── direction.py      # ROI line crossing
+│   ├── behavior.py       # 行为分析 (可选)
+│   ├── dedup.py          # 事件去重
+│   ├── night_mode.py     # 夜间 CLAHE 增强
+│   ├── event_publisher.py # Kafka 事件发布
+│   ├── config.py         # Pydantic 配置
+│   └── models/           # ONNX 模型
+│       ├── detection.onnx
+│       ├── feature.onnx
+│       └── model_urls.yaml
+├── tests/
+├── requirements.txt
+└── config.yaml
 ```
 
 ---
@@ -313,7 +321,7 @@ services:
 
   minio:
 
-  ai-engine:
+  face-recognition:
 
   stream-gateway:
 
@@ -340,11 +348,11 @@ camera_device
 
 字段：
 
-* camera_id
-* rtsp_url
-* building
-* floor
-* status
+- camera_id
+- rtsp_url
+- building
+- floor
+- status
 
 ---
 
@@ -356,9 +364,9 @@ face_embedding
 
 字段：
 
-* user_id
-* embedding
-* created_at
+- user_id
+- embedding
+- created_at
 
 ---
 
@@ -370,11 +378,11 @@ person_track
 
 字段：
 
-* track_id
-* camera_id
-* timestamp
-* image_path
-* reid_vector
+- track_id
+- camera_id
+- timestamp
+- image_path
+- reid_vector
 
 ---
 
@@ -386,11 +394,11 @@ security_alarm
 
 字段：
 
-* alarm_type
-* level
-* camera_id
-* snapshot
-* created_at
+- alarm_type
+- level
+- camera_id
+- snapshot
+- created_at
 
 ---
 
@@ -414,11 +422,13 @@ POST /api/face/recognize
 
 ---
 
-### 行人ReID
+### 行人追踪 (Face Tracker)
 
 ```http
-POST /api/reid/search
+内部: FaceTracker (app/tracker.py)
 ```
+
+基于 IoU 匹配的多人脸追踪，track_id 格式: `cam-{camera_id}-{seq}`
 
 ---
 
@@ -442,10 +452,10 @@ POST /api/stream/analyze
 
 完成：
 
-* RTSP拉流
-* YOLO人体检测
-* 人脸识别
-* Java接入
+- RTSP拉流
+- RetinaFace 人脸检测
+- ArcFace 人脸识别
+- Go 业务服务接入
 
 ---
 
@@ -459,10 +469,10 @@ POST /api/stream/analyze
 
 完成：
 
-* ByteTrack
-* ReID
-* 轨迹查询
-* 跨摄像头追踪
+- 多人脸追踪 (IoU matching)
+- 方向检测 (ROI line crossing)
+- 轨迹查询
+- 跨摄像头追踪
 
 ---
 
@@ -476,10 +486,10 @@ POST /api/stream/analyze
 
 完成：
 
-* 聚集检测
-* 越界检测
-* 陌生人告警
-* 黑名单
+- 聚集检测
+- 越界检测
+- 陌生人告警
+- 黑名单
 
 ---
 
@@ -487,18 +497,18 @@ POST /api/stream/analyze
 
 ## Python
 
-* Black
-* Ruff
-* Pydantic
-* AsyncIO
+- Black
+- Ruff
+- Pydantic
+- AsyncIO
 
 ---
 
-## Java
+## Go
 
-* Go 1.26
-* MapStruct
-* Lombok
+- Go 1.26
+- Gin
+- go-sqlx
 
 ---
 
@@ -523,11 +533,11 @@ hotfix/*
 推荐：
 
 | GPU      | 推荐摄像头数量 |
-| -------- | ------- |
-| RTX 4070 | 20 路左右  |
-| RTX 4090 | 40 路左右  |
-| L40S     | 60+ 路   |
-| A100     | 80+ 路   |
+| -------- | -------------- |
+| RTX 4070 | 20 路左右      |
+| RTX 4090 | 40 路左右      |
+| L40S     | 60+ 路         |
+| A100     | 80+ 路         |
 
 ---
 
@@ -535,16 +545,16 @@ hotfix/*
 
 推荐：
 
-* 1080P
-* H.264
-* RTSP
-* 红外夜视
-* 宽动态
+- 1080P
+- H.264
+- RTSP
+- 红外夜视
+- 宽动态
 
 不建议：
 
-* 低码率模糊摄像头
-* 非RTSP协议
+- 低码率模糊摄像头
+- 非RTSP协议
 
 ---
 
@@ -552,12 +562,12 @@ hotfix/*
 
 必须：
 
-* HTTPS
-* 摄像头账号隔离
-* 内网部署
-* MinIO权限控制
-* GPU服务器隔离
-* Kafka ACL
+- HTTPS
+- 摄像头账号隔离
+- 内网部署
+- MinIO权限控制
+- GPU服务器隔离
+- Kafka ACL
 
 ---
 
@@ -565,14 +575,14 @@ hotfix/*
 
 后期可扩展：
 
-* 车辆识别
-* OCR
-* 工牌识别
-* 姿态识别
-* 课堂行为分析
-* 边缘计算盒子
-* 多GPU调度
-* Kubernetes
+- 车辆识别
+- OCR
+- 工牌识别
+- 姿态识别
+- 课堂行为分析
+- 边缘计算盒子
+- 多GPU调度
+- Kubernetes
 
 ---
 
@@ -582,17 +592,16 @@ hotfix/*
 
 ```text
 RTSP拉流
-+ YOLO人体检测
-+ 人脸识别
-+ Java联动
++ RetinaFace 人脸检测
++ ArcFace 人脸识别
++ Go 服务联动
 + WebSocket实时展示
 ```
 
 先形成完整闭环，再逐步增加：
 
 ```text
-ReID
+行为分析
 轨迹系统
 智能告警
 ```
-

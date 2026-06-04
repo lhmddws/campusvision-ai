@@ -91,6 +91,45 @@ func (r *EventLogRepository) FindByBuilding(ctx context.Context, building string
 	return events, nil
 }
 
+// DailyPresentCount holds the date and present student count for daily summaries.
+type DailyPresentCount struct {
+	Date         string `db:"date"`
+	PresentCount int64  `db:"present_count"`
+}
+
+// CountDistinctPresentStudents counts distinct students with entry events in a date range.
+func (r *EventLogRepository) CountDistinctPresentStudents(ctx context.Context, building, startDate, endDate string) (int64, error) {
+	var count int64
+	query := "SELECT COUNT(DISTINCT student_id) FROM dorm_entry_exit_event WHERE building = ? AND DATE(timestamp) BETWEEN ? AND ? AND event_type = 'entry'"
+	err := r.DB.GetContext(ctx, &count, query, building, startDate, endDate)
+	if err != nil {
+		return 0, fmt.Errorf("count distinct present students: %w", err)
+	}
+	return count, nil
+}
+
+// CountDistinctStrangers counts distinct stranger entries in a date range.
+func (r *EventLogRepository) CountDistinctStrangers(ctx context.Context, building, startDate, endDate string) (int64, error) {
+	var count int64
+	query := "SELECT COUNT(DISTINCT student_id) FROM dorm_entry_exit_event WHERE building = ? AND DATE(timestamp) BETWEEN ? AND ? AND is_stranger = 1"
+	err := r.DB.GetContext(ctx, &count, query, building, startDate, endDate)
+	if err != nil {
+		return 0, fmt.Errorf("count distinct strangers: %w", err)
+	}
+	return count, nil
+}
+
+// GetDailyPresentCounts returns per-day present student counts grouped by date.
+func (r *EventLogRepository) GetDailyPresentCounts(ctx context.Context, building, startDate, endDate string) ([]DailyPresentCount, error) {
+	var counts []DailyPresentCount
+	query := "SELECT DATE(timestamp) AS date, COUNT(DISTINCT student_id) AS present_count FROM dorm_entry_exit_event WHERE building = ? AND DATE(timestamp) BETWEEN ? AND ? AND event_type = 'entry' GROUP BY DATE(timestamp) ORDER BY date"
+	err := r.DB.SelectContext(ctx, &counts, query, building, startDate, endDate)
+	if err != nil {
+		return nil, fmt.Errorf("get daily present counts: %w", err)
+	}
+	return counts, nil
+}
+
 // FindWithPagination paginates events with filters.
 func (r *EventLogRepository) FindWithPagination(
 	ctx context.Context,

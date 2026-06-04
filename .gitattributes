@@ -1,2 +1,17 @@
-# Exclude base64-encoded font file from GitHub language stats
-frontend/src/assets/styles/font.scss linguist-generated=true
+# Exclude SCSS style files from GitLab/GitHub language statistics
+# SCSS is purely presentation — not core application logic
+*.scss linguist-generated=true
+
+# Language hints for GitHub language statistics
+*.go    linguist-language=Go
+*.py    linguist-language=Python
+*.ts    linguist-language=TypeScript
+*.vue   linguist-language=Vue
+
+# Generated / binary files — exclude from diffs and stats
+*.onnx              linguist-generated=true
+*.bin               linguist-generated=true
+go.sum              linguist-generated=true
+pnpm-lock.yaml      linguist-generated=true
+auto-imports.d.ts   linguist-generated=true
+components.d.ts     linguist-generated=true

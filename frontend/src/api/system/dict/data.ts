@@ -22,7 +22,7 @@ export function getData(dictCode: any) {
 export function getDicts(dictType: any) {
   return request({
     url: '/system/dict/data/type/' + dictType,
-    method: "get",
+    method: 'get',
   }) as unknown as <T = any>() => AxiosPromise<T>;
 }
 

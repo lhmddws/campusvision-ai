@@ -1,22 +1,23 @@
 # See https://golangci-lint.run/ for documentation
+version: "2"
 linters:
-  enable:
-    - errcheck
-    - govet
-    - staticcheck
-    - gosimple
-    - ineffassign
-    - unused
+    enable:
+        - errcheck
+        - govet
+        - staticcheck
+        # gosimple merged into staticcheck in v2
+        - ineffassign
+        - unused
 
 linters-settings:
-  govet:
-    enable-all: true
-    disable:
-      - fieldalignment
+    govet:
+        enable-all: true
+        disable:
+            - fieldalignment
 
 issues:
-  max-issues-per-linter: 0
-  max-same-issues: 0
+    max-issues-per-linter: 0
+    max-same-issues: 0
 
 run:
-  timeout: 5m
+    timeout: 5m

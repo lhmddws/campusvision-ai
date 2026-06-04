@@ -22,7 +22,7 @@ export default function createVitePlugins(viteEnv: Record<string, string>, isBui
       runtimeOnly: true,
       compositionOnly: true,
       include: [resolve(__dirname, 'src/locales/**')],
-    })
+    }),
   );
   isBuild && vitePlugins.push(...createCompression(viteEnv));
   return vitePlugins;

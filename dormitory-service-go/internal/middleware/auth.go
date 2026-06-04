@@ -74,36 +74,3 @@ func (m *JWTAuthMiddleware) RequireAuth() gin.HandlerFunc {
 		c.Next()
 	}
 }
-
-// OptionalAuth is a middleware that checks auth but does not reject unauthenticated requests.
-func (m *JWTAuthMiddleware) OptionalAuth() gin.HandlerFunc {
-	return func(c *gin.Context) {
-		authHeader := c.GetHeader("Authorization")
-		if authHeader == "" {
-			c.Next()
-			return
-		}
-
-		parts := strings.SplitN(authHeader, " ", 2)
-		if len(parts) != 2 || !strings.EqualFold(parts[0], "Bearer") {
-			c.Next()
-			return
-		}
-
-		token, err := jwt.Parse(parts[1], func(token *jwt.Token) (interface{}, error) {
-			if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
-				return nil, jwt.ErrSignatureInvalid
-			}
-			return []byte(m.Secret), nil
-		})
-
-		if err == nil && token.Valid {
-			if claims, ok := token.Claims.(jwt.MapClaims); ok {
-				c.Set("user_id", claims["sub"])
-				c.Set("username", claims["username"])
-			}
-		}
-
-		c.Next()
-	}
-}

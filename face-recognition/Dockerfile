@@ -11,7 +11,7 @@ ENV HF_ENDPOINT=${HF_ENDPOINT}
 # Overwrite all sources with a single mirror entry (reliable across all mirrors)
 RUN if [ -n "$APT_MIRROR" ]; then \
         rm -f /etc/apt/sources.list /etc/apt/sources.list.d/*.sources 2>/dev/null; \
-        echo "deb $APT_MIRROR trixie main" > /etc/apt/sources.list; \
+        echo "deb $APT_MIRROR bookworm main" > /etc/apt/sources.list; \
     fi && \
     apt-get update && apt-get install -y --no-install-recommends \
     libgl1 libglib2.0-0 \

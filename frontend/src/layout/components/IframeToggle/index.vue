@@ -1,13 +1,13 @@
 <template>
-    <transition-group name="fade-transform" mode="out-in">
-        <inner-link
-            v-for="(item, index) in tagsViewStore.iframeViews"
-            v-show="route.path === item.path"
-            :key="item.path"
-            :iframeId="'iframe' + index"
-            :src="(item.meta.link as any)"
-        ></inner-link>
-    </transition-group>
+  <transition-group name="fade-transform" mode="out-in">
+    <inner-link
+      v-for="(item, index) in tagsViewStore.iframeViews"
+      v-show="route.path === item.path"
+      :key="item.path"
+      :iframeId="'iframe' + index"
+      :src="item.meta.link as any"
+    ></inner-link>
+  </transition-group>
 </template>
 
 <script setup lang="ts">

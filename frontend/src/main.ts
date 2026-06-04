@@ -23,7 +23,7 @@ import '@/assets/icons/custom/iconfont.css';
 import '@/plugins/animate.css';
 
 import App from './App.vue';
-import {store} from './store';
+import { store } from './store';
 import router from './router';
 import directive from './directive'; // directive
 

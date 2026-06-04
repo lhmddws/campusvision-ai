@@ -11,7 +11,7 @@ const props = defineProps({
   title: VueTypes.string.def('Dialog'),
   fullscreen: VueTypes.bool.def(false),
   width: VueTypes.oneOfType([String, Number]).def('400px'),
-  maxHeight: VueTypes.oneOfType([String, Number]).def('400px')
+  maxHeight: VueTypes.oneOfType([String, Number]).def('400px'),
 });
 
 const getBindValue = computed(() => {
@@ -48,10 +48,9 @@ watch(
     }
   },
   {
-    immediate: true
-  }
+    immediate: true,
+  },
 );
-
 </script>
 
 <template>
@@ -81,7 +80,7 @@ watch(
     </template>
 
     <!-- <ElScrollbar max-height="calc(80vh - 100px)"> -->
-      <slot></slot>
+    <slot></slot>
     <!-- </ElScrollbar> -->
 
     <template v-if="slots.footer" #footer>

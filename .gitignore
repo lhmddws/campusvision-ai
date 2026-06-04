@@ -22,7 +22,7 @@ Thumbs.db
 *.dylib
 *.test
 *.out
-go.work
+# go.work is intentionally committed — Go workspace for monorepo
 
 # ==================== Python ====================
 __pycache__/
@@ -53,6 +53,9 @@ npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 .pnpm-debug.log*
+
+# Large generated assets (download via scripts/download-font.sh)
+frontend/src/assets/styles/font.scss
 
 # ==================== Java (legacy) ====================
 *.class

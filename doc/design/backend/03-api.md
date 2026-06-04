@@ -2,7 +2,7 @@
 
 > **文档归属**: 后端开发 → API 设计  
 > **对应 PRD**: PRD-004 (主进程对接), PRD-005 (摄像头功能实现)  
-> **版本**: v1.0 · **更新**: 2026-05-15  
+> **版本**: v1.0 · **更新**: 2026-05-15
 
 ---
 
@@ -26,12 +26,12 @@
 
 ### 1.1 API 前缀
 
-| 部署阶段 | URL 前缀 |
-|---------|---------|
-| Phase 1 独立部署 | `/api/dormitory/*` |
+| 部署阶段           | URL 前缀                |
+| ------------------ | ----------------------- |
+| Phase 1 独立部署   | `/api/dormitory/*`      |
 | Phase 3 接入主进程 | `/api/sims/dormitory/*` |
 
-控制器层面通过 `server.servlet.context-path` 统一管理，不硬编码。
+路由前缀通过 Gin 的 `router.Group()` 统一管理，不硬编码。
 
 ### 1.2 统一响应格式
 
@@ -75,10 +75,10 @@
 }
 ```
 
-| 参数 | 默认值 | 约束 |
-|------|--------|------|
-| page | 1 | ≥ 1 |
-| size | 20 | 1 ~ 100 (max) |
+| 参数 | 默认值 | 约束          |
+| ---- | ------ | ------------- |
+| page | 1      | ≥ 1           |
+| size | 20     | 1 ~ 100 (max) |
 
 ### 1.4 日期时间格式
 
@@ -94,7 +94,7 @@ Phase 1 独立部署阶段使用简单 Token 认证：
 Authorization: Bearer <token>
 ```
 
-Phase 3 复用主进程的 Spring Security / JWT。
+Phase 3 复用主进程的 JWT 认证中间件。
 
 ---
 
@@ -161,11 +161,11 @@ GET /api/dormitory/nightly-report/{date}/building/{building}/room/{room}
 
 **参数:**
 
-| 参数 | 类型 | 必填 | 说明 |
-|------|------|------|------|
-| date | path | 是 | 日期 yyyy-MM-dd |
-| building | path | 否 | 楼栋 A/B/C/D |
-| room | path | 否 | 房间号 |
+| 参数     | 类型 | 必填 | 说明            |
+| -------- | ---- | ---- | --------------- |
+| date     | path | 是   | 日期 yyyy-MM-dd |
+| building | path | 否   | 楼栋 A/B/C/D    |
+| room     | path | 否   | 房间号          |
 
 **GET .../building/{building} Response:**
 
@@ -251,13 +251,13 @@ GET /api/dormitory/students/status?building=A&room=A-301&status=in&page=1&size=2
 
 **参数:**
 
-| 参数 | 类型 | 必填 | 说明 |
-|------|------|------|------|
-| building | query | 否 | 楼栋筛选 |
-| room | query | 否 | 房间筛选 |
-| status | query | 否 | in/out/unknown |
-| page | query | 否 | 页码，默认 1 |
-| size | query | 否 | 页大小，默认 20 |
+| 参数     | 类型  | 必填 | 说明            |
+| -------- | ----- | ---- | --------------- |
+| building | query | 否   | 楼栋筛选        |
+| room     | query | 否   | 房间筛选        |
+| status   | query | 否   | in/out/unknown  |
+| page     | query | 否   | 页码，默认 1    |
+| size     | query | 否   | 页大小，默认 20 |
 
 **Response 200:**
 
@@ -368,16 +368,16 @@ GET /api/dormitory/events?building=A&eventType=entry&isStranger=false&startTime=
 
 **参数:**
 
-| 参数 | 类型 | 必填 | 说明 |
-|------|------|------|------|
-| building | query | 否 | 楼栋 |
-| eventType | query | 否 | entry/exit |
-| studentId | query | 否 | 学号 |
-| isStranger | query | 否 | 是否陌生人 |
-| startTime | query | 否 | 开始时间 |
-| endTime | query | 否 | 结束时间 |
-| page | query | 否 | 页码，默认 1 |
-| size | query | 否 | 页大小，默认 20 |
+| 参数       | 类型  | 必填 | 说明            |
+| ---------- | ----- | ---- | --------------- |
+| building   | query | 否   | 楼栋            |
+| eventType  | query | 否   | entry/exit      |
+| studentId  | query | 否   | 学号            |
+| isStranger | query | 否   | 是否陌生人      |
+| startTime  | query | 否   | 开始时间        |
+| endTime    | query | 否   | 结束时间        |
+| page       | query | 否   | 页码，默认 1    |
+| size       | query | 否   | 页大小，默认 20 |
 
 **Response 200:**
 
@@ -419,16 +419,16 @@ GET /api/dormitory/alerts?building=A&severity=high&isResolved=false&page=1&size=
 
 **参数:**
 
-| 参数 | 类型 | 必填 | 说明 |
-|------|------|------|------|
-| building | query | 否 | 楼栋 |
-| alertType | query | 否 | STRANGER_ENTRY/LONG_ABSENT/... |
-| severity | query | 否 | low/medium/high/critical |
-| isResolved | query | 否 | 是否已处理 |
-| startTime | query | 否 | 开始时间 |
-| endTime | query | 否 | 结束时间 |
-| page | query | 否 | 页码 |
-| size | query | 否 | 页大小 |
+| 参数       | 类型  | 必填 | 说明                           |
+| ---------- | ----- | ---- | ------------------------------ |
+| building   | query | 否   | 楼栋                           |
+| alertType  | query | 否   | STRANGER_ENTRY/LONG_ABSENT/... |
+| severity   | query | 否   | low/medium/high/critical       |
+| isResolved | query | 否   | 是否已处理                     |
+| startTime  | query | 否   | 开始时间                       |
+| endTime    | query | 否   | 结束时间                       |
+| page       | query | 否   | 页码                           |
+| size       | query | 否   | 页大小                         |
 
 **Response 200:**
 
@@ -894,24 +894,24 @@ Response 200:
 
 ## 11. 错误码速查
 
-| HTTP 状态码 | 业务错误码 | 说明 | 触发场景 |
-|-------------|-----------|------|---------|
-| 400 | INVALID_PARAMETER | 请求参数校验失败 | building 不是 A/B/C/D |
-| 400 | BUILDING_INVALID | 楼栋参数不合法 | 传入了 E 栋 |
-| 400 | CAMERA_LIMIT_EXCEEDED | 摄像头数量已达上限 | 超过可配置的最大摄像头数 |
-| 401 | UNAUTHORIZED | 认证失败 | Token 无效/过期 |
-| 404 | NOT_FOUND | 资源不存在 | studentId 查无此人 |
-| 404 | STUDENT_NOT_FOUND | 学生未找到 | 同步数据中无此学号 |
-| 409 | CONFLICT | 数据冲突 | 重复统计同一日期 |
-| 409 | REPORT_ALREADY_EXISTS | 该日期已存在查宿统计 | 不可重复统计 |
-| 409 | SYNC_IN_PROGRESS | 同步任务执行中 | 正在同步时再次触发 |
-| 422 | UNPROCESSABLE_ENTITY | 业务规则校验失败 | 更新配置值不合法 |
-| 429 | TOO_MANY_REQUESTS | 请求频率超限 | 频繁调用 API |
-| 500 | INTERNAL_ERROR | 服务器内部错误 | 未捕获的异常 |
-| 503 | SERVICE_UNAVAILABLE | 服务暂不可用 | 数据库/Kafka 离线 |
+| HTTP 状态码 | 业务错误码            | 说明                 | 触发场景                 |
+| ----------- | --------------------- | -------------------- | ------------------------ |
+| 400         | INVALID_PARAMETER     | 请求参数校验失败     | building 不是 A/B/C/D    |
+| 400         | BUILDING_INVALID      | 楼栋参数不合法       | 传入了 E 栋              |
+| 400         | CAMERA_LIMIT_EXCEEDED | 摄像头数量已达上限   | 超过可配置的最大摄像头数 |
+| 401         | UNAUTHORIZED          | 认证失败             | Token 无效/过期          |
+| 404         | NOT_FOUND             | 资源不存在           | studentId 查无此人       |
+| 404         | STUDENT_NOT_FOUND     | 学生未找到           | 同步数据中无此学号       |
+| 409         | CONFLICT              | 数据冲突             | 重复统计同一日期         |
+| 409         | REPORT_ALREADY_EXISTS | 该日期已存在查宿统计 | 不可重复统计             |
+| 409         | SYNC_IN_PROGRESS      | 同步任务执行中       | 正在同步时再次触发       |
+| 422         | UNPROCESSABLE_ENTITY  | 业务规则校验失败     | 更新配置值不合法         |
+| 429         | TOO_MANY_REQUESTS     | 请求频率超限         | 频繁调用 API             |
+| 500         | INTERNAL_ERROR        | 服务器内部错误       | 未捕获的异常             |
+| 503         | SERVICE_UNAVAILABLE   | 服务暂不可用         | 数据库/Kafka 离线        |
 
 ---
 
 > **本文件属于**: `doc/design/backend/03-api.md`  
-> **面向读者**: Java 后端开发 + 前端对接（搭档）  
+> **面向读者**: Go 后端开发 + 前端对接（搭档）  
 > **累计端点**: 22 个 REST API

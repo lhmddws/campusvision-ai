@@ -41,7 +41,7 @@
           v-hasPermi="['system:user:edit']"
           type="primary"
           text
-          @click="handleUpdate(row,'edit')"
+          @click="handleUpdate(row, 'edit')"
         >
           修改
         </ElButton>
@@ -58,27 +58,31 @@
     </BasicTable>
 
     <!-- 添加部门 -->
-    <CreateDept v-model:visible="showCreateDept" :deptData="deptData" :title="deptTitle" @submit="getList"/>
-
+    <CreateDept
+      v-model:visible="showCreateDept"
+      :deptData="deptData"
+      :title="deptTitle"
+      @submit="getList"
+    />
   </ContentWrap>
 </template>
 
 <script setup lang="ts">
-import { Search } from "@/components/Search";
-import { ContentWrap } from "@/components/ContentWrap";
-import { BasicTable } from "@/components/Table";
-import { useTable } from "@/hooks/web/useTable";
-import { useCrudSchemas } from "@/hooks/web/useCrudSchemas";
-import { crudSchemas } from "./dept.config";
+import { Search } from '@/components/Search';
+import { ContentWrap } from '@/components/ContentWrap';
+import { BasicTable } from '@/components/Table';
+import { useTable } from '@/hooks/web/useTable';
+import { useCrudSchemas } from '@/hooks/web/useCrudSchemas';
+import { crudSchemas } from './dept.config';
 import CreateDept from './CreateDept.vue';
-import { getCurrentInstance, ComponentInternalInstance, ref, reactive, nextTick} from "vue";
-import { listDept, getDept, delDept} from "@/api/system/dept";
+import { getCurrentInstance, ComponentInternalInstance, ref, reactive, nextTick } from 'vue';
+import { listDept, getDept, delDept } from '@/api/system/dept';
 
 const { allSchemas } = useCrudSchemas(crudSchemas);
 const { proxy } = getCurrentInstance() as ComponentInternalInstance;
 
 // eslint-disable-next-line camelcase
-const { sys_normal_disable } = proxy!.useDict("sys_normal_disable");
+const { sys_normal_disable } = proxy!.useDict('sys_normal_disable');
 const isExpandAll = ref(true);
 const refreshTable = ref(true);
 const deptTitle = ref('添加部门');
@@ -87,18 +91,18 @@ const showCreateDept = ref(false);
 
 const btns = reactive([
   {
-    name: "新增",
-    type: "primary",
-    auth: ["system:dept:add"],
-    icon: "xinzeng",
+    name: '新增',
+    type: 'primary',
+    auth: ['system:dept:add'],
+    icon: 'xinzeng',
     handler: () => {
       handleUpdate();
     },
   },
   {
-    name: "展开/折叠",
-    type: "info",
-    icon: "zhedie",
+    name: '展开/折叠',
+    type: 'info',
+    icon: 'zhedie',
     handler: () => {
       handleTrigger();
     },
@@ -109,11 +113,11 @@ const { register, tableObject, methods } = useTable({
   getListApi: listDept as any,
   delListApi: delDept as any,
   response: {
-    list: "data",
-    total: "total",
+    list: 'data',
+    total: 'total',
   },
   afterFetch: (data: any) => {
-    return proxy!.handleTree(data, "deptId");
+    return proxy!.handleTree(data, 'deptId');
   },
 });
 const { getList, setSearchParams, delList } = methods;
@@ -122,14 +126,14 @@ getList();
 /** 修改按钮操作 */
 const handleUpdate = async (row?: any, type?: string) => {
   if (type === 'edit') {
-    deptTitle.value = "修改部门";
+    deptTitle.value = '修改部门';
     const { data } = await getDept(row.deptId);
     data.orderNum = Number(data.orderNum);
     deptData.value = data;
   } else {
-    deptTitle.value = "添加部门";
-    if(row !== undefined){
-      deptData.value = {parentId: row.deptId, isCreate: true};
+    deptTitle.value = '添加部门';
+    if (row !== undefined) {
+      deptData.value = { parentId: row.deptId, isCreate: true };
     }
   }
   showCreateDept.value = true;
@@ -142,7 +146,6 @@ const handleTrigger = () => {
     refreshTable.value = true;
   });
 };
-
 
 const handleDelete = (row?: any) => {
   proxy?.$modal

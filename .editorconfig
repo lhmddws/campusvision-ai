@@ -18,5 +18,20 @@ indent_size = 4
 indent_style = space
 indent_size = 2
 
+[*.{js,ts,jsx,tsx,vue}]
+indent_style = space
+indent_size = 2
+
+[*.{css,scss}]
+indent_style = space
+indent_size = 2
+
+[Dockerfile]
+indent_style = tab
+
+[*.sh]
+indent_style = space
+indent_size = 2
+
 [Makefile]
 indent_style = tab

@@ -16,17 +16,15 @@ export const useForm = (props?: FormProps) => {
    * @param elRef ElForm实例
    */
   const register = (ref: typeof BasicForm & FormExpose, elRef: ComponentRef<typeof ElForm>) => {
-
     formRef.value = ref;
     elFormRef.value = elRef;
 
     props && methods.setProps(props);
-
   };
 
   const getForm = async () => {
     await nextTick();
-    setTimeout(()=>{
+    setTimeout(() => {
       const form = unref(formRef);
       if (!form) {
         console.error('The form is not registered. Please use the register method to register');
@@ -34,17 +32,16 @@ export const useForm = (props?: FormProps) => {
       return form;
     });
     return unref(formRef);
-
   };
 
   // 一些内置的方法
   const methods: {
-    setProps: (props: Recordable) => void
-    setValues: (data: Recordable) => void
-    getFormData: <T = Recordable | undefined>() => Promise<T>
-    setSchema: (schemaProps: FormSetPropsType[]) => void
-    addSchema: (formSchema: FormSchema, index?: number) => void
-    delSchema: (field: string) => void
+    setProps: (props: Recordable) => void;
+    setValues: (data: Recordable) => void;
+    getFormData: <T = Recordable | undefined>() => Promise<T>;
+    setSchema: (schemaProps: FormSetPropsType[]) => void;
+    addSchema: (formSchema: FormSchema, index?: number) => void;
+    delSchema: (field: string) => void;
   } = {
     setProps: async (props: FormProps = {}) => {
       const form = await getForm();
@@ -90,13 +87,12 @@ export const useForm = (props?: FormProps) => {
     getFormData: async <T = Recordable>(): Promise<T> => {
       const form = await getForm();
       return form?.formModel as T;
-    }
+    },
   };
-
 
   return {
     register,
     elFormRef,
-    methods
+    methods,
   };
 };

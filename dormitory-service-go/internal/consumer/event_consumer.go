@@ -5,8 +5,6 @@ import (
 	"database/sql"
 	"encoding/json"
 	"fmt"
-	"strconv"
-	"strings"
 	"time"
 
 	"github.com/segmentio/kafka-go"
@@ -18,12 +16,6 @@ import (
 	redisclient "github.com/sims/campusvision/dormitory-service-go/internal/redis"
 	"github.com/sims/campusvision/dormitory-service-go/internal/repository"
 )
-
-// buildingCacheTTL is how long a resolved building code→ID mapping stays in Redis.
-const buildingCacheTTL = 1 * time.Hour
-
-// buildingCacheKeyPrefix is the Redis key prefix for building code→ID lookups.
-const buildingCacheKeyPrefix = "dorm:building:code:"
 
 // EventConsumer consumes t_dorm_event messages from Kafka and processes them
 // into the dormitory-service database with Redis-based deduplication.
@@ -207,46 +199,6 @@ func (c *EventConsumer) processMessage(ctx context.Context, msg kafka.Message) e
 	}
 
 	return nil
-}
-
-// resolveBuildingID converts a building code (A/B/C/D) to a numeric building ID.
-// Uses Redis cache → DB fallback.
-func (c *EventConsumer) resolveBuildingID(ctx context.Context, buildingCode string) int64 {
-	if buildingCode == "" {
-		return 0
-	}
-
-	code := strings.ToUpper(strings.TrimSpace(buildingCode))
-	cacheKey := buildingCacheKeyPrefix + code
-
-	// Check Redis cache
-	cachedID, err := c.rdb.Get(ctx, cacheKey)
-	if err == nil && cachedID != "" {
-		id, parseErr := strconv.ParseInt(cachedID, 10, 64)
-		if parseErr == nil {
-			return id
-		}
-	}
-
-	// Cache miss — query dorm_building table via repository
-	building, err := c.buildingRepo.FindByCode(ctx, code)
-	if err != nil {
-		c.logger.Warn("Building code not found in database",
-			zap.String("code", code),
-			zap.Error(err),
-		)
-		return 0
-	}
-
-	// Cache for 1 hour
-	if cacheErr := c.rdb.Set(ctx, cacheKey, strconv.FormatInt(building.ID, 10), buildingCacheTTL); cacheErr != nil {
-		c.logger.Warn("Failed to cache building ID",
-			zap.Error(cacheErr),
-			zap.String("code", code),
-		)
-	}
-
-	return building.ID
 }
 
 // buildEventLog creates a DormEventLog entity from the incoming event message.

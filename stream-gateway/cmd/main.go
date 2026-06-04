@@ -23,8 +23,14 @@ import (
 )
 
 func main() {
+	// Config is loaded via --config CLI flag (unlike other modules which use CONFIG_PATH env var).
 	configPath := flag.String("config", "config.yaml", "path to config file")
 	flag.Parse()
+
+	// CONFIG_PATH env var as fallback (matching dormitory-service-go convention)
+	if envPath := os.Getenv("CONFIG_PATH"); envPath != "" {
+		configPath = &envPath
+	}
 
 	cfg, err := config.Load(*configPath)
 	if err != nil {
@@ -35,7 +41,7 @@ func main() {
 	defer cancel()
 
 	producer := kafka.NewProducer(cfg.Kafka)
-	defer producer.Close()
+	defer func() { _ = producer.Close() }()
 
 	var encKey []byte
 	if keyStr := os.Getenv(crypto.EnvKey); keyStr != "" {
@@ -68,6 +74,10 @@ func main() {
 		Addr:    fmt.Sprintf(":%d", healthAddr),
 		Handler: mux,
 	}
+	healthServer.ReadTimeout = 10 * time.Second
+	healthServer.WriteTimeout = 10 * time.Second
+	healthServer.IdleTimeout = 30 * time.Second
+	healthServer.ReadHeaderTimeout = 5 * time.Second
 
 	go func() {
 		log.Printf("Health API listening on :%d", healthAddr)
@@ -89,6 +99,11 @@ func main() {
 		Addr:    mgrAddr,
 		Handler: mgrMux,
 	}
+	mgrServer.ReadTimeout = 10 * time.Second
+	mgrServer.WriteTimeout = 10 * time.Second
+	mgrServer.IdleTimeout = 30 * time.Second
+	mgrServer.ReadHeaderTimeout = 5 * time.Second
+
 	go func() {
 		log.Printf("Management API listening on %s", mgrAddr)
 		if err := mgrServer.ListenAndServe(); err != nil && err != http.ErrServerClosed {
@@ -101,10 +116,10 @@ func main() {
 	<-quit
 
 	log.Println("Shutting down...")
+	cancel() // stop dbPollLoop first — ctx must be cancelled before manager shutdown
 	camManager.Stop()
-	healthServer.Shutdown(ctx)
-	mgrServer.Shutdown(ctx)
-	cancel() // cancel AFTER Shutdown — ctx must be alive during graceful drain
+	_ = healthServer.Shutdown(ctx)
+	_ = mgrServer.Shutdown(ctx)
 }
 
 func dbPollLoop(ctx context.Context, dbCfg config.DatabaseConfig, camManager *camera.Manager) {
@@ -113,12 +128,12 @@ func dbPollLoop(ctx context.Context, dbCfg config.DatabaseConfig, camManager *ca
 		log.Printf("[dbpoll] failed to open DB: %v", err)
 		return
 	}
-	defer db.Close()
+	defer func() { _ = db.Close() }()
 
 	// Connection pool limits for DB polling (low volume, periodic sync).
-	db.SetMaxOpenConns(10)
-	db.SetMaxIdleConns(5)
-	db.SetConnMaxLifetime(5 * time.Minute)
+	db.SetMaxOpenConns(dbCfg.MaxOpenConns)
+	db.SetMaxIdleConns(dbCfg.MaxIdleConns)
+	db.SetConnMaxLifetime(dbCfg.ConnMaxLifetime)
 
 	if err := db.PingContext(ctx); err != nil {
 		log.Printf("[dbpoll] DB ping failed: %v", err)
@@ -146,7 +161,7 @@ func syncCamerasFromDB(ctx context.Context, db *sql.DB, camManager *camera.Manag
 		log.Printf("[dbpoll] query error: %v", err)
 		return
 	}
-	defer rows.Close()
+	defer func() { _ = rows.Close() }()
 
 	var cameras []config.CameraConfig
 	for rows.Next() {

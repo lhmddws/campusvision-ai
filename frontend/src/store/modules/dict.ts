@@ -3,8 +3,8 @@ import { store } from '../index';
 
 const useDictStore = defineStore('dict', {
   state: (): {
-        dict: any[];
-    } => ({
+    dict: any[];
+  } => ({
     dict: [],
   }),
   actions: {
@@ -58,10 +58,9 @@ const useDictStore = defineStore('dict', {
   },
 });
 
-
 export interface DictState {
-  isSetDict: boolean
-  dictObj: Recordable
+  isSetDict: boolean;
+  dictObj: Recordable;
 }
 
 // export const useDictStore = defineStore('dict', {

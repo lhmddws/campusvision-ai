@@ -9,68 +9,67 @@ import { DescriptionsSchema } from '@/types/descriptions';
 import { reactive } from 'vue';
 import { useDict } from '@/utils/dict';
 
-
 export type CrudSchema = Omit<TableColumn, 'children'> & {
-  search?: CrudSearchParams
-  table?: CrudTableParams
-  form?: CrudFormParams
-  detail?: CrudDescriptionsParams
-  children?: CrudSchema[]
-}
+  search?: CrudSearchParams;
+  table?: CrudTableParams;
+  form?: CrudFormParams;
+  detail?: CrudDescriptionsParams;
+  children?: CrudSchema[];
+};
 
 type CrudSearchParams = {
   // 是否显示在查询项
-  show?: boolean
+  show?: boolean;
   // 字典名称，会去取全局的字典
-  dictName?: string
+  dictName?: string;
   // 接口
-  api?: () => Promise<any>
+  api?: () => Promise<any>;
   // 搜索字段
-  field?: string
-} & Omit<FormSchema, 'field'>
+  field?: string;
+} & Omit<FormSchema, 'field'>;
 
 type CrudTableParams = {
   // 是否显示表头
-  show?: boolean
-} & Omit<FormSchema, 'field'>
+  show?: boolean;
+} & Omit<FormSchema, 'field'>;
 
 type CrudFormParams = {
   // 字典名称，会去取全局的字典
-  dictName?: string
+  dictName?: string;
   // 接口
-  api?: () => Promise<any>
+  api?: () => Promise<any>;
   // 是否显示表单项
-  show?: boolean
-} & Omit<FormSchema, 'field'>
+  show?: boolean;
+} & Omit<FormSchema, 'field'>;
 
 type CrudDescriptionsParams = {
   // 是否显示表单项
-  show?: boolean
-} & Omit<DescriptionsSchema, 'field'>
+  show?: boolean;
+} & Omit<DescriptionsSchema, 'field'>;
 
 const dictStore = useDictStoreWithOut();
 
 const { t } = useI18n();
 
 interface AllSchemas {
-  searchSchema: FormSchema[]
-  tableColumns: TableColumn[]
-  formSchema: FormSchema[]
-  detailSchema: DescriptionsSchema[]
+  searchSchema: FormSchema[];
+  tableColumns: TableColumn[];
+  formSchema: FormSchema[];
+  detailSchema: DescriptionsSchema[];
 }
 
 // 过滤所有结构
 export const useCrudSchemas = (
-  crudSchema: CrudSchema[]
+  crudSchema: CrudSchema[],
 ): {
-  allSchemas: AllSchemas
+  allSchemas: AllSchemas;
 } => {
   // 所有结构数据
   const allSchemas = reactive<AllSchemas>({
     searchSchema: [],
     tableColumns: [],
     formSchema: [],
-    detailSchema: []
+    detailSchema: [],
   });
 
   const searchSchema = filterSearchSchema(crudSchema, allSchemas);
@@ -86,7 +85,7 @@ export const useCrudSchemas = (
   allSchemas.detailSchema = detailSchema;
 
   return {
-    allSchemas
+    allSchemas,
   };
 };
 
@@ -106,14 +105,16 @@ const filterSearchSchema = (crudSchema: CrudSchema[], allSchemas: AllSchemas): F
         componentProps: {},
         ...schemaItem.search,
         field: schemaItem?.search?.field || schemaItem.field,
-        label: schemaItem.search?.label || schemaItem.label
+        label: schemaItem.search?.label || schemaItem.label,
       };
 
       if (searchSchemaItem.dictName) {
         // 如果有 dictName 则证明是从字典中获取数据
         const dictArr = useDict(searchSchemaItem.dictName);
-        searchSchemaItem.componentProps!.options = filterOptions(dictArr[searchSchemaItem.dictName].value,
-          searchSchemaItem.componentProps.optionsAlias?.labelField);
+        searchSchemaItem.componentProps!.options = filterOptions(
+          dictArr[searchSchemaItem.dictName].value,
+          searchSchemaItem.componentProps.optionsAlias?.labelField,
+        );
       } else if (searchSchemaItem.api) {
         searchRequestTask.push(async () => {
           const res = await (searchSchemaItem.api as () => AxiosPromise)();
@@ -124,7 +125,7 @@ const filterSearchSchema = (crudSchema: CrudSchema[], allSchemas: AllSchemas): F
             if (index !== -1) {
               allSchemas.searchSchema[index]!.componentProps!.options = filterOptions(
                 res[searchSchemaItem.componentProps.optionsAlias?.dataField || 'data'],
-                searchSchemaItem.componentProps.optionsAlias?.labelField
+                searchSchemaItem.componentProps.optionsAlias?.labelField,
               );
             }
           }
@@ -153,14 +154,14 @@ const filterTableSchema = (crudSchema: CrudSchema[]): TableColumn[] => {
       if (schema?.table?.show !== false) {
         return {
           ...schema.table,
-          ...schema
+          ...schema,
         };
       }
-    }
+    },
   });
 
   // 第一次过滤会有 undefined 所以需要二次过滤
-  return filter<TableColumn>(tableColumns as TableColumn[], (data) => {
+  return filter<TableColumn>(tableColumns as TableColumn[], data => {
     if (data.children === void 0) {
       delete data.children;
     }
@@ -184,14 +185,16 @@ const filterFormSchema = (crudSchema: CrudSchema[], allSchemas: AllSchemas): For
         componentProps: {},
         ...schemaItem.form,
         field: schemaItem.field,
-        label: schemaItem.search?.label || schemaItem.label
+        label: schemaItem.search?.label || schemaItem.label,
       };
 
       if (formSchemaItem.dictName) {
         // 如果有 dictName 则证明是从字典中获取数据
         const dictArr = useDict(formSchemaItem.dictName);
-        formSchemaItem.componentProps!.options =  filterOptions(dictArr[formSchemaItem.dictName].value,
-          searchSchemaItem.componentProps.optionsAlias?.labelField);
+        formSchemaItem.componentProps!.options = filterOptions(
+          dictArr[formSchemaItem.dictName].value,
+          searchSchemaItem.componentProps.optionsAlias?.labelField,
+        );
       } else if (formSchemaItem.api) {
         formRequestTask.push(async () => {
           const res = await (formSchemaItem.api as () => AxiosPromise)();
@@ -202,7 +205,7 @@ const filterFormSchema = (crudSchema: CrudSchema[], allSchemas: AllSchemas): For
             if (index !== -1) {
               allSchemas.formSchema[index]!.componentProps!.options = filterOptions(
                 res[formSchemaItem.componentProps.optionsAlias?.dataField || 'data'],
-                formSchemaItem.componentProps.optionsAlias?.labelField
+                formSchemaItem.componentProps.optionsAlias?.labelField,
               );
             }
           }
@@ -233,7 +236,7 @@ const filterDescriptionsSchema = (crudSchema: CrudSchema[]): DescriptionsSchema[
       const descriptionsSchemaItem = {
         ...schemaItem.detail,
         field: schemaItem.field,
-        label: schemaItem.detail?.label || schemaItem.label
+        label: schemaItem.detail?.label || schemaItem.label,
       };
 
       // 删除不必要的字段

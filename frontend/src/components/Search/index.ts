@@ -1,3 +1,3 @@
-import Search from './src/Search.vue'
+import Search from './src/Search.vue';
 
-export { Search }
+export { Search };

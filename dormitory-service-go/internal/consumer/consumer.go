@@ -2,7 +2,6 @@ package consumer
 
 import (
 	"context"
-	"sync"
 
 	"go.uber.org/zap"
 )
@@ -30,22 +29,6 @@ func NewManager(logger *zap.Logger) *Manager {
 // Register adds a consumer to the manager.
 func (m *Manager) Register(consumer Consumer) {
 	m.consumers = append(m.consumers, consumer)
-}
-
-// Start starts all registered consumers.
-func (m *Manager) Start(ctx context.Context) {
-	m.logger.Info("Starting all Kafka consumers", zap.Int("count", len(m.consumers)))
-
-	var wg sync.WaitGroup
-	for _, c := range m.consumers {
-		wg.Add(1)
-		consumer := c
-		go func() {
-			defer wg.Done()
-			consumer.Start(ctx)
-		}()
-	}
-	wg.Wait()
 }
 
 // Stop gracefully stops all registered consumers.

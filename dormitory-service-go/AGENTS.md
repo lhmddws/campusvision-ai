@@ -28,6 +28,7 @@ internal/
 ## Entry Point
 
 `cmd/dormitory-service/main.go` — single `main()` that wires everything:
+
 1. Load config via `CONFIG_PATH` env var (default `config.yaml`)
 2. Connect MariaDB (sqlx) + Redis (go-redis)
 3. Initialize 8 repositories → 5 services → 5 handlers
@@ -37,50 +38,61 @@ internal/
 
 ## Key Packages
 
-| Package | Purpose | Key Types |
-|---|---|---|
-| `consumer` | Kafka event processing pipeline | `EventConsumer`, `AlertConsumer`, `Manager`, `Consumer` interface |
-| `repository` | Generic CRUD + domain queries | `BaseRepository[T]` (generics), 8 domain repos |
-| `service` | Business logic layer | `CameraService`, `RecordService`, `AlertService`, `ConfigService`, `ReportService` |
-| `handler` | HTTP request handling | 5 handler structs + shared `Handler` (holds `*sqlx.DB` for face endpoints) |
-| `scheduler` | Cron job management | `Manager` (robfig/cron), `NightlyReportJob`, `HealthCheckJob` |
-| `redis` | Dedup + caching | `Client` wrapper, `CheckAndSetDedup` (key: `dedup:{camera_id}:{frame_sequence}`) |
-| `model/entity` | DB row mappings | 12 structs with `db:"column"` tags, `sql.Null*` for nullable columns |
-| `model/enums` | Domain constants | `EventType`, `AlertType`, `CameraStatus`, `StudentStatus`, etc. |
+| Package        | Purpose                         | Key Types                                                                          |
+| -------------- | ------------------------------- | ---------------------------------------------------------------------------------- |
+| `consumer`     | Kafka event processing pipeline | `EventConsumer`, `AlertConsumer`, `Manager`, `Consumer` interface                  |
+| `repository`   | Generic CRUD + domain queries   | `BaseRepository[T]` (generics), 8 domain repos                                     |
+| `service`      | Business logic layer            | `CameraService`, `RecordService`, `AlertService`, `ConfigService`, `ReportService` |
+| `handler`      | HTTP request handling           | 5 handler structs + shared `Handler` (holds `*sqlx.DB` for face endpoints)         |
+| `scheduler`    | Cron job management             | `Manager` (robfig/cron), `NightlyReportJob`, `HealthCheckJob`                      |
+| `redis`        | Dedup + caching                 | `Client` wrapper, `CheckAndSetDedup` (key: `dedup:{camera_id}:{frame_sequence}`)   |
+| `model/entity` | DB row mappings                 | 12 structs with `db:"column"` tags, `sql.Null*` for nullable columns               |
+| `model/enums`  | Domain constants                | `EventType`, `AlertType`, `CameraStatus`, `StudentStatus`, etc.                    |
 
 ## Critical Gotchas
 
 ### AlertConsumer Is Inert
+
 `alert_consumer.go:84-88` — logs every message and commits offset. No action routing, no notification dispatch. Skeleton for future implementation.
 
 ### FaceEmbed Is a Stub
+
 `handler/face.go:35` — `POST /api/face/embed` returns `{success: true, embedding: null}`. No ONNX model integration. FaceMatch (`handler/face.go:68`) works but does **O(n) full table scan** of `face_embedding` with cosine similarity — will not scale.
 
 ### ReportService Is a Skeleton
+
 `service/report_service.go:26` — `GenerateNightlyReport` has a TODO, creates a placeholder report with zero aggregation.
 
 ### AES Key — Now Synchronized with stream-gateway
+
 `util/crypto.go:32` — dev key `"01234567890123456789012345678901"` matches stream-gateway's dev key. The `init()` function in `crypto.go` reads `CAMERA_ENCRYPTION_KEY` env var at startup, matching stream-gateway's pattern. Both modules share the same dev key and env-var override mechanism.
 
 ### Config Loading: CONFIG_PATH (Not CLI Flag)
+
 `cmd/dormitory-service/main.go:33` — uses `CONFIG_PATH` env var, not `--config` CLI flag like stream-gateway. Config also accepts Spring Boot env vars (`SPRING_DATASOURCE_URL`, `KAFKA_BOOTSTRAP_SERVERS`, etc.) via `config.go:107-144`.
 
 ### Camera Limit Hardcoded
+
 `service/camera_service.go:49` — max 50 cameras, checked via `FindAll()` count (not atomic). Race condition possible under concurrent registration.
 
 ### HealthCheck Pings Hardcoded URL
+
 `service/camera_service.go:272` — `http://localhost:8080/health` is hardcoded. Won't work in Docker or non-default stream-gateway deployments.
 
 ### JWT Dev Secret
+
 `config.yaml:25` — default secret `"your-256-bit-secret"`. `main.go:50` warns but does not block startup. Must match main backend's signing key in production via `JWT_SECRET` env var.
 
 ### BaseRepository Uses Reflection
+
 `repository/base.go:88-112` — `getDBColumns[T]()` extracts columns from `db` struct tags via reflection. Entities without `db` tags produce zero columns → Create fails with "no columns found". ORDER BY is whitelist-validated (`base.go:47-61`) to prevent SQL injection.
 
 ### Redis Dedup Matches Java Format
+
 `redis/client.go:83-85` — key `dedup:{camera_id}:{frame_sequence}`, TTL 3600s. Must stay compatible with any Java service rewrites.
 
 ### EventConsumer Bypasses Service Layer
+
 `consumer/event_consumer.go` — calls repositories directly (not services) for event processing. Business logic in consumer is duplicated from service layer (student status update, stranger handling).
 
 ## Testing
@@ -91,9 +103,9 @@ internal/
 
 ## Configuration
 
-| File | Usage |
-|---|---|
-| `config.yaml` | Local dev (port 8083, localhost Kafka/Redis/MariaDB) |
-| `config.docker.yaml` | Docker Compose override (service hostnames) |
+| File                 | Usage                                                |
+| -------------------- | ---------------------------------------------------- |
+| `config.yaml`        | Local dev (port 8083, localhost Kafka/Redis/MariaDB) |
+| `config.docker.yaml` | Docker Compose override (service hostnames)          |
 
 **Config precedence**: defaults < config.yaml < env vars. Viper-based with `AutomaticEnv()` and Spring Boot env var mapping.

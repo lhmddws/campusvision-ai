@@ -53,6 +53,50 @@ func (r *StudentRepository) FindByRoom(ctx context.Context, room string) ([]enti
 	return students, nil
 }
 
+// InspectionRow represents a single row from the inspection list query.
+type InspectionRow struct {
+	Building     string `db:"building"`
+	Room         string `db:"room"`
+	StudentID    string `db:"student_id"`
+	StudentName  string `db:"student_name"`
+	TodayStatus  string `db:"today_status"`
+}
+
+// FindInspectionList returns all active students in a building with their today's
+// latest entry/exit status, computed via a correlated subquery on dorm_entry_exit_event.
+func (r *StudentRepository) FindInspectionList(ctx context.Context, building string, today string) ([]InspectionRow, error) {
+	query := `
+		SELECT s.building, s.room, s.student_id, s.student_name,
+		       COALESCE(
+		         (SELECT e.event_type FROM dorm_entry_exit_event e
+		          WHERE e.student_id = s.student_id
+		            AND DATE(e.timestamp) = ?
+		          ORDER BY e.timestamp DESC LIMIT 1
+		         ), 'unknown'
+		       ) as today_status
+		FROM dorm_student_assignment s
+		WHERE s.building = ? AND s.active = 1
+		ORDER BY s.room, s.student_name
+	`
+	var rows []InspectionRow
+	err := r.DB.SelectContext(ctx, &rows, query, today, building)
+	if err != nil {
+		return nil, fmt.Errorf("find inspection list for building %s: %w", building, err)
+	}
+	return rows, nil
+}
+
+// CountActiveByBuilding returns the number of active students in a building.
+func (r *StudentRepository) CountActiveByBuilding(ctx context.Context, building string) (int64, error) {
+	var count int64
+	query := "SELECT COUNT(*) FROM dorm_student_assignment WHERE building = ? AND active = 1"
+	err := r.DB.GetContext(ctx, &count, query, building)
+	if err != nil {
+		return 0, fmt.Errorf("count active students by building %s: %w", building, err)
+	}
+	return count, nil
+}
+
 // FindWithPagination paginates students with optional building filter.
 func (r *StudentRepository) FindWithPagination(ctx context.Context, building string, page, size int) ([]entity.DormStudent, int64, error) {
 	where := ""

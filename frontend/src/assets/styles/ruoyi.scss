@@ -96,11 +96,11 @@ h6 {
   ::-webkit-scrollbar-thumb:hover {
     cursor: pointer;
     background-color: #0003;
-}
+  }
   &::-webkit-scrollbar-thumb {
     background-color: #0003;
     border-radius: 10px;
-    transition: all .2s ease-in-out;
+    transition: all 0.2s ease-in-out;
   }
   &::-webkit-scrollbar-track {
     border-radius: 10px;
@@ -171,7 +171,7 @@ h6 {
     line-height: 21px;
     color: #63656a;
   }
-  &.el-form--inline .el-form-item{
+  &.el-form--inline .el-form-item {
     margin-right: 16px !important;
   }
 }
@@ -188,7 +188,7 @@ h6 {
     }
   }
   .el-table__body-wrapper {
-    .el-button [class*="el-icon-"] + span {
+    .el-button [class*='el-icon-'] + span {
       margin-left: 1px;
     }
   }

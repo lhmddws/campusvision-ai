@@ -5,7 +5,7 @@
 > **所属系统**: 学生管理系统（Student Management System）— 宿舍管理 AI 子系统  
 > **版本**: v1.1  
 > **最后更新**: 2026-05-18  
-> **状态**: 实施完成  
+> **状态**: 实施完成
 
 ---
 
@@ -30,15 +30,15 @@
 
 ### 1.2 部署规模
 
-| 项目 | 规格 |
-|------|------|
+| 项目       | 规格                                     |
+| ---------- | ---------------------------------------- |
 | 摄像头总数 | **多路**（可扩展，通过管理平台动态注册） |
-| 部署位置 | A/B/C/D 栋宿舍楼入口各 1 个（示例配置） |
-| 房型 | 固定枪机，朝向入口通道 |
-| 分辨率 | 1080p (1920×1080) / 720p 可配 |
-| 协议 | RTSP / ONVIF |
-| 供电 | PoE |
-| 抓拍内容 | 仅入口进出画面 |
+| 部署位置   | A/B/C/D 栋宿舍楼入口各 1 个（示例配置）  |
+| 房型       | 固定枪机，朝向入口通道                   |
+| 分辨率     | 1080p (1920×1080) / 720p 可配            |
+| 协议       | RTSP / ONVIF                             |
+| 供电       | PoE                                      |
+| 抓拍内容   | 仅入口进出画面                           |
 
 ### 1.3 本模块与感知层的分工
 
@@ -60,18 +60,18 @@
 
 **谁做什么**:
 
-| 工作 | 负责人 | 说明 |
-|------|--------|------|
-| RTSP 拉流 + 解码 + 抽帧 | 感知层 (Go Stream Gateway) | 真正的音视频处理 |
-| Kafka 推送 t_dorm_frame | 感知层 (Go Stream Gateway) | 帧数据 |
-| 人脸检测/识别/方向 | 感知层 (Python Face Recognition) | AI 推理 |
-| Kafka 推送 t_dorm_event | 感知层 (Python Face Recognition) | 事件 |
-| **摄像头设备注册** | **本模块 (SpringBoot)** | 录入摄像头信息 |
-| **摄像头状态监控** | **本模块 (SpringBoot)** | 定期检测连通性 |
-| **摄像头配置管理** | **本模块 (SpringBoot)** | 管理 RTSP 地址等 |
-| **摄像头-楼栋绑定** | **本模块 (SpringBoot)** | 管理部署关系 |
-| **摄像头离线告警** | **本模块 (SpringBoot)** | 长时间无事件 → 告警 |
-| **抓拍历史查询** | **本模块 (SpringBoot)** | 按摄像头/时间检索 |
+| 工作                    | 负责人                           | 说明                |
+| ----------------------- | -------------------------------- | ------------------- |
+| RTSP 拉流 + 解码 + 抽帧 | 感知层 (Go Stream Gateway)       | 真正的音视频处理    |
+| Kafka 推送 t_dorm_frame | 感知层 (Go Stream Gateway)       | 帧数据              |
+| 人脸检测/识别/方向      | 感知层 (Python Face Recognition) | AI 推理             |
+| Kafka 推送 t_dorm_event | 感知层 (Python Face Recognition) | 事件                |
+| **摄像头设备注册**      | **本模块 (SpringBoot)**          | 录入摄像头信息      |
+| **摄像头状态监控**      | **本模块 (SpringBoot)**          | 定期检测连通性      |
+| **摄像头配置管理**      | **本模块 (SpringBoot)**          | 管理 RTSP 地址等    |
+| **摄像头-楼栋绑定**     | **本模块 (SpringBoot)**          | 管理部署关系        |
+| **摄像头离线告警**      | **本模块 (SpringBoot)**          | 长时间无事件 → 告警 |
+| **抓拍历史查询**        | **本模块 (SpringBoot)**          | 按摄像头/时间检索   |
 
 ### 1.4 数据流
 
@@ -127,20 +127,20 @@ Response:
 
 本模块维护的 `dorm_camera` 表中的 RTSP 地址，感知层的 `config.yaml` 可以从中同步（可选，目前为本地配置）：
 
-| 方式 | 说明 | 推荐 |
-|------|------|------|
-| 感知层本地配置 | Stream Gateway 从本地 config.yaml 读取 | ⭐ MVP 阶段推荐 |
-| 本模块 API 下发 | Stream Gateway 启动时从本模块拉取 | 后续增强 |
+| 方式            | 说明                                   | 推荐            |
+| --------------- | -------------------------------------- | --------------- |
+| 感知层本地配置  | Stream Gateway 从本地 config.yaml 读取 | ⭐ MVP 阶段推荐 |
+| 本模块 API 下发 | Stream Gateway 启动时从本模块拉取      | 后续增强        |
 
 > MVP 阶段感知层使用本地 config.yaml 配置摄像头。本模块的 `dorm_camera` 表作为管理后台的配置视图，暂不下发。
 
 ### 2.3 摄像头离线判定
 
-| 判定方式 | 说明 | 由谁判定 |
-|---------|------|---------|
-| **Stream Gateway 断连** | RTSP 连接断开 | 感知层判定，health API 报告 |
-| **超时无事件** | 某摄像头超过 N 分钟无 `t_dorm_event` 产生 | **本模块判定**（消费延迟检测） |
-| **Health API 无响应** | Stream Gateway 进程挂了 | **本模块判定**（HTTP 超时） |
+| 判定方式                | 说明                                      | 由谁判定                       |
+| ----------------------- | ----------------------------------------- | ------------------------------ |
+| **Stream Gateway 断连** | RTSP 连接断开                             | 感知层判定，health API 报告    |
+| **超时无事件**          | 某摄像头超过 N 分钟无 `t_dorm_event` 产生 | **本模块判定**（消费延迟检测） |
+| **Health API 无响应**   | Stream Gateway 进程挂了                   | **本模块判定**（HTTP 超时）    |
 
 ---
 
@@ -148,28 +148,28 @@ Response:
 
 ### 3.1 摄像头设备 CRUD (F-CAM-001) | P0
 
-| 操作 | 说明 | 约束 |
-|------|------|------|
-| 新增摄像头 | 录入 ID、名称、楼栋、RTSP 地址等 | 上限可配置（默认不限制） |
-| 编辑摄像头 | 修改 RTSP 地址、分辨率、备注等 | |
-| 删除摄像头 | 删除设备记录 | 物理删除或标记删除 |
-| 查询摄像头列表 | 支持按楼栋/状态筛选 | |
-| 查询单个摄像头详情 | 完整信息 + 实时状态 | |
+| 操作               | 说明                             | 约束                     |
+| ------------------ | -------------------------------- | ------------------------ |
+| 新增摄像头         | 录入 ID、名称、楼栋、RTSP 地址等 | 上限可配置（默认不限制） |
+| 编辑摄像头         | 修改 RTSP 地址、分辨率、备注等   |                          |
+| 删除摄像头         | 删除设备记录                     | 物理删除或标记删除       |
+| 查询摄像头列表     | 支持按楼栋/状态筛选              |                          |
+| 查询单个摄像头详情 | 完整信息 + 实时状态              |                          |
 
 #### 字段设计
 
-| 字段 | 类型 | 示例 | 说明 |
-|------|------|------|------|
-| camera_id | string | `cam-a` | 唯一 ID |
-| name | string | `A栋入口摄像头` | 显示名称 |
-| building | string | `A` | 所在楼栋 |
-| rtsp_url | string | `rtsp://admin:pwd@192.168.1.101:554/stream1` | RTSP 地址 |
-| status | enum | `online` / `offline` / `unknown` | 当前状态 |
-| direction | enum | `entry` | 用途（目前只有入口） |
-| resolution | string | `1280x720` | 分辨率 |
-| last_heartbeat | datetime | | 最近一次心跳 |
-| enabled | bool | true | 是否启用 |
-| remark | string | | 备注 |
+| 字段           | 类型     | 示例                                         | 说明                 |
+| -------------- | -------- | -------------------------------------------- | -------------------- |
+| camera_id      | string   | `cam-a`                                      | 唯一 ID              |
+| name           | string   | `A栋入口摄像头`                              | 显示名称             |
+| building       | string   | `A`                                          | 所在楼栋             |
+| rtsp_url       | string   | `rtsp://admin:pwd@192.168.1.101:554/stream1` | RTSP 地址            |
+| status         | enum     | `online` / `offline` / `unknown`             | 当前状态             |
+| direction      | enum     | `entry`                                      | 用途（目前只有入口） |
+| resolution     | string   | `1280x720`                                   | 分辨率               |
+| last_heartbeat | datetime |                                              | 最近一次心跳         |
+| enabled        | bool     | true                                         | 是否启用             |
+| remark         | string   |                                              | 备注                 |
 
 ### 3.2 摄像头状态监控 (F-CAM-002) | P0
 
@@ -183,37 +183,37 @@ Response:
     │      ├─ 成功 → 更新 dorm_camera 状态：
     │      │     status=online, fps=4.8, last_heartbeat=now
     │      │
-    │      └─ 失败(超时/拒绝) → 
+    │      └─ 失败(超时/拒绝) →
     │            status=offline, 连续失败计数++
     │            连续失败 ≥ 3 次 → 触发离线告警
     │
     └─ 检查 Kafka t_dorm_event 消费延迟
            │
-           └─ 某摄像头 > 5 分钟无事件 → 
+           └─ 某摄像头 > 5 分钟无事件 →
                  标记为 "idle" 状态（有人但画面静止/摄像头卡住）
 ```
 
 #### 状态定义
 
-| 状态 | 含义 | 判定条件 |
-|------|------|---------|
-| `online` | 正常运行 | Health API 连通，fps > 0 |
-| `offline` | 离线/断连 | Health API 不可达 |
-| `idle` | 无事件产生 | Health 连通但 > 5min 无 t_dorm_event |
-| `unknown` | 状态未知 | 刚注册或数据缺失 |
+| 状态      | 含义       | 判定条件                             |
+| --------- | ---------- | ------------------------------------ |
+| `online`  | 正常运行   | Health API 连通，fps > 0             |
+| `offline` | 离线/断连  | Health API 不可达                    |
+| `idle`    | 无事件产生 | Health 连通但 > 5min 无 t_dorm_event |
+| `unknown` | 状态未知   | 刚注册或数据缺失                     |
 
 ### 3.3 摄像头配置管理 (F-CAM-003) | P1
 
 通过本模块管理摄像头级配置，修改后通知感知层（或由感知层轮询）：
 
-| 配置项 | 类型 | 说明 |
-|--------|------|------|
-| `rtsp_url` | string | RTSP 拉流地址 |
-| `fps_day` | int | 白天抽帧帧率 |
-| `fps_night` | int | 夜间抽帧帧率 |
-| `resolution` | string | 画面分辨率 |
-| `jpeg_quality` | int | JPEG 压缩质量 1-100 |
-| `roi_line_x` | float | ROI 判定线位置 0-1 |
+| 配置项         | 类型   | 说明                |
+| -------------- | ------ | ------------------- |
+| `rtsp_url`     | string | RTSP 拉流地址       |
+| `fps_day`      | int    | 白天抽帧帧率        |
+| `fps_night`    | int    | 夜间抽帧帧率        |
+| `resolution`   | string | 画面分辨率          |
+| `jpeg_quality` | int    | JPEG 压缩质量 1-100 |
+| `roi_line_x`   | float  | ROI 判定线位置 0-1  |
 
 > MVP 阶段配置变更需手动重启 Stream Gateway，后续可通过配置中心实现热更新。
 
@@ -221,11 +221,11 @@ Response:
 
 系统支持多栋楼多摄像头，CRUD 操作支持：
 
-| 场景 | 说明 |
-|------|------|
-| 更换摄像头 | 某栋楼摄像头故障，更换新设备 → 更新 RTSP 地址 |
-| 调整监控方向 | 入口改为其它朝向 → 调整 ROI 线参数 |
-| 临时停用 | 某栋楼维护 → 禁用该摄像头，不影响查宿统计 |
+| 场景         | 说明                                          |
+| ------------ | --------------------------------------------- |
+| 更换摄像头   | 某栋楼摄像头故障，更换新设备 → 更新 RTSP 地址 |
+| 调整监控方向 | 入口改为其它朝向 → 调整 ROI 线参数            |
+| 临时停用     | 某栋楼维护 → 禁用该摄像头，不影响查宿统计     |
 
 ### 3.5 抓拍历史查看 (F-CAM-005) | P2
 
@@ -237,12 +237,12 @@ Response:
 
 ### 3.6 摄像头离线告警 (F-CAM-006) | P1
 
-| 告警类型 | 条件 | 说明 |
-|---------|------|------|
-| 摄像头离线 | Health API 连续 3 次不可达 | 网络/电源/设备故障 |
-| 摄像头卡顿 | fps < 1 持续 > 30 秒 | 网络带宽不足 |
-| 摄像头无事件 | > 5 分钟无 t_dorm_event | 画面静止或系统异常 |
-| 磁盘/存储异常 | 抓拍存储不可用 | 见主进程对接告警 |
+| 告警类型      | 条件                       | 说明               |
+| ------------- | -------------------------- | ------------------ |
+| 摄像头离线    | Health API 连续 3 次不可达 | 网络/电源/设备故障 |
+| 摄像头卡顿    | fps < 1 持续 > 30 秒       | 网络带宽不足       |
+| 摄像头无事件  | > 5 分钟无 t_dorm_event    | 画面静止或系统异常 |
+| 磁盘/存储异常 | 抓拍存储不可用             | 见主进程对接告警   |
 
 ---
 
@@ -250,23 +250,23 @@ Response:
 
 ### 4.1 API 列表
 
-| 方法 | 路径 | 说明 | 优先级 |
-|------|------|------|--------|
-| **摄像头管理** | | | |
-| GET | `/api/dormitory/cameras` | 获取所有摄像头列表 | P0 |
-| GET | `/api/dormitory/cameras/{cameraId}` | 获取单个摄像头详情 | P0 |
-| POST | `/api/dormitory/cameras` | 新增摄像头设备 | P0 |
-| PUT | `/api/dormitory/cameras/{cameraId}` | 更新摄像头配置 | P0 |
-| DELETE | `/api/dormitory/cameras/{cameraId}` | 删除摄像头 | P1 |
-| **状态监控** | | | |
-| GET | `/api/dormitory/cameras/status` | 所有摄像头实时状态 | P0 |
-| GET | `/api/dormitory/cameras/status?building=A` | 按楼栋查询状态 | P0 |
-| **抓拍查看** | | | |
-| GET | `/api/dormitory/cameras/{cameraId}/snapshots` | 按摄像头查询抓拍 | P2 |
-| GET | `/api/dormitory/snapshots` | 全局抓拍检索 | P2 |
-| **配置** | | | |
-| GET | `/api/dormitory/cameras/{cameraId}/config` | 获取摄像头级配置 | P1 |
-| PUT | `/api/dormitory/cameras/{cameraId}/config` | 更新摄像头级配置 | P1 |
+| 方法           | 路径                                          | 说明               | 优先级 |
+| -------------- | --------------------------------------------- | ------------------ | ------ |
+| **摄像头管理** |                                               |                    |        |
+| GET            | `/api/dormitory/cameras`                      | 获取所有摄像头列表 | P0     |
+| GET            | `/api/dormitory/cameras/{cameraId}`           | 获取单个摄像头详情 | P0     |
+| POST           | `/api/dormitory/cameras`                      | 新增摄像头设备     | P0     |
+| PUT            | `/api/dormitory/cameras/{cameraId}`           | 更新摄像头配置     | P0     |
+| DELETE         | `/api/dormitory/cameras/{cameraId}`           | 删除摄像头         | P1     |
+| **状态监控**   |                                               |                    |        |
+| GET            | `/api/dormitory/cameras/status`               | 所有摄像头实时状态 | P0     |
+| GET            | `/api/dormitory/cameras/status?building=A`    | 按楼栋查询状态     | P0     |
+| **抓拍查看**   |                                               |                    |        |
+| GET            | `/api/dormitory/cameras/{cameraId}/snapshots` | 按摄像头查询抓拍   | P2     |
+| GET            | `/api/dormitory/snapshots`                    | 全局抓拍检索       | P2     |
+| **配置**       |                                               |                    |        |
+| GET            | `/api/dormitory/cameras/{cameraId}/config`    | 获取摄像头级配置   | P1     |
+| PUT            | `/api/dormitory/cameras/{cameraId}/config`    | 更新摄像头级配置   | P1     |
 
 ### 4.2 API 详细设计
 
@@ -405,25 +405,25 @@ Response 200:
 
 ### 5.1 摄像头信息表 (`dorm_camera`)
 
-| 列名 | 类型 | 约束 | 说明 |
-|------|------|------|------|
-| `id` | BIGINT | PK | 自增主键 |
-| `camera_id` | VARCHAR(32) | UNIQUE, NOT NULL | 摄像头唯一 ID |
-| `name` | VARCHAR(64) | NOT NULL | 显示名称 |
-| `building` | VARCHAR(8) | NOT NULL | 所在楼栋标识 |
-| `rtsp_url` | VARCHAR(512) | NOT NULL | RTSP 拉流地址 |
-| `direction` | VARCHAR(16) | DEFAULT 'entry' | 监控方向 |
-| `resolution` | VARCHAR(16) | DEFAULT '1280x720' | 分辨率 |
-| `status` | VARCHAR(16) | DEFAULT 'unknown' | online/offline/idle/unknown |
-| `fps_current` | DECIMAL(5,2) | DEFAULT 0 | 当前帧率 |
-| `total_frames` | BIGINT | DEFAULT 0 | 累计帧数 |
-| `last_heartbeat` | DATETIME | | 最近心跳时间 |
-| `last_event_time` | DATETIME | | 最近事件时间 |
-| `enabled` | BOOLEAN | DEFAULT true | 是否启用 |
-| `config_json` | TEXT | | 摄像头级配置(JSON) |
-| `remark` | VARCHAR(256) | | 备注 |
-| `created_at` | DATETIME | NOT NULL | 创建时间 |
-| `updated_at` | DATETIME | NOT NULL | 更新时间 |
+| 列名              | 类型         | 约束               | 说明                        |
+| ----------------- | ------------ | ------------------ | --------------------------- |
+| `id`              | BIGINT       | PK                 | 自增主键                    |
+| `camera_id`       | VARCHAR(32)  | UNIQUE, NOT NULL   | 摄像头唯一 ID               |
+| `name`            | VARCHAR(64)  | NOT NULL           | 显示名称                    |
+| `building`        | VARCHAR(8)   | NOT NULL           | 所在楼栋标识                |
+| `rtsp_url`        | VARCHAR(512) | NOT NULL           | RTSP 拉流地址               |
+| `direction`       | VARCHAR(16)  | DEFAULT 'entry'    | 监控方向                    |
+| `resolution`      | VARCHAR(16)  | DEFAULT '1280x720' | 分辨率                      |
+| `status`          | VARCHAR(16)  | DEFAULT 'unknown'  | online/offline/idle/unknown |
+| `fps_current`     | DECIMAL(5,2) | DEFAULT 0          | 当前帧率                    |
+| `total_frames`    | BIGINT       | DEFAULT 0          | 累计帧数                    |
+| `last_heartbeat`  | DATETIME     |                    | 最近心跳时间                |
+| `last_event_time` | DATETIME     |                    | 最近事件时间                |
+| `enabled`         | BOOLEAN      | DEFAULT true       | 是否启用                    |
+| `config_json`     | TEXT         |                    | 摄像头级配置(JSON)          |
+| `remark`          | VARCHAR(256) |                    | 备注                        |
+| `created_at`      | DATETIME     | NOT NULL           | 创建时间                    |
+| `updated_at`      | DATETIME     | NOT NULL           | 更新时间                    |
 
 > **索引**: `idx_building` (building), `idx_status` (status)
 
@@ -431,16 +431,16 @@ Response 200:
 
 记录摄像头状态变更历史。
 
-| 列名 | 类型 | 约束 | 说明 |
-|------|------|------|------|
-| `id` | BIGINT | PK | 自增主键 |
-| `camera_id` | VARCHAR(32) | NOT NULL | 摄像头 ID |
-| `building` | VARCHAR(8) | NOT NULL | 楼栋 |
-| `status_from` | VARCHAR(16) | | 变更前状态 |
-| `status_to` | VARCHAR(16) | NOT NULL | 变更后状态 |
-| `reason` | VARCHAR(128) | | 变更原因 |
-| `fps_at_time` | DECIMAL(5,2) | | 变更时帧率 |
-| `created_at` | DATETIME | NOT NULL | 记录时间 |
+| 列名          | 类型         | 约束     | 说明       |
+| ------------- | ------------ | -------- | ---------- |
+| `id`          | BIGINT       | PK       | 自增主键   |
+| `camera_id`   | VARCHAR(32)  | NOT NULL | 摄像头 ID  |
+| `building`    | VARCHAR(8)   | NOT NULL | 楼栋       |
+| `status_from` | VARCHAR(16)  |          | 变更前状态 |
+| `status_to`   | VARCHAR(16)  | NOT NULL | 变更后状态 |
+| `reason`      | VARCHAR(128) |          | 变更原因   |
+| `fps_at_time` | DECIMAL(5,2) |          | 变更时帧率 |
+| `created_at`  | DATETIME     | NOT NULL | 记录时间   |
 
 > **索引**: `idx_camera_ts` (camera_id, created_at)
 
@@ -466,14 +466,14 @@ dorm_entry_exit_event (camera_id)
 
 **存储位置**: `dorm_config` 表（与主进程对接共用配置表）
 
-| 配置键 | 类型 | 默认值 | 说明 |
-|--------|------|--------|------|
-| `camera.health_check.interval_sec` | int | `30` | 摄像头健康检查间隔（秒） |
-| `camera.health_check.timeout_sec` | int | `5` | HTTP 健康检查超时 |
-| `camera.offline.alert_threshold` | int | `3` | 连续检查失败 N 次后触发离线告警 |
-| `camera.idle.threshold_min` | int | `5` | 超过 N 分钟无事件标记为 idle |
-| `camera.snapshot.retention_days` | int | `30` | 抓拍快照保留天数 |
-| `camera.max_count` | int | `0` | 系统最大摄像头数（0=不限制） |
+| 配置键                             | 类型 | 默认值 | 说明                            |
+| ---------------------------------- | ---- | ------ | ------------------------------- |
+| `camera.health_check.interval_sec` | int  | `30`   | 摄像头健康检查间隔（秒）        |
+| `camera.health_check.timeout_sec`  | int  | `5`    | HTTP 健康检查超时               |
+| `camera.offline.alert_threshold`   | int  | `3`    | 连续检查失败 N 次后触发离线告警 |
+| `camera.idle.threshold_min`        | int  | `5`    | 超过 N 分钟无事件标记为 idle    |
+| `camera.snapshot.retention_days`   | int  | `30`   | 抓拍快照保留天数                |
+| `camera.max_count`                 | int  | `0`    | 系统最大摄像头数（0=不限制）    |
 
 ### 6.2 摄像头级配置
 
@@ -505,14 +505,14 @@ dorm_entry_exit_event (camera_id)
 
 ### 7.1 总览卡片
 
-| 指标 | 说明 |
-|------|------|
-| 总摄像头数 | 动态（无硬性上限） |
-| 在线数 | Health API 可达 |
-| 离线数 | Health API 不可达 |
-| 今日总事件 | 所有摄像头 t_dorm_event 之和 |
-| 今日陌生人 | 所有摄像头陌生人事件之和 |
-| 最后心跳时间 | 最近一次任意摄像头心跳 |
+| 指标         | 说明                         |
+| ------------ | ---------------------------- |
+| 总摄像头数   | 动态（无硬性上限）           |
+| 在线数       | Health API 可达              |
+| 离线数       | Health API 不可达            |
+| 今日总事件   | 所有摄像头 t_dorm_event 之和 |
+| 今日陌生人   | 所有摄像头陌生人事件之和     |
+| 最后心跳时间 | 最近一次任意摄像头心跳       |
 
 ### 7.2 单摄像头卡片
 
@@ -583,8 +583,8 @@ Stream Gateway                      本模块
 
 Stream Gateway 需提供：
 
-| 端点 | 说明 | 必须提供 |
-|------|------|---------|
+| 端点          | 说明              | 必须提供    |
+| ------------- | ----------------- | ----------- |
 | `GET /health` | 摄像头状态 + 指标 | ✅ **必须** |
 
 Response 格式（感知层已实现）：
@@ -608,9 +608,9 @@ Response 格式（感知层已实现）：
 
 ### 8.4 版本历史
 
-| 版本 | 日期 | 变更说明 |
-|------|------|---------|
-| v1.1 | 2026-05-18 | 升级为可扩展管理平台：移除固定 4 路限制，支持动态注册 |
+| 版本 | 日期       | 变更说明                                                |
+| ---- | ---------- | ------------------------------------------------------- |
+| v1.1 | 2026-05-18 | 升级为可扩展管理平台：移除固定 4 路限制，支持动态注册   |
 | v1.0 | 2026-05-15 | 初稿 — 摄像头设备管理功能 PRD，独立于感知层的流处理逻辑 |
 
 ---

@@ -27,8 +27,8 @@ export function getDept(deptId: any) {
 // 查询部门下拉树结构
 export function treeSelect() {
   return request({
-    url: "/system/dept/treeselect",
-    method: "get",
+    url: '/system/dept/treeselect',
+    method: 'get',
   });
 }
 
@@ -61,7 +61,7 @@ export function delDept(deptId: any) {
 // 获取部门字典
 export function departmentDictionary() {
   return request({
-    url: "/api/sys/get/ks/name/dict/",
-    method: "post"
+    url: '/api/sys/get/ks/name/dict/',
+    method: 'post',
   });
 }

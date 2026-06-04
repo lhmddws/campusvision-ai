@@ -1,34 +1,31 @@
 <template>
-    <div
-        :class="{ 'has-logo': showLogo }"
-        :style="{
-            backgroundColor:
-                sideTheme === 'theme-dark' ? variables.menuBackground : variables.menuLightBackground,
-        }"
-    >
-        <logo v-if="showLogo" :collapse="isCollapse" />
-        <el-scrollbar :class="sideTheme" wrap-class="scrollbar-wrapper">
-            <el-menu
-                :default-active="activeMenu"
-                :collapse="isCollapse"
-                :background-color="
-                    sideTheme === 'theme-dark' ? variables.menuBackground : variables.menuLightBackground
-                "
-                :text-color="sideTheme === 'theme-dark' ? variables.menuColor : variables.menuLightColor"
-                :unique-opened="true"
-                :active-text-color="theme"
-                :collapse-transition="false"
-                mode="vertical"
-            >
-                <sidebar-item
-                    v-for="(routeItem, index) in sidebarRouters"
-                    :key="routeItem.path + index"
-                    :item="routeItem"
-                    :base-path="routeItem.path"
-                />
-            </el-menu>
-        </el-scrollbar>
-    </div>
+  <div
+    :class="{ 'has-logo': showLogo }"
+    :style="{
+      backgroundColor: variables.menuBackground,
+    }"
+  >
+    <logo v-if="showLogo" :collapse="isCollapse" />
+    <el-scrollbar :class="sideTheme" wrap-class="scrollbar-wrapper">
+      <el-menu
+        :default-active="activeMenu"
+        :collapse="isCollapse"
+        :background-color="variables.menuBackground"
+        :text-color="variables.menuColor"
+        :unique-opened="true"
+        :active-text-color="variables.cvSidebarActive"
+        :collapse-transition="false"
+        mode="vertical"
+      >
+        <sidebar-item
+          v-for="(routeItem, index) in sidebarRouters"
+          :key="routeItem.path + index"
+          :item="routeItem"
+          :base-path="routeItem.path"
+        />
+      </el-menu>
+    </el-scrollbar>
+  </div>
 </template>
 
 <script setup lang="ts">
@@ -49,7 +46,6 @@ const permissionStore = usePermissionStore();
 const sidebarRouters = computed(() => permissionStore.sidebarRouters);
 const showLogo = computed(() => settingsStore.sidebarLogo);
 const sideTheme = computed(() => settingsStore.sideTheme);
-const theme = computed(() => settingsStore.theme);
 const isCollapse = computed(() => !appStore.sidebar.opened);
 
 const activeMenu = computed(() => {

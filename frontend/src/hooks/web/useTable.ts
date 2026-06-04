@@ -9,34 +9,34 @@ import { TableSetPropsType } from '@/types/table';
 const { t } = useI18n();
 
 interface TableResponse<T = any> {
-  total: number
-  list: T[]
-  pageNumber: number
-  pageSize: number
+  total: number;
+  list: T[];
+  pageNumber: number;
+  pageSize: number;
 }
 
 interface UseTableConfig<T = any> {
-  getListApi: (option: any) => Promise<IResponse<TableResponse<T>>>
-  delListApi?: (option: any) => Promise<IResponse>
+  getListApi: (option: any) => Promise<IResponse<TableResponse<T>>>;
+  delListApi?: (option: any) => Promise<IResponse>;
   // 返回数据格式配置
   response: {
-    list: string
-    total?: string
-  }
+    list: string;
+    total?: string;
+  };
   // 默认传递的参数
-  defaultParams?: Recordable
-  props?: TableProps
-  afterFetch?: any
+  defaultParams?: Recordable;
+  props?: TableProps;
+  afterFetch?: any;
 }
 
 interface TableObject<T = any> {
-  pageSize: number
-  currentPage: number
-  total: number
-  tableList: T[]
-  params: any
-  loading: boolean
-  currentRow: Nullable<T>
+  pageSize: number;
+  currentPage: number;
+  total: number;
+  tableList: T[];
+  params: any;
+  loading: boolean;
+  currentRow: Nullable<T>;
 }
 
 export const useTable = <T = any>(config?: UseTableConfig<T>) => {
@@ -51,19 +51,19 @@ export const useTable = <T = any>(config?: UseTableConfig<T>) => {
     tableList: [],
     // AxiosConfig 配置
     params: {
-      ...(config?.defaultParams || {})
+      ...(config?.defaultParams || {}),
     },
     // 加载中
     loading: true,
     // 当前行的数据
-    currentRow: null
+    currentRow: null,
   });
 
   const paramsObj = computed(() => {
     return {
       ...tableObject.params,
       pageSize: tableObject.pageSize,
-      pageNum: tableObject.currentPage
+      pageNum: tableObject.currentPage,
     };
   });
 
@@ -71,7 +71,7 @@ export const useTable = <T = any>(config?: UseTableConfig<T>) => {
     () => tableObject.currentPage,
     () => {
       methods.getList();
-    }
+    },
   );
 
   watch(
@@ -84,7 +84,7 @@ export const useTable = <T = any>(config?: UseTableConfig<T>) => {
         tableObject.currentPage = 1;
         methods.getList();
       }
-    }
+    },
   );
 
   // Table实例
@@ -132,9 +132,10 @@ export const useTable = <T = any>(config?: UseTableConfig<T>) => {
         tableObject.loading = false;
       });
       if (res) {
-
-        if(config.afterFetch){
-          tableObject.tableList = config.afterFetch(get(res || {}, config?.response.list as string));
+        if (config.afterFetch) {
+          tableObject.tableList = config.afterFetch(
+            get(res || {}, config?.response.list as string),
+          );
         } else {
           tableObject.tableList = get(res || {}, config?.response.list as string);
         }
@@ -154,7 +155,7 @@ export const useTable = <T = any>(config?: UseTableConfig<T>) => {
       console.log(table);
       return (table?.selections || []) as T[];
     },
-    getSearchParams: () =>{
+    getSearchParams: () => {
       return paramsObj;
     },
     // 与Search组件结合
@@ -163,7 +164,7 @@ export const useTable = <T = any>(config?: UseTableConfig<T>) => {
       tableObject.params = Object.assign(tableObject.params, {
         pageSize: tableObject.pageSize,
         pageNum: tableObject.currentPage,
-        ...data
+        ...data,
       });
       methods.getList();
     },
@@ -185,14 +186,14 @@ export const useTable = <T = any>(config?: UseTableConfig<T>) => {
         ElMessageBox.confirm(t('common.delMessage'), t('common.delWarning'), {
           confirmButtonText: t('common.delOk'),
           cancelButtonText: t('common.delCancel'),
-          type: 'warning'
+          type: 'warning',
         }).then(async () => {
           await delData(ids);
         });
       } else {
         await delData(ids);
       }
-    }
+    },
   };
 
   config?.props && methods.setProps(config.props);
@@ -201,6 +202,6 @@ export const useTable = <T = any>(config?: UseTableConfig<T>) => {
     register,
     elTableRef,
     tableObject,
-    methods
+    methods,
   };
 };

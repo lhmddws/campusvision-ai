@@ -159,103 +159,103 @@ def download_model(
         target_path.unlink()
 
     # Prepare session (proxy support)
-    session = requests.Session()
-    if proxy:
-        session.proxies = {"http": proxy, "https": proxy}
-        logger.info("🔌 using proxy: %s", proxy)
+    with requests.Session() as session:
+        if proxy:
+            session.proxies = {"http": proxy, "https": proxy}
+            logger.info("🔌 using proxy: %s", proxy)
 
-    for mirror in mirrors:
-        effective_url = apply_mirror(url, mirror)
+        for mirror in mirrors:
+            effective_url = apply_mirror(url, mirror)
 
-        for attempt in range(1, max_retries + 1):
-            logger.info(
-                "↓ %s: attempt %d/%d — %s",
-                name, attempt, max_retries, effective_url,
-            )
+            for attempt in range(1, max_retries + 1):
+                logger.info(
+                    "↓ %s: attempt %d/%d — %s",
+                    name, attempt, max_retries, effective_url,
+                )
 
-            try:
-                resp = session.get(effective_url, stream=True, timeout=timeout)
-                resp.raise_for_status()
-
-                # Detect redirect to blocked host
-                if resp.history:
-                    final_url = resp.url
-                    for hist in resp.history:
-                        logger.debug(
-                            "  ↪ %s → %s", hist.url, hist.headers.get("Location", ""),
-                        )
-                    if "huggingface.co" in final_url and final_url != effective_url:
-                        logger.warning(
-                            "⚠ %s: mirror %s redirected to huggingface.co (may be blocked). "
-                            "Trying next strategy...",
-                            name, mirror,
-                        )
-                        break  # try next mirror
-
-                # Stream write to temp file
                 try:
-                    tmp = tempfile.NamedTemporaryFile(
-                        delete=False, dir=target_path.parent, suffix=".onnx",
-                    )
-                    with tmp:
-                        for chunk in resp.iter_content(chunk_size=CHUNK_SIZE):
-                            if chunk:
-                                tmp.write(chunk)
-                        tmp_path = Path(tmp.name)
-                except OSError as e:
-                    logger.error("✗ %s: write failed: %s", name, e)
-                    return False
+                    resp = session.get(effective_url, stream=True, timeout=timeout)
+                    resp.raise_for_status()
 
-                # SHA256 verification
-                actual = sha256_file(tmp_path)
-                size_mb = tmp_path.stat().st_size / (1024 * 1024)
+                    # Detect redirect to blocked host
+                    if resp.history:
+                        final_url = resp.url
+                        for hist in resp.history:
+                            logger.debug(
+                                "  ↪ %s → %s", hist.url, hist.headers.get("Location", ""),
+                            )
+                        if "huggingface.co" in final_url and final_url != effective_url:
+                            logger.warning(
+                                "⚠ %s: mirror %s redirected to huggingface.co (may be blocked). "
+                                "Trying next strategy...",
+                                name, mirror,
+                            )
+                            break  # try next mirror
 
-                if expected_sha256 == PLACEHOLDER_SHA256:
-                    logger.info(
-                        "✓ %s: downloaded (%.1f MB, SHA256 placeholder — skipping verification)",
-                        name, size_mb,
-                    )
-                    is_valid = True
-                elif actual == expected_sha256:
-                    logger.info("✓ %s: downloaded (%.1f MB, SHA256 match)", name, size_mb)
-                    is_valid = True
-                else:
-                    logger.error(
-                        "✗ %s: SHA256 mismatch (expected=%s, actual=%s)",
-                        name, expected_sha256, actual,
-                    )
-                    tmp_path.unlink(missing_ok=True)
-                    is_valid = False
+                    # Stream write to temp file
+                    try:
+                        tmp = tempfile.NamedTemporaryFile(
+                            delete=False, dir=target_path.parent, suffix=".onnx",
+                        )
+                        with tmp:
+                            for chunk in resp.iter_content(chunk_size=CHUNK_SIZE):
+                                if chunk:
+                                    tmp.write(chunk)
+                            tmp_path = Path(tmp.name)
+                    except OSError as e:
+                        logger.error("✗ %s: write failed: %s", name, e)
+                        return False
 
-                if not is_valid:
+                    # SHA256 verification
+                    actual = sha256_file(tmp_path)
+                    size_mb = tmp_path.stat().st_size / (1024 * 1024)
+
+                    if expected_sha256 == PLACEHOLDER_SHA256:
+                        logger.info(
+                            "✓ %s: downloaded (%.1f MB, SHA256 placeholder — skipping verification)",
+                            name, size_mb,
+                        )
+                        is_valid = True
+                    elif actual == expected_sha256:
+                        logger.info("✓ %s: downloaded (%.1f MB, SHA256 match)", name, size_mb)
+                        is_valid = True
+                    else:
+                        logger.error(
+                            "✗ %s: SHA256 mismatch (expected=%s, actual=%s)",
+                            name, expected_sha256, actual,
+                        )
+                        tmp_path.unlink(missing_ok=True)
+                        is_valid = False
+
+                    if not is_valid:
+                        if attempt < max_retries:
+                            wait = 2 ** attempt
+                            logger.info("  retrying in %ds...", wait)
+                            time.sleep(wait)
+                        continue
+
+                    # Atomically rename
+                    try:
+                        tmp_path.rename(target_path)
+                    except OSError as e:
+                        logger.error("✗ %s: rename failed: %s", name, e)
+                        tmp_path.unlink(missing_ok=True)
+                        return False
+
+                    logger.info("✓ %s: saved to %s", name, target_path)
+                    return True
+
+                except requests.RequestException as e:
+                    logger.warning("⚠ %s: attempt %d/%d failed: %s", name, attempt, max_retries, e)
                     if attempt < max_retries:
                         wait = 2 ** attempt
                         logger.info("  retrying in %ds...", wait)
                         time.sleep(wait)
-                    continue
 
-                # Atomically rename
-                try:
-                    tmp_path.rename(target_path)
-                except OSError as e:
-                    logger.error("✗ %s: rename failed: %s", name, e)
-                    tmp_path.unlink(missing_ok=True)
-                    return False
+            logger.warning("⚠ %s: all retries exhausted for mirror %s", name, mirror)
 
-                logger.info("✓ %s: saved to %s", name, target_path)
-                return True
-
-            except requests.RequestException as e:
-                logger.warning("⚠ %s: attempt %d/%d failed: %s", name, attempt, max_retries, e)
-                if attempt < max_retries:
-                    wait = 2 ** attempt
-                    logger.info("  retrying in %ds...", wait)
-                    time.sleep(wait)
-
-        logger.warning("⚠ %s: all retries exhausted for mirror %s", name, mirror)
-
-    logger.error("✗ %s: all mirrors exhausted — download failed", name)
-    return False
+        logger.error("✗ %s: all mirrors exhausted — download failed", name)
+        return False
 
 
 def list_mirrors(mirrors: list[str]) -> None:

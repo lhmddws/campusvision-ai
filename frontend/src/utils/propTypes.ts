@@ -32,17 +32,12 @@
 // - validation object interface (VueTypeDef)
 //   -  use VueTypeValidableDef if the new type is going to support the `validate` method.
 // - the default VueType interface (VueTypesInterface)
-import {
-  VueTypeValidableDef,
-  VueTypesInterface,
-  createTypes
-} from 'vue-types';
+import { VueTypeValidableDef, VueTypesInterface, createTypes } from 'vue-types';
 import { CSSProperties } from 'vue';
 
 interface ProjectTypes extends VueTypesInterface {
-  readonly style: VueTypeValidableDef<CSSProperties>
+  readonly style: VueTypeValidableDef<CSSProperties>;
 }
-
 
 const propTypes = createTypes({
   func: undefined,
@@ -50,14 +45,14 @@ const propTypes = createTypes({
   string: undefined,
   number: undefined,
   object: undefined,
-  integer: undefined
+  integer: undefined,
 }) as ProjectTypes;
 
 propTypes.extend({
   name: 'style',
   getter: true,
   type: [String, Object],
-  default: undefined
+  default: undefined,
 });
 
 export default propTypes as ProjectTypes;
