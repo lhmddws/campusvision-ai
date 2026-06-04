@@ -70,7 +70,7 @@ def main():
         embedding_size=cfg.feature.embedding_size,
     )
 
-    matcher = FaceMatcher(cfg.match)
+    matcher = FaceMatcher(cfg)
     direction = DirectionDetector(cfg.direction)
     dedup = DedupFilter(cfg.dedup)
     enhancer = NightModeEnhancer(cfg.night_mode)

@@ -88,7 +88,7 @@ class FaceMatcher:
             logger.warning("SIMS API call failed, falling back to cache", error=str(exc))
 
         # 2. Fallback: scan cached embeddings
-        if self.config.fallback_to_cache:
+        if self.config.match.fallback_to_cache:
             cached = self._search_cache(embedding)
             if cached is not None:
                 cached["from_cache"] = True
@@ -104,13 +104,13 @@ class FaceMatcher:
         payload = {"embedding": embedding.tolist()}
         headers = {
             "Content-Type": "application/json",
-            "Authorization": f"Bearer {self.config.get_auth_token()}",
+            "Authorization": f"Bearer {self.config.match.get_auth_token()}",
         }
         response = httpx.post(
-            self.config.sims_api_url,
+            self.config.match.sims_api_url,
             json=payload,
             headers=headers,
-            timeout=self.config.sims_api_timeout,
+            timeout=self.config.match.sims_api_timeout,
         )
         response.raise_for_status()
         data = response.json()
@@ -119,13 +119,13 @@ class FaceMatcher:
         # Support both nested (Go API) and flat (legacy SpringBoot) response formats
         if isinstance(match_info, dict):
             conf = match_info.get("confidence", 0)
-            if conf >= self.config.match_threshold:
+            if conf >= self.config.match.match_threshold:
                 return {
                     "student_id": match_info["student_id"],
                     "name": match_info.get("name", ""),
                     "confidence": conf,
                 }
-        elif match_info and data.get("confidence", 0) >= self.config.match_threshold:
+        elif match_info and data.get("confidence", 0) >= self.config.match.match_threshold:
             return {
                 "student_id": data["student_id"],
                 "name": data.get("name", ""),
@@ -148,7 +148,7 @@ class FaceMatcher:
             }
             self._redis.setex(
                 f"face:match:{student_id}",
-                self.config.cache_ttl,
+                self.config.match.cache_ttl,
                 json.dumps(value),
             )
         except Exception:
@@ -191,7 +191,7 @@ class FaceMatcher:
                         "confidence": sim,
                     }
 
-            if best_result is not None and best_sim >= self.config.match_threshold:
+            if best_result is not None and best_sim >= self.config.match.match_threshold:
                 return best_result
         except Exception:
             logger.warning("Cache search failed", exc_info=True)
