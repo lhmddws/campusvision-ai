@@ -1,0 +1,23 @@
+# Mediamtx 配置 — 用于开发测试
+# Mediamtx 是一个开源的 RTSP/RTMP/HLS/WebRTC 媒体服务器
+# https://github.com/bluenviron/mediamtx
+
+paths:
+  cam_a:
+    source: publisher
+    sourceOnDemand: false
+  cam_b:
+    source: publisher
+    sourceOnDemand: false
+  cam_c:
+    source: publisher
+    sourceOnDemand: false
+  cam_d:
+    source: publisher
+    sourceOnDemand: false
+
+# 开发环境不要求认证
+rtspAuthMethods: []
+
+# 日志级别
+logLevel: info
