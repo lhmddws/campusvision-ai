@@ -17,13 +17,15 @@ RUN if [ -n "$APT_MIRROR" ]; then \
     libgl1 libglib2.0-0 \
     && rm -rf /var/lib/apt/lists/*
 
+COPY --from=ghcr.io/astral-sh/uv:latest /uv /bin/
+
 RUN addgroup --system appgroup && adduser --system --ingroup appgroup appuser
 
 WORKDIR /app
 
 COPY requirements.txt .
-# Build-time mirrors: pip
-RUN pip install --no-cache-dir \
+# Build-time mirrors: pip (via uv)
+RUN uv pip install --system --no-cache-dir \
     $( [ -n "$PIP_INDEX_URL" ] && echo "--index-url $PIP_INDEX_URL" ) \
     $( [ -n "$PIP_TRUSTED_HOST" ] && echo "--trusted-host $PIP_TRUSTED_HOST" ) \
     -r requirements.txt
