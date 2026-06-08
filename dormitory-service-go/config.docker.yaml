@@ -2,7 +2,7 @@ server:
     port: 8083
 
 database:
-    dsn: "root:root_dev@tcp(mariadb:3306)/dormitory?charset=utf8mb4&parseTime=True&loc=Asia%2FShanghai"
+    dsn: "root:root_dev@tcp(mariadb:3306)/dormitory?charset=utf8mb4&parseTime=True&loc=Asia%2FShanghai&clientFoundRows=true"
     driver: mysql
     max_open_conns: 25
     max_idle_conns: 10

@@ -1,7 +1,7 @@
 models:
     retinaface-R50:
         url: "https://github.com/yakhyo/uniface/releases/download/weights/retinaface_mv2.onnx"
-        sha256: "3ca44c04b04eac0b25253154e0b7b6530c7ac0e63f8e49c7f5c69b7c74a6910f"
+        sha256: "3ca44c045651cabeed1193a1fae8946ad1f3a55da8fa74b341feab5a8319f757"
         description: "RetinaFace-MobileNetV2 face detection model (from UniFace, 91.7% WIDER FACE Easy)"
         model_type: "detection"
         input_size: [640, 640]

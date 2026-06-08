@@ -1,8 +1,6 @@
 <script setup lang="ts">
-import type { EChartsOption } from 'echarts';
-import echarts from '@/plugins/echarts';
+import type { EChartsOption, ECharts } from 'echarts';
 import { debounce } from 'lodash-es';
-import 'echarts-wordcloud';
 import VueTypes from '@/utils/propTypes';
 import {
   computed,
@@ -44,7 +42,7 @@ const options = computed(() => {
 
 const elRef = ref<ElRef>();
 
-let echartRef: Nullable<echarts.ECharts> = null;
+let echartInstance: ECharts | null = null;
 
 const contentEl = ref<Element>();
 
@@ -58,18 +56,20 @@ const styles = computed(() => {
   };
 });
 
-const initChart = () => {
+const initChart = async () => {
   if (unref(elRef) && props.options) {
-    echartRef = echarts.init(unref(elRef) as HTMLElement);
-    echartRef?.setOption(unref(options));
+    const echarts = (await import('@/plugins/echarts')).default;
+    await import('echarts-wordcloud');
+    echartInstance = echarts.init(unref(elRef) as HTMLElement);
+    echartInstance?.setOption(unref(options));
   }
 };
 
 watch(
   () => options.value,
   options => {
-    if (echartRef) {
-      echartRef?.setOption(options);
+    if (echartInstance) {
+      echartInstance?.setOption(options);
     }
   },
   {
@@ -78,8 +78,8 @@ watch(
 );
 
 const resizeHandler = debounce(() => {
-  if (echartRef) {
-    echartRef.resize();
+  if (echartInstance) {
+    echartInstance.resize();
   }
 }, 100);
 
@@ -106,8 +106,8 @@ onBeforeUnmount(() => {
 });
 
 onActivated(() => {
-  if (echartRef) {
-    echartRef.resize();
+  if (echartInstance) {
+    echartInstance.resize();
   }
 });
 </script>
