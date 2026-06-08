@@ -22,7 +22,7 @@ const usePermissionStore = defineStore('permission', {
     addRoutes: [],
     defaultRoutes: [],
     topbarRouters: [],
-    sidebarRouters: [],
+    sidebarRouters: constantRoutes,
   }),
   actions: {
     setRoutes(routes: RouteRecordRaw[]) {
