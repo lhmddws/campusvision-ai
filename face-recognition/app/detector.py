@@ -120,7 +120,8 @@ class FaceDetector:
         if self.session is None:
             return []
         img = cv2.resize(image, self.input_size)
-        img = img.astype(np.float32) / 255.0
+        img = img.astype(np.float32)
+        img -= np.array([104.0, 117.0, 123.0], dtype=np.float32)
         img = np.transpose(img, (2, 0, 1))[None, ...]
 
         inputs = {self.session.get_inputs()[0].name: img}
