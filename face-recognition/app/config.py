@@ -127,7 +127,7 @@ class AppConfig:
 
 def load_config(path: str = "config.yaml") -> AppConfig:
     try:
-        with open(path) as f:
+        with open(path, encoding="utf-8") as f:
             data = yaml.safe_load(f)
     except FileNotFoundError:
         print(f"[WARN] config file '{path}' not found, using defaults")

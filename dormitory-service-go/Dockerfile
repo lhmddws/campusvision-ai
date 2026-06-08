@@ -4,7 +4,7 @@ WORKDIR /build
 COPY go.mod go.sum ./
 RUN go mod download
 COPY . .
-RUN CGO_ENABLED=0 go build -o dormitory-service ./cmd/dormitory-service/
+RUN CGO_ENABLED=0 go build -ldflags="-s -w" -o dormitory-service ./cmd/dormitory-service/
 
 # ---- Runtime stage ----
 FROM alpine:3.21

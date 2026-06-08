@@ -1,8 +1,8 @@
 models:
     retinaface-R50:
-        url: "https://huggingface.co/TheEeeeLin/HivisionIDPhotos_matting/resolve/main/retinaface-resnet50.onnx"
-        sha256: "40f825cf7dd0a88b26fb61db9a3aaedc2cad35162091113f4017b3c26a4f792d"
-        description: "RetinaFace-ResNet50 face detection model (from HivisionIDPhotos)"
+        url: "https://github.com/yakhyo/uniface/releases/download/weights/retinaface_mv2.onnx"
+        sha256: "3ca44c04b04eac0b25253154e0b7b6530c7ac0e63f8e49c7f5c69b7c74a6910f"
+        description: "RetinaFace-MobileNetV2 face detection model (from UniFace, 91.7% WIDER FACE Easy)"
         model_type: "detection"
         input_size: [640, 640]
     arcface-resnet100:
