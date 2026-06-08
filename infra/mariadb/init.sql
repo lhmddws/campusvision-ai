@@ -274,10 +274,217 @@ INSERT IGNORE INTO dorm_config (config_key, config_value, config_type, descripti
     ('camera.health_check.interval_sec', '30', 'int', '摄像头健康检查间隔', 'camera'),
     ('camera.offline.alert_threshold', '3', 'int', '连续失败N次触发离线告警', 'camera');
 
--- ==================== 示例摄像头 ====================
--- 按需通过 REST API 注册，此处仅作为 schema 参考
--- INSERT IGNORE INTO dorm_camera (camera_id, name, building, rtsp_url, direction, resolution, enabled) VALUES
---     ('cam-a', 'A栋入口', 'A', 'rtsp://admin:PLACEHOLDER@192.168.1.101:554/stream1', 'entry', '1280x720', 1),
---     ('cam-b', 'B栋入口', 'B', 'rtsp://admin:PLACEHOLDER@192.168.1.102:554/stream1', 'entry', '1280x720', 1),
---     ('cam-c', 'C栋入口', 'C', 'rtsp://admin:PLACEHOLDER@192.168.1.103:554/stream1', 'entry', '1280x720', 1),
---     ('cam-d', 'D栋入口', 'D', 'rtsp://admin:PLACEHOLDER@192.168.1.104:554/stream1', 'entry', '1280x720', 1);
+-- Set config_options for select-type configs (must run after INSERT IGNORE)
+UPDATE dorm_config
+SET config_options = '["Asia/Shanghai","Asia/Hong_Kong","Asia/Tokyo","Asia/Singapore","America/New_York","America/Los_Angeles","Europe/London","Europe/Paris","Europe/Berlin","Australia/Sydney","UTC"]'
+WHERE config_key = 'nightly_report.timezone';
+
+UPDATE dorm_config SET config_options = '["15","30","60","120","360","720","1440"]' WHERE config_key = 'sync.student.interval_min';
+UPDATE dorm_config SET config_options = '["10","15","30","60","120"]' WHERE config_key = 'sync.student.timeout_sec';
+UPDATE dorm_config SET config_options = '["t_dorm_frame","t_dorm_event","t_dorm_alert"]' WHERE config_key = 'kafka.consumer.topic';
+UPDATE dorm_config SET config_options = '["1","2","6","12","24","48"]' WHERE config_key = 'cache.status.ttl_hours';
+UPDATE dorm_config SET config_options = '["0.3","0.4","0.5","0.6","0.7","0.8","0.9"]' WHERE config_key = 'stranger.confidence_threshold';
+UPDATE dorm_config SET config_options = '["10","15","30","60","120","300"]' WHERE config_key = 'camera.health_check.interval_sec';
+UPDATE dorm_config SET config_options = '["1","2","3","5","10"]' WHERE config_key = 'camera.offline.alert_threshold';
+UPDATE dorm_config SET config_options = '["60","120","300","600","1800"]' WHERE config_key = 'alert.cooldown_seconds';
+UPDATE dorm_config SET config_options = '["20","50","100","200","500"]' WHERE config_key = 'alert.max_per_minute';
+
+-- ==================== 测试数据 ====================
+
+-- 13. 宿舍楼宇
+INSERT IGNORE INTO dorm_building (code, name) VALUES
+    ('A', 'A栋-学思楼'),
+    ('B', 'B栋-致远楼'),
+    ('C', 'C栋-明德楼'),
+    ('D', 'D栋-博雅楼');
+
+-- 14. 学生宿舍分配 (20人, 散布 A/B/C/D)
+INSERT IGNORE INTO dorm_student_assignment (student_id, student_name, building, room, class_name, grade, gender, phone) VALUES
+    ('2024001', '张三',   'A', 'A-101', '计算机1班', '2024', '男', '13800001001'),
+    ('2024002', '李四',   'A', 'A-101', '计算机1班', '2024', '男', '13800001002'),
+    ('2024003', '王五',   'A', 'A-101', '计算机1班', '2024', '男', '13800001003'),
+    ('2024004', '赵六',   'A', 'A-102', '计算机2班', '2024', '男', '13800001004'),
+    ('2024005', '孙七',   'A', 'A-102', '计算机2班', '2024', '男', '13800001005'),
+    ('2024006', '周八',   'A', 'A-201', '计算机1班', '2024', '男', '13800001006'),
+    ('2024007', '吴九',   'A', 'A-201', '计算机1班', '2024', '男', '13800001007'),
+    ('2024008', '郑十',   'A', 'A-201', '计算机2班', '2024', '男', '13800001008'),
+    ('2024009', '钱一',   'B', 'B-101', '软件1班',  '2024', '男', '13800001009'),
+    ('2024010', '陈二',   'B', 'B-101', '软件1班',  '2024', '男', '13800001010'),
+    ('2024011', '朱三',   'B', 'B-101', '软件2班',  '2024', '男', '13800001011'),
+    ('2024012', '刘四',   'B', 'B-102', '软件2班',  '2024', '男', '13800001012'),
+    ('2024013', '黄五',   'B', 'B-102', '软件1班',  '2024', '男', '13800001013'),
+    ('2024014', '林一',   'C', 'C-101', '网络1班',  '2024', '女', '13800001014'),
+    ('2024015', '何二',   'C', 'C-101', '网络1班',  '2024', '女', '13800001015'),
+    ('2024016', '罗三',   'C', 'C-101', '网络2班',  '2024', '女', '13800001016'),
+    ('2024017', '谢四',   'C', 'C-102', '网络2班',  '2024', '女', '13800001017'),
+    ('2024018', '唐五',   'C', 'C-102', '网络1班',  '2024', '女', '13800001018'),
+    ('2024019', '韩一',   'D', 'D-101', '大数据1班', '2024', '女', '13800001019'),
+    ('2024020', '冯二',   'D', 'D-101', '大数据1班', '2024', '女', '13800001020'),
+    ('2024021', '董三',   'D', 'D-102', '大数据2班', '2024', '女', '13800001021'),
+    ('2024022', '魏四',   'D', 'D-102', '大数据2班', '2024', '女', '13800001022');
+
+-- 15. 人员在校状态 (基于今日事件模拟: 大部分已进入, 少量缺勤/已离开)
+INSERT INTO dorm_student_status (student_id, student_name, building, room, is_in_dorm, last_entry_time, last_exit_time, today_status, today_entry_count, today_exit_count)
+SELECT s.student_id, s.student_name, s.building, s.room,
+       CASE s.student_id
+         WHEN '2024009' THEN 0  -- 钱一 全天未归(缺勤)
+         WHEN '2024017' THEN 0  -- 谢四 全天未归(缺勤)
+         WHEN '2024006' THEN 0  -- 周八 下午离开未归
+         WHEN '2024021' THEN 0  -- 董三 下午离开未归
+         ELSE 1
+       END,
+       CASE s.student_id
+         WHEN '2024009' THEN NULL
+         WHEN '2024017' THEN NULL
+         ELSE CONCAT(CURDATE(), ' ', LPAD(FLOOR(7 + RAND() * 2), 2, '0'), ':', LPAD(FLOOR(0 + RAND() * 60), 2, '0'), ':00')
+       END,
+       CASE s.student_id
+         WHEN '2024006' THEN CONCAT(CURDATE(), ' 14:30:00')
+         WHEN '2024021' THEN CONCAT(CURDATE(), ' 15:10:00')
+         WHEN '2024004' THEN CONCAT(CURDATE(), ' 12:15:00')
+         WHEN '2024012' THEN CONCAT(CURDATE(), ' 16:45:00')
+         ELSE NULL
+       END,
+       CASE s.student_id
+         WHEN '2024009' THEN 'out'
+         WHEN '2024017' THEN 'out'
+         ELSE 'in'
+       END,
+       CASE WHEN s.student_id IN ('2024009','2024017') THEN 0 ELSE 1 END,
+       CASE s.student_id
+         WHEN '2024006' THEN 1
+         WHEN '2024021' THEN 1
+         WHEN '2024004' THEN 1
+         WHEN '2024012' THEN 1
+         ELSE 0
+       END
+FROM dorm_student_assignment s
+ON DUPLICATE KEY UPDATE
+    is_in_dorm    = VALUES(is_in_dorm),
+    today_status  = VALUES(today_status),
+    last_entry_time = VALUES(last_entry_time),
+    last_exit_time  = VALUES(last_exit_time),
+    today_entry_count = VALUES(today_entry_count),
+    today_exit_count  = VALUES(today_exit_count);
+
+-- 16. 摄像头 (每栋楼 1 个入口摄像头)
+-- NOTE: 如果 dorm_camera 表已有旧 schema（缺少 type/protocol 列），执行前先 ALTER TABLE 或删表重建
+INSERT IGNORE INTO dorm_camera (camera_id, name, building, rtsp_url, direction, status, enabled) VALUES
+    ('cam-a-entry', 'A栋入口', 'A', 'rtsp://admin:PLACEHOLDER@192.168.1.101:554/stream1', 'entry', 'online',  1),
+    ('cam-b-entry', 'B栋入口', 'B', 'rtsp://admin:PLACEHOLDER@192.168.1.102:554/stream1', 'entry', 'online',  1),
+    ('cam-c-entry', 'C栋入口', 'C', 'rtsp://admin:PLACEHOLDER@192.168.1.103:554/stream1', 'entry', 'online',  1),
+    ('cam-d-entry', 'D栋入口', 'D', 'rtsp://admin:PLACEHOLDER@192.168.1.104:554/stream1', 'entry', 'idle',    1);
+
+-- 17. 摄像头日志
+INSERT IGNORE INTO dorm_camera_log (camera_id, building, status_from, status_to, reason, created_at) VALUES
+    ('cam-a-entry', 'A', NULL, 'online',    '系统初始化', NOW() - INTERVAL 2 HOUR),
+    ('cam-b-entry', 'B', NULL, 'online',    '系统初始化', NOW() - INTERVAL 2 HOUR),
+    ('cam-c-entry', 'C', NULL, 'online',    '系统初始化', NOW() - INTERVAL 2 HOUR),
+    ('cam-d-entry', 'D', NULL, 'idle',      '系统初始化(无事件)', NOW() - INTERVAL 2 HOUR);
+
+-- 18. 今日进出事件 (共 26 条：20 条 entry + 4 条 exit + 2 条陌生人 entry)
+INSERT IGNORE INTO dorm_entry_exit_event (event_id, camera_id, building, student_id, student_name, event_type, confidence, is_stranger, timestamp) VALUES
+    -- A栋 07:30-08:00 早高峰进入
+    ('evt-a-001', 'cam-a-entry', 'A', '2024001', '张三', 'entry', 0.9512, 0, CONCAT(CURDATE(), ' 07:35:00')),
+    ('evt-a-002', 'cam-a-entry', 'A', '2024002', '李四', 'entry', 0.9334, 0, CONCAT(CURDATE(), ' 07:38:00')),
+    ('evt-a-003', 'cam-a-entry', 'A', '2024003', '王五', 'entry', 0.9656, 0, CONCAT(CURDATE(), ' 07:42:00')),
+    ('evt-a-004', 'cam-a-entry', 'A', '2024004', '赵六', 'entry', 0.8910, 0, CONCAT(CURDATE(), ' 07:50:00')),
+    ('evt-a-005', 'cam-a-entry', 'A', '2024005', '孙七', 'entry', 0.9123, 0, CONCAT(CURDATE(), ' 07:55:00')),
+    ('evt-a-006', 'cam-a-entry', 'A', '2024007', '吴九', 'entry', 0.9478, 0, CONCAT(CURDATE(), ' 08:05:00')),
+    ('evt-a-007', 'cam-a-entry', 'A', '2024008', '郑十', 'entry', 0.9234, 0, CONCAT(CURDATE(), ' 08:10:00')),
+    -- B栋 07:45-08:15
+    ('evt-b-001', 'cam-b-entry', 'B', '2024010', '陈二', 'entry', 0.9432, 0, CONCAT(CURDATE(), ' 07:45:00')),
+    ('evt-b-002', 'cam-b-entry', 'B', '2024011', '朱三', 'entry', 0.9687, 0, CONCAT(CURDATE(), ' 07:48:00')),
+    ('evt-b-003', 'cam-b-entry', 'B', '2024012', '刘四', 'entry', 0.9056, 0, CONCAT(CURDATE(), ' 07:52:00')),
+    ('evt-b-004', 'cam-b-entry', 'B', '2024013', '黄五', 'entry', 0.9234, 0, CONCAT(CURDATE(), ' 08:12:00')),
+    -- C栋 07:30-07:55
+    ('evt-c-001', 'cam-c-entry', 'C', '2024014', '林一', 'entry', 0.9765, 0, CONCAT(CURDATE(), ' 07:30:00')),
+    ('evt-c-002', 'cam-c-entry', 'C', '2024015', '何二', 'entry', 0.9543, 0, CONCAT(CURDATE(), ' 07:33:00')),
+    ('evt-c-003', 'cam-c-entry', 'C', '2024016', '罗三', 'entry', 0.9456, 0, CONCAT(CURDATE(), ' 07:40:00')),
+    ('evt-c-004', 'cam-c-entry', 'C', '2024018', '唐五', 'entry', 0.9122, 0, CONCAT(CURDATE(), ' 07:52:00')),
+    -- D栋 07:35-08:00
+    ('evt-d-001', 'cam-d-entry', 'D', '2024019', '韩一', 'entry', 0.9634, 0, CONCAT(CURDATE(), ' 07:36:00')),
+    ('evt-d-002', 'cam-d-entry', 'D', '2024020', '冯二', 'entry', 0.9356, 0, CONCAT(CURDATE(), ' 07:44:00')),
+    ('evt-d-003', 'cam-d-entry', 'D', '2024022', '魏四', 'entry', 0.9567, 0, CONCAT(CURDATE(), ' 07:58:00')),
+    -- 下午外出事件
+    ('evt-a-101', 'cam-a-entry', 'A', '2024004', '赵六', 'exit',  0.8845, 0, CONCAT(CURDATE(), ' 12:15:00')),
+    ('evt-a-102', 'cam-a-entry', 'A', '2024006', '周八', 'exit',  0.9122, 0, CONCAT(CURDATE(), ' 14:30:00')),
+    ('evt-b-101', 'cam-b-entry', 'B', '2024012', '刘四', 'exit',  0.8956, 0, CONCAT(CURDATE(), ' 16:45:00')),
+    ('evt-d-101', 'cam-d-entry', 'D', '2024021', '董三', 'exit',  0.8765, 0, CONCAT(CURDATE(), ' 15:10:00')),
+    -- 陌生人记录
+    ('evt-str-01', 'cam-a-entry', 'A', NULL, NULL, 'entry', 0.4234, 1, CONCAT(CURDATE(), ' 09:20:00')),
+    ('evt-str-02', 'cam-b-entry', 'B', NULL, NULL, 'entry', 0.3654, 1, CONCAT(CURDATE(), ' 10:05:00'));
+
+-- 19. 陌生人记录
+INSERT IGNORE INTO dorm_stranger_record (building, confidence, event_type, detected_time) VALUES
+    ('A', 0.4234, 'entry', CONCAT(CURDATE(), ' 09:20:00')),
+    ('B', 0.3654, 'entry', CONCAT(CURDATE(), ' 10:05:00'));
+
+-- 20. 昨日查寝报告 (昨日正常执行)
+INSERT IGNORE INTO dorm_nightly_report (report_date, building, total_count, present_count, absent_count, late_return_count, stranger_count, unknown_count, status, trigger_type)
+SELECT CURDATE() - INTERVAL 1 DAY, b.code,
+       -- 各楼栋应归人数
+       (SELECT COUNT(*) FROM dorm_student_assignment WHERE building = b.code),
+       -- present_count
+       CASE b.code
+         WHEN 'A' THEN 6   -- 8人中6人已归(周八离开未归视为absent, 赵六下午出去但已归)
+         WHEN 'B' THEN 3   -- 5人中3人已归(钱一缺勤, 刘四下午离开但已归)
+         WHEN 'C' THEN 3   -- 5人中3人已归(谢四缺勤, 唐五已归)
+         WHEN 'D' THEN 3   -- 4人中3人已归(董三下午离开但已归)
+       END,
+       -- absent_count
+       CASE b.code
+         WHEN 'A' THEN 1   -- 周八(未归)
+         WHEN 'B' THEN 1   -- 钱一(缺勤)
+         WHEN 'C' THEN 1   -- 谢四(缺勤)
+         WHEN 'D' THEN 0
+       END,
+       -- late_return_count
+       CASE b.code
+         WHEN 'A' THEN 1   -- 赵六(晚归)
+         WHEN 'B' THEN 1   -- 刘四(晚归)
+         WHEN 'D' THEN 1   -- 董三(晚归)
+         ELSE 0
+       END,
+       -- stranger_count
+       CASE b.code
+         WHEN 'A' THEN 1
+         WHEN 'B' THEN 1
+         ELSE 0
+       END,
+       -- unknown_count
+       0,
+       'COMPLETED', 'AUTO'
+FROM dorm_building b;
+
+-- 21. 昨日查寝明细 (用关联的 report_id + student 数据)
+INSERT IGNORE INTO dorm_nightly_detail (report_id, student_id, student_name, building, room, class_name, status, entry_time, exit_time, is_late_return)
+SELECT
+    r.id,
+    s.student_id,
+    s.student_name,
+    s.building,
+    s.room,
+    s.class_name,
+    CASE s.student_id
+      WHEN '2024009' THEN 'absent'       -- 钱一 缺勤
+      WHEN '2024017' THEN 'absent'       -- 谢四 缺勤
+      WHEN '2024006' THEN 'absent'       -- 周八 未归
+      WHEN '2024004' THEN 'late_return'  -- 赵六 晚归
+      WHEN '2024012' THEN 'late_return'  -- 刘四 晚归
+      WHEN '2024021' THEN 'late_return'  -- 董三 晚归
+      ELSE 'present'
+    END,
+    CASE
+      WHEN s.student_id IN ('2024009','2024017') THEN NULL
+      ELSE CONCAT(CURDATE() - INTERVAL 1 DAY, ' ', LPAD(FLOOR(7 + RAND() * 2), 2, '0'), ':', LPAD(FLOOR(0 + RAND() * 60), 2, '0'), ':00')
+    END,
+    CASE s.student_id
+      WHEN '2024004' THEN CONCAT(CURDATE() - INTERVAL 1 DAY, ' 22:30:00')
+      WHEN '2024012' THEN CONCAT(CURDATE() - INTERVAL 1 DAY, ' 22:45:00')
+      WHEN '2024021' THEN CONCAT(CURDATE() - INTERVAL 1 DAY, ' 23:10:00')
+      ELSE NULL
+    END,
+    CASE WHEN s.student_id IN ('2024004','2024012','2024021') THEN 1 ELSE 0 END
+FROM dorm_student_assignment s
+JOIN dorm_nightly_report r ON r.building = s.building AND r.report_date = CURDATE() - INTERVAL 1 DAY;

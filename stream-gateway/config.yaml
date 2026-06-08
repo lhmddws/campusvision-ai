@@ -37,6 +37,6 @@ management:
     management_key: ""
 
 database:
-    dsn: "root:root@tcp(localhost:3306)/dormitory"
+    dsn: "root:root_dev@tcp(localhost:3306)/dormitory"
     driver: "mysql"
     poll_interval: 30s

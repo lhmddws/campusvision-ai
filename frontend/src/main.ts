@@ -1,4 +1,4 @@
-import { createApp } from 'vue';
+import { createApp, defineAsyncComponent } from 'vue';
 
 import Cookies from 'js-cookie';
 
@@ -52,8 +52,7 @@ import {
 import Pagination from '@/components/Pagination/index.vue';
 // 自定义表格工具组件
 import RightToolbar from '@/components/RightToolbar/index.vue';
-// 富文本组件
-import { Editor } from '@/components/Editor';
+// QEditor 轻量富文本组件（不包含 wangEditor，保留静态导入）
 import QEditor from '@/components/QEditor/index.vue';
 // 文件上传组件
 import FileUpload from '@/components/FileUpload/index.vue';
@@ -86,7 +85,7 @@ app.component('FileUpload', FileUpload);
 app.component('ImageUpload', ImageUpload);
 app.component('ImagePreview', ImagePreview);
 app.component('RightToolbar', RightToolbar);
-app.component('Editor', Editor);
+app.component('Editor', defineAsyncComponent(() => import('@/components/Editor/src/Editor.vue')));
 app.component('QEditor', QEditor);
 
 app.use(router);

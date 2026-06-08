@@ -117,6 +117,8 @@
 | 9   | `dorm_sync_log`           | 学管同步日志             | 主进程对接     | ~20 行/日     |
 | 10  | `dorm_camera`             | 摄像头设备信息           | 摄像头功能实现 | 4 行          |
 | 11  | `dorm_camera_log`         | 摄像头状态变更日志       | 摄像头功能实现 | ~50 行/日     |
+| 12  | `face_embedding`          | 人脸特征向量             | 人脸识别服务   | ~22 行        |
+| 13  | `dorm_building`           | 宿舍楼宇                 | 主进程对接     | 4 行          |
 
 ---
 
@@ -319,6 +321,7 @@ CREATE TABLE dorm_config (
     config_type     VARCHAR(32)   DEFAULT 'string'           COMMENT 'string/int/bool/float',
     description     VARCHAR(256)                            COMMENT '配置说明',
     default_value   TEXT                                     COMMENT '默认值',
+    config_options  TEXT                                     COMMENT '下拉选项(JSON数组), 非空时前���渲染<el-select>',
     group_name      VARCHAR(32)                              COMMENT '配置分组: nightly/alert/sync/kafka/cache/stranger/system',
     created_at      DATETIME      NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at      DATETIME      NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
@@ -373,6 +376,32 @@ CREATE TABLE dorm_camera (
     INDEX idx_building (building),
     INDEX idx_status (status)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='摄像头信息表';
+```
+
+### 3.12 人脸特征向量表 `face_embedding`
+
+```sql
+CREATE TABLE face_embedding (
+    id          BIGINT AUTO_INCREMENT PRIMARY KEY COMMENT '主键',
+    name        VARCHAR(100) NOT NULL              COMMENT '姓名',
+    student_id  VARCHAR(50) NOT NULL UNIQUE        COMMENT '学号',
+    embedding   BLOB                               COMMENT '512维浮点向量 (2048 bytes)',
+    image_path  VARCHAR(500)                       COMMENT '人脸图片路径',
+    created_at  DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at  DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    INDEX idx_student_id (student_id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='人脸特征向量表';
+```
+
+### 3.13 宿舍楼宇表 `dorm_building`
+
+```sql
+CREATE TABLE dorm_building (
+    id              BIGINT AUTO_INCREMENT PRIMARY KEY COMMENT '主键',
+    code            VARCHAR(8) NOT NULL UNIQUE      COMMENT '楼宇编号 A/B/C/D',
+    name            VARCHAR(64) NOT NULL            COMMENT '楼宇名称',
+    created_at      DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='宿舍楼宇';
 ```
 
 ### 3.11 摄像头日志表 `dorm_camera_log`
@@ -449,10 +478,11 @@ ALTER TABLE dorm_camera_log ADD INDEX idx_camera_ts (camera_id, created_at);
 
 ```
 infra/mariadb/migrations/
-├── 001_init_schema.sql           # 初始建表
-├── 002_seed_config.sql           # 插入默认配置
-├── 003_add_camera_tables.sql     # 摄像头相关表
-└── 004_add_indexes.sql           # 性能优化索引
+├── 001_init_schema.sql           # 初始建表 (11 张核心表)
+├── 002_seed_config.sql           # 插入默认配置键值
+├── 003_add_config_options.sql    # dorm_config 新增 config_options 列
+├── 004_add_face_embedding.sql    # 新增 face_embedding 特征向量表
+└── 005_add_building_table.sql    # 新增 dorm_building 楼宇表
 ```
 
 ### 5.2 迁移执行方式

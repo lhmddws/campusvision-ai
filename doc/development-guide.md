@@ -119,7 +119,9 @@ air --config .air.toml
 cd frontend
 
 pnpm install
-pnpm dev     # 开发服务器，默认 http://localhost:80
+pnpm dev         # 开发服务器，默认 http://localhost:3000
+pnpm build:prod  # 生产构建（自动拆包：echarts/wangeditor/xlsx 分离为 on-demand chunk）
+pnpm test        # 运行 83 个 Vitest 测试
 ```
 
 ### 2.7 环境变量参考
@@ -312,6 +314,21 @@ pnpm test
 - 单元测试使用 Mock，不依赖真实数据库/摄像头
 - 集成测试使用 `testcontainers` (Java) 或 Docker Compose
 - 测试用的 RTSP 视频流使用本地模拟推流
+- `init.sql` 包含开发测试数据，`docker compose up` 时自动植入。也可手动刷新：
+
+  ```bash
+  docker compose exec mariadb mysql -uroot -proot_dev dormitory < infra/mariadb/init.sql
+  ```
+
+  测试数据包含：**22 名学生**（A/B/C/D 四栋楼分布）、**4 个摄像头**、**24 条今日进出事件**、**2 条陌生人记录**、**昨日查寝报表**（含缺勤/晚归）。所有 `INSERT` 使用 `INSERT IGNORE`，可安全重跑。
+
+  | 场景         | 数据                                    |
+  | ------------ | --------------------------------------- |
+  | 正常在校     | 18 人 07:30-08:15 进入                  |
+  | 缺勤         | 钱一(B-101)、谢四(C-102) 全天未归       |
+  | 下午外出     | 赵六 12:15、周八 14:30 等 4 人离开       |
+  | 陌生人       | A 栋 09:20、B 栋 10:05 各有一次          |
+  | 晚归         | 赵六 22:30、刘四 22:45、董三 23:10 返回  |
 
 ---
 
