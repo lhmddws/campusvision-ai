@@ -315,18 +315,30 @@ services:
         labels:
             campusvision.ai/service: "frontend"
 
-    # ==================== Mediamtx RTSP Simulation ====================
+    # ==================== Mediamtx (RTSP/RTMP/HLS Server) ====================
     mediamtx:
         image: bluenviron/mediamtx:latest
+        hostname: mediamtx
         container_name: cv-mediamtx
-        networks:
-            - campusvision
+        networks: [campusvision]
+        restart: unless-stopped
         ports:
-            - "8554:8554"    # RTSP
-            - "1935:1935"    # RTMP
-            - "8888:8888"    # HLS
-            - "9996:9996"    # WebRTC/API
+            - "8554:8554"     # RTSP
+            - "1935:1935"     # RTMP
+            - "8888:8888"     # HLS
+            - "9996:9996"     # WebRTC/metrics
         volumes:
             - ./scripts/rtsp/mediamtx.yml:/mediamtx.yml
-        # No healthcheck: mediamtx is a scratch image (no shell/wget/curl)
-        restart: unless-stopped
+        healthcheck:
+            test: ["CMD", "wget", "-qO-", "http://localhost:9996/"]
+            interval: 10s
+            timeout: 3s
+            retries: 3
+        deploy:
+            resources:
+                limits:
+                    memory: 256M
+                reservations:
+                    memory: 128M
+        labels:
+            campusvision.ai/service: "mediamtx"
