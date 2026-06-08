@@ -5,6 +5,48 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.4.0] - 2026-06-08
+
+### Added
+
+- **infra**: Mediamtx RTSP server service for camera streaming simulation — enables end-to-end testing with synthetic RTSP feeds in Docker Compose (#18)
+- **face-recognition**: Switch to RetinaFace-MobileNetV2 (lighter, faster) with corrected image preprocessing (BGR→RGB conversion, proper letterboxing) — improved detection accuracy and throughput (#19)
+- **frontend**: Update branding title, fix sidebar route navigation, add login page wireframe (#20, #22)
+- **deploy**: SSH deployment script and production environment config (`deploy.sh`) — one-command deploy to remote host
+- **ci**: GitHub Actions CI pipeline (Go build+test, Python lint+test, frontend lint+build), Dependabot config for automated dependency updates, PR template (#18)
+
+### Performance
+
+- **face-recognition**: Migrate Dockerfile from `pip` to `uv` — ~10x faster dependency installation in Docker builds
+- **stream-gateway**: Add `-ldflags -s -w` to Go build — reduces binary size by ~30%
+- **dormitory-service-go**: Add `-ldflags -s -w` to Go build — reduces binary size by ~30%
+
+### Fixed
+
+- **stream-gateway**: Resolve all `golangci-lint` error-level issues, verify build + test pass
+- **face-recognition**: Resolve all `ruff` error-level issues, pass full `AppConfig` to `FaceMatcher`, relax detection thresholds for debug mode, add `pyproject.toml` — clean linting and configurable sensitivity
+- **dormitory-service-go**: Resolve all linter errors, add `AlertHandler`/`FaceHandler`/`RecordHandler` tests — verified build + test pass
+- **frontend**: Update stale theme test assertions, resolve TypeScript deprecation warnings
+
+### Tests
+
+- **dormitory-service-go**: Add comprehensive handler tests — `AlertHandler` (GetAlerts, AcknowledgeAlert), `FaceHandler` (Create, List), `RecordHandler` (GetAttendanceStats, GetEvents)
+- **test**: Add test scripts, pipeline plan, Lena test fixture image
+- **test**: Fix checkmark encoding in kafka verify script (#21)
+- **e2e**: Add end-to-end test documentation (test-flow docs)
+
+### Documentation
+
+- **CHANGELOG, CONTRIBUTING, SECURITY**: Add standard project governance docs
+- **README**: Add GitHub badges (Go, Python, Vue, Docker, License, PRs welcome) and repo links
+- **test-flow**: Document end-to-end test scenarios and verification procedures
+
+### Chores
+
+- **monorepo**: Add Go workspace (`go.work`) for multi-module development
+- **infrastructure**: Root Makefile, tooling scripts, project license
+- **frontend**: Update pnpm lockfile with workspace configuration
+
 ## [0.1.0] - 2025-05-28
 
 ### Added
