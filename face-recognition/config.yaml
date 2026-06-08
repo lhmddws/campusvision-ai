@@ -1,6 +1,6 @@
 kafka:
     brokers:
-        - "localhost:9092"
+        - "localhost:29092"
     frame_topic: "t_dorm_frame"
     event_topic: "t_dorm_event"
     group_id: "face-recognition-group"
