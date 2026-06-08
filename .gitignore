@@ -91,4 +91,5 @@ dormitory-service-go/dormitory-service
 .sisyphus/
 .superpowers/
 .omo/
+.playwright-mcp/
 **/.AGENTS.md
