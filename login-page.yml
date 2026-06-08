@@ -1,0 +1,25 @@
+- generic [active] [ref=e1]:
+  - generic [ref=e3]:
+    - generic [ref=e8]:
+      - img "CampusVision AI" [ref=e10]
+      - heading "CampusVision 宿舍管理后台" [level=1] [ref=e11]
+      - paragraph [ref=e12]: Dormitory AI Surveillance Admin
+    - generic [ref=e14]:
+      - generic [ref=e15]:
+        - heading "欢迎登录" [level=2] [ref=e16]
+        - paragraph [ref=e17]: 请输入您的账号信息
+      - generic [ref=e18]:
+        - generic [ref=e22]:
+          - img [ref=e24]
+          - textbox "请输入账号" [ref=e26]
+        - generic [ref=e30]:
+          - img [ref=e32]
+          - textbox "请输入密码" [ref=e34]
+        - generic [ref=e36] [cursor=pointer]:
+          - generic [ref=e37]:
+            - checkbox "记住密码"
+          - generic [ref=e39]: 记住密码
+        - button "登 录" [ref=e42] [cursor=pointer]:
+          - generic [ref=e44]: 登 录
+      - generic [ref=e45]: Copyright © 2026 CampusVision AI
+  - img
