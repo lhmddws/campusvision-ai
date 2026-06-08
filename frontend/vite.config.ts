@@ -58,9 +58,14 @@ export default defineConfig(({ mode, command }) => {
       rollupOptions: {
         output: {
           manualChunks(id) {
-            if (id.includes('element-plus/theme')) {
-              return 'ele';
-            }
+            // Element Plus theme (already split)
+            if (id.includes('element-plus/theme')) return 'ele';
+            // ECharts - 仅在访问图表页面时加载 (dashboard / attendance)
+            if (id.includes('node_modules/echarts')) return 'echarts';
+            // wangEditor - 仅在访问富文本编辑页面时加载
+            if (id.includes('node_modules/@wangeditor')) return 'editor';
+            // SheetJS + jsPDF - 仅在导出报表时加载
+            if (id.includes('node_modules/xlsx') || id.includes('node_modules/jspdf')) return 'export';
           },
         },
       },

@@ -268,12 +268,14 @@ describe('Config Page', () => {
     expect(keys[0].text()).toBe('fps_day');
   });
 
-  it('renders description text for configs with description', async () => {
+  it('renders description as label for configs with description', async () => {
     const wrapper = createWrapper();
     await flushPromises();
 
-    const descs = wrapper.findAll('.cv-config__item-desc');
+    const labels = wrapper.findAll('.cv-config__item-label');
     // All mock configs have descriptions
-    expect(descs.length).toBe(mockConfigs.length);
+    expect(labels.length).toBe(mockConfigs.length);
+    // First label should show description, not config_key
+    expect(labels[0].text()).toBe('白天帧率');
   });
 });

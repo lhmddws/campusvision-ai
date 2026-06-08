@@ -43,8 +43,17 @@
               {{ dirtyCount }} 项未保存
             </span>
           </transition>
+          <span class="cv-config__item-count">{{ filteredConfigs.length }} 项</span>
         </div>
         <div class="cv-config__toolbar-right">
+          <el-input
+            v-model="searchQuery"
+            placeholder="搜索配置键名…"
+            clearable
+            prefix-icon="Search"
+            class="cv-config__search"
+            size="default"
+          />
           <el-button
             type="primary"
             :disabled="dirtyCount === 0"
@@ -63,16 +72,22 @@
 
       <!-- Config items list -->
       <div v-loading="loading" class="cv-config__content">
-        <template v-if="filteredConfigs.length > 0">
+        <TransitionGroup
+          v-if="filteredConfigs.length > 0"
+          name="cv-stagger"
+          tag="div"
+          class="cv-config__items"
+        >
           <div
-            v-for="cfg in filteredConfigs"
+            v-for="(cfg, index) in filteredConfigs"
             :key="cfg.config_key"
             class="cv-config__item"
             :class="{ 'cv-config__item--dirty': isDirty(cfg.config_key) }"
+            :style="{ '--i': index }"
           >
-            <!-- Item header: key + type badge -->
+            <!-- Header: Chinese name + type badge -->
             <div class="cv-config__item-header">
-              <code class="cv-config__item-key">{{ cfg.config_key }}</code>
+              <span class="cv-config__item-label">{{ cfg.description || cfg.config_key }}</span>
               <span
                 class="cv-config__type-badge"
                 :class="`cv-config__type-badge--${cfg.config_type || 'string'}`"
@@ -81,47 +96,67 @@
               </span>
             </div>
 
-            <!-- Description -->
-            <p v-if="cfg.description" class="cv-config__item-desc">
-              {{ cfg.description }}
-            </p>
+            <!-- Config key (shows as muted subtitle) -->
+            <code class="cv-config__item-key">{{ cfg.config_key }}</code>
 
             <!-- Value editor -->
             <div class="cv-config__item-editor">
-              <!-- boolean → el-switch -->
+              <!-- boolean / bool → el-switch -->
               <el-switch
-                v-if="cfg.config_type === 'boolean'"
+                v-if="cfg.config_type === 'boolean' || cfg.config_type === 'bool'"
                 v-model="editValues[cfg.config_key]"
                 active-text="开启"
                 inactive-text="关闭"
-                @change="markDirty(cfg.config_key)"
               />
 
-              <!-- number → el-input-number -->
+              <!-- select → el-select (when config_options is set, takes priority over int/float/string) -->
+              <el-select
+                v-else-if="cfg.config_options"
+                v-model="editValues[cfg.config_key]"
+                placeholder="请选择"
+                class="cv-config__select"
+              >
+                <el-option
+                  v-for="opt in parseOptions(cfg.config_options)"
+                  :key="opt"
+                  :label="opt"
+                  :value="opt"
+                />
+              </el-select>
+
+              <!-- int / float / number → el-input-number -->
               <el-input-number
-                v-else-if="cfg.config_type === 'number'"
+                v-else-if="cfg.config_type === 'int' || cfg.config_type === 'float' || cfg.config_type === 'number'"
                 v-model="editValues[cfg.config_key]"
                 :controls="true"
                 class="cv-config__number-input"
-                @change="markDirty(cfg.config_key)"
               />
 
-              <!-- json → el-input textarea -->
-              <el-input
-                v-else-if="cfg.config_type === 'json'"
-                v-model="editValues[cfg.config_key]"
-                type="textarea"
-                :rows="4"
-                placeholder="请输入 JSON 内容"
-                @input="markDirty(cfg.config_key)"
-              />
+              <!-- json → el-input textarea with format -->
+              <div v-else-if="cfg.config_type === 'json'" class="cv-config__json-wrap">
+                <el-input
+                  v-model="editValues[cfg.config_key]"
+                  type="textarea"
+                  :rows="4"
+                  placeholder="请输入 JSON 内容"
+                  class="cv-config__json-input"
+                />
+                <el-button
+                  text
+                  type="primary"
+                  size="small"
+                  class="cv-config__json-format"
+                  @click="handleFormatJSON(cfg.config_key)"
+                >
+                  格式化
+                </el-button>
+              </div>
 
               <!-- string / default → el-input -->
               <el-input
                 v-else
                 v-model="editValues[cfg.config_key]"
                 placeholder="请输入配置值"
-                @input="markDirty(cfg.config_key)"
               />
             </div>
 
@@ -142,7 +177,7 @@
               </el-button>
             </div>
           </div>
-        </template>
+        </TransitionGroup>
 
         <!-- Empty state -->
         <el-empty v-else description="暂无配置项" />
@@ -154,7 +189,7 @@
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue';
 import { ElMessage, ElMessageBox } from 'element-plus';
-import { Collection, Folder, Check, RefreshLeft, Setting } from '@element-plus/icons-vue';
+import { Collection, Folder, Check, RefreshLeft, Setting, Search } from '@element-plus/icons-vue';
 import { listConfigs, getConfigGroups, batchUpdateConfigs, resetConfig } from '@/api/config';
 
 /** 配置项接口 */
@@ -165,6 +200,7 @@ interface Config {
   config_type: string | null;
   description: string | null;
   default_value: string | null;
+  config_options: string | null;
   group_name: string | null;
   created_at: string;
   updated_at: string;
@@ -184,10 +220,29 @@ const editValues = ref<Record<string, string | number | boolean>>({});
 const originalValues = ref<Record<string, string | number | boolean>>({});
 
 // ─── 计算属性 ────────────────────────────────────────────
-/** 按当前分组过滤配置列表 */
+/** 搜索关键词 */
+const searchQuery = ref('');
+
+/** 按分组 + 搜索关键词过滤配置列表 */
 const filteredConfigs = computed(() => {
-  if (!activeGroup.value) return configs.value;
-  return configs.value.filter(c => c.group_name === activeGroup.value);
+  let list = configs.value;
+
+  // 按分组过滤
+  if (activeGroup.value) {
+    list = list.filter(c => c.group_name === activeGroup.value);
+  }
+
+  // 按关键词搜索 (key + description)
+  if (searchQuery.value) {
+    const q = searchQuery.value.toLowerCase();
+    list = list.filter(
+      c =>
+        c.config_key.toLowerCase().includes(q) ||
+        (c.description && c.description.toLowerCase().includes(q)),
+    );
+  }
+
+  return list;
 });
 
 /** 脏配置键列表 */
@@ -210,29 +265,23 @@ function isDirty(key: string): boolean {
   return editValues.value[key] !== originalValues.value[key];
 }
 
-/** 标记配置为脏（由编辑器 change/input 事件触发） */
-function markDirty(_key: string) {
-  // 脏检测基于 editValues vs originalValues 的 computed，
-  // 此函数仅作为事件回调占位，无需额外操作
-}
-
-/** 类型标签颜色 */
-function typeTagColor(type: string | null): '' | 'success' | 'warning' | 'danger' | 'info' {
-  const map: Record<string, '' | 'success' | 'warning' | 'danger' | 'info'> = {
-    string: '',
-    number: 'success',
-    boolean: 'warning',
-    json: 'danger',
-  };
-  return map[type ?? 'string'] ?? 'info';
-}
-
 /** 将原始值转为编辑器所需类型 */
 function castValue(cfg: Config): string | number | boolean {
   const raw = cfg.config_value ?? '';
   if (cfg.config_type === 'boolean') return raw === 'true';
   if (cfg.config_type === 'number') return Number(raw) || 0;
   return raw;
+}
+
+/** 解析 config_options JSON 字符串为选项数组 */
+function parseOptions(raw: string | null): string[] {
+  if (!raw) return [];
+  try {
+    const parsed = JSON.parse(raw);
+    return Array.isArray(parsed) ? parsed : [];
+  } catch {
+    return [];
+  }
 }
 
 /** 计算分组内配置数量 */
@@ -274,11 +323,9 @@ async function loadGroups() {
   }
 }
 
-/** 分组切换 */
+/** 分组切换 — 仅前端过滤，不重新请求服务端 */
 function handleGroupSelect(index: string) {
   activeGroup.value = index;
-  // 切换分组时重新加载该分组的配置
-  loadConfigs(index || undefined);
 }
 
 /** 批量保存 */
@@ -309,7 +356,8 @@ async function handleBatchSave() {
       originalValues.value[key] = editValues.value[key];
     }
   } catch (e: any) {
-    ElMessage.error('保存失败：' + (e.message ?? '未知错误'));
+    const serverMsg = e.response?.data?.message || e.response?.data?.msg || '';
+    ElMessage.error('保存失败：' + (serverMsg || e.message || '未知错误'));
   } finally {
     saveLoading.value = false;
   }
@@ -339,6 +387,18 @@ async function handleBatchReset() {
     ElMessage.error('重置失败：' + (e.message ?? '未知错误'));
   } finally {
     loading.value = false;
+  }
+}
+
+/** 格式化 JSON 配置值 */
+function handleFormatJSON(key: string) {
+  const raw = editValues.value[key];
+  if (typeof raw !== 'string') return;
+  try {
+    const parsed = JSON.parse(raw);
+    editValues.value[key] = JSON.stringify(parsed, null, 2);
+  } catch {
+    ElMessage.warning('JSON 格式无效，无法格式化');
   }
 }
 
@@ -425,6 +485,7 @@ $color-info: #909399;
 }
 
 .cv-config__nav-item {
+  position: relative;
   display: flex;
   align-items: center;
   gap: 10px;
@@ -436,7 +497,10 @@ $color-info: #909399;
   cursor: pointer;
   font-size: 14px;
   color: vars.$text-secondary;
-  transition: all 0.2s ease;
+  transition:
+    background 0.15s ease,
+    color 0.15s ease,
+    transform 0.12s ease;
   text-align: left;
   font-family: inherit;
 
@@ -445,10 +509,26 @@ $color-info: #909399;
     color: vars.$text-primary;
   }
 
+  &:active {
+    transform: scale(0.97);
+  }
+
   &--active {
     background: rgba(vars.$primary-color, 0.1);
     color: vars.$primary-color;
     font-weight: 500;
+
+    &::before {
+      content: '';
+      position: absolute;
+      left: -8px;
+      top: 50%;
+      transform: translateY(-50%);
+      width: 3px;
+      height: 20px;
+      border-radius: 3px;
+      background: vars.$primary-color;
+    }
 
     .cv-config__nav-count {
       background: vars.$primary-color;
@@ -495,6 +575,22 @@ $color-info: #909399;
   display: flex;
   align-items: center;
   gap: 8px;
+
+  :deep(.el-button:active) {
+    transform: scale(0.96);
+  }
+}
+
+.cv-config__search {
+  width: 220px;
+}
+
+.cv-config__item-count {
+  font-size: 12px;
+  color: vars.$text-secondary;
+  padding: 2px 8px;
+  border-left: 1px solid rgba($color-info, 0.2);
+  white-space: nowrap;
 }
 
 .cv-config__title {
@@ -536,23 +632,34 @@ $color-info: #909399;
   flex: 1;
 }
 
+.cv-config__items {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
 /* ─── Config item card ──────────────────────────────────── */
 .cv-config__item {
   background: vars.$card-bg;
   border-radius: 10px;
   padding: 18px 20px;
-  border: 1px solid rgba($color-info, 0.12);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05), 0 1px 2px rgba(0, 0, 0, 0.03);
   transition:
-    border-color 0.25s ease,
-    box-shadow 0.25s ease;
+    box-shadow 0.25s ease,
+    transform 0.25s ease;
 
   &:hover {
-    border-color: rgba(vars.$primary-color, 0.25);
-    box-shadow: 0 2px 12px rgba(vars.$primary-color, 0.06);
+    box-shadow:
+      0 4px 16px rgba(0, 0, 0, 0.07),
+      0 2px 4px rgba(0, 0, 0, 0.04);
+    transform: translateY(-1px);
   }
 
   &--dirty {
-    border-left: 3px solid vars.$warning-color;
+    box-shadow:
+      0 1px 3px rgba(0, 0, 0, 0.05),
+      0 1px 2px rgba(0, 0, 0, 0.03),
+      inset 3px 0 0 vars.$warning-color;
     background: rgba(vars.$warning-color, 0.02);
   }
 }
@@ -564,15 +671,23 @@ $color-info: #909399;
   margin-bottom: 6px;
 }
 
-.cv-config__item-key {
-  font-family:
-    'SFMono-Regular', 'Menlo', 'Monaco', 'Consolas', 'Liberation Mono', 'Courier New', monospace;
-  font-size: 14px;
+.cv-config__item-label {
+  font-size: 15px;
   font-weight: 600;
   color: vars.$text-primary;
-  background: rgba(vars.$primary-color, 0.06);
-  padding: 2px 8px;
+  line-height: 1.4;
+}
+
+.cv-config__item-key {
+  display: inline-block;
+  font-family:
+    'SFMono-Regular', 'Menlo', 'Monaco', 'Consolas', 'Liberation Mono', 'Courier New', monospace;
+  font-size: 12px;
+  color: vars.$text-secondary;
+  background: rgba(vars.$text-secondary, 0.08);
+  padding: 1px 8px;
   border-radius: 4px;
+  margin-top: 4px;
 }
 
 .cv-config__type-badge {
@@ -606,6 +721,7 @@ $color-info: #909399;
   color: vars.$text-secondary;
   margin: 0 0 14px;
   line-height: 1.6;
+  text-wrap: pretty;
 }
 
 .cv-config__item-editor {
@@ -614,6 +730,30 @@ $color-info: #909399;
 
 .cv-config__number-input {
   width: 100%;
+}
+
+.cv-config__select {
+  width: 100%;
+}
+
+.cv-config__json-wrap {
+  position: relative;
+}
+
+.cv-config__json-format {
+  position: absolute;
+  right: 8px;
+  top: 4px;
+  z-index: 1;
+}
+
+.cv-config__json-input {
+  :deep(textarea) {
+    font-family:
+      'SFMono-Regular', 'Menlo', 'Monaco', 'Consolas', 'Liberation Mono', 'Courier New', monospace;
+    font-size: 13px;
+    line-height: 1.5;
+  }
 }
 
 /* ─── Default value row ──────────────────────────────────── */
@@ -650,5 +790,31 @@ $color-info: #909399;
 .cv-fade-enter-from,
 .cv-fade-leave-to {
   opacity: 0;
+}
+
+/* Stagger entrance for config items */
+.cv-stagger-enter-active {
+  animation: cv-item-enter 0.3s ease-out both;
+  animation-delay: calc(var(--i, 0) * 40ms);
+}
+
+.cv-stagger-leave-active {
+  transition: opacity 0.2s ease, transform 0.2s ease;
+}
+
+.cv-stagger-leave-to {
+  opacity: 0;
+  transform: translateY(-8px);
+}
+
+@keyframes cv-item-enter {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 </style>

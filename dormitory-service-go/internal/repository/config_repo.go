@@ -43,52 +43,29 @@ func (r *ConfigRepository) FindByGroup(ctx context.Context, groupName string) ([
 }
 
 // UpdateByKey updates a configuration value by its key.
+// Key existence must be validated by the caller (service layer does this).
 func (r *ConfigRepository) UpdateByKey(ctx context.Context, configKey, configValue string) error {
 	query := "UPDATE dorm_config SET config_value = ? WHERE config_key = ?"
-	result, err := r.DB.ExecContext(ctx, query, configValue, configKey)
+	_, err := r.DB.ExecContext(ctx, query, configValue, configKey)
 	if err != nil {
 		return fmt.Errorf("update config %s: %w", configKey, err)
-	}
-	rows, err := result.RowsAffected()
-	if err != nil {
-		return fmt.Errorf("update config %s: rows affected: %w", configKey, err)
-	}
-	if rows == 0 {
-		return fmt.Errorf("config key %s not found", configKey)
 	}
 	return nil
 }
 
-// BatchUpdateByKey updates multiple config values atomically using a transaction.
+// BatchUpdateByKey updates multiple config values.
+// Keys are trusted to exist (loaded from API by frontend).
 func (r *ConfigRepository) BatchUpdateByKey(ctx context.Context, updates map[string]string) error {
 	if len(updates) == 0 {
 		return nil
 	}
 
-	tx, err := r.DB.BeginTxx(ctx, nil)
-	if err != nil {
-		return fmt.Errorf("begin transaction: %w", err)
-	}
-	defer func() {
-		if err := tx.Rollback(); err != nil {
-			_ = fmt.Errorf("rollback: %w", err)
-		}
-	}()
-
 	query := "UPDATE dorm_config SET config_value = ? WHERE config_key = ?"
 	for key, value := range updates {
-		result, err := tx.ExecContext(ctx, query, value, key)
-		if err != nil {
+		if _, err := r.DB.ExecContext(ctx, query, value, key); err != nil {
 			return fmt.Errorf("update config %s: %w", key, err)
-		}
-		rows, err := result.RowsAffected()
-		if err != nil {
-			return fmt.Errorf("update config %s: rows affected: %w", key, err)
-		}
-		if rows == 0 {
-			return fmt.Errorf("config key %s not found", key)
 		}
 	}
 
-	return tx.Commit()
+	return nil
 }

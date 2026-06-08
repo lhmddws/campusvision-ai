@@ -105,11 +105,11 @@ func (s *ConfigService) ResetConfig(ctx context.Context, key string) (*entity.Do
 		return nil, fmt.Errorf("find config: %w", err)
 	}
 
-	if cfg.DefaultValue.Valid {
-		if err := s.configRepo.UpdateByKey(ctx, key, cfg.DefaultValue.String); err != nil {
+	if cfg.DefaultValue != nil {
+		if err := s.configRepo.UpdateByKey(ctx, key, *cfg.DefaultValue); err != nil {
 			return nil, fmt.Errorf("reset config: %w", err)
 		}
-		cfg.ConfigValue = cfg.DefaultValue.String
+		cfg.ConfigValue = *cfg.DefaultValue
 	}
 
 	cfg.UpdatedAt = time.Now()

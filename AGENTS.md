@@ -34,6 +34,14 @@ cd face-recognition && python -m app.main --config config.yaml
 # Dormitory Service (Go) — on :8083
 cd dormitory-service-go && CONFIG_PATH=config.yaml go run ./cmd/dormitory-service/
 
+# Frontend (Vue 3)
+cd frontend && pnpm install && pnpm dev       # dev server on :3000
+cd frontend && pnpm build:prod                 # production build (chunked)
+cd frontend && pnpm test                       # 83 tests with Vitest
+
+# Apply test data seed to running DB
+docker compose exec mariadb mysql -uroot -proot_dev dormitory < infra/mariadb/init.sql
+
 # Kafka management
 docker compose exec kafka kafka-topics --bootstrap-server localhost:9092 --list
 docker compose exec kafka kafka-console-consumer --bootstrap-server localhost:9092 --topic t_dorm_event --from-beginning
@@ -47,7 +55,7 @@ docker compose exec kafka kafka-console-consumer --bootstrap-server localhost:90
 | `kafka`                | zookeeper                    | `user: root` (permission fix); topics auto-created by `kafka-init`           |
 | `kafka-init`           | kafka (healthy)              | One-shot: creates `t_dorm_frame`(4p), `t_dorm_event`(2p), `t_dorm_alert`(1p) |
 | `redis`                | —                            | Healthy check via redis-cli ping                                             |
-| `mariadb`              | —                            | Initialized with `infra/mariadb/init.sql` (11 tables)                        |
+| `mariadb`              | —                            | Initialized with `infra/mariadb/init.sql` (13 tables + test data seed)       |
 | `minio`                | —                            | Unused by any service — `snapshot_path` always `""`                          |
 | `stream-gateway`       | kafka, kafka-init, mariadb   | Docker override via `config.docker.yaml`                                     |
 | `face-recognition`     | kafka, redis, stream-gateway | Docker CMD lacks `--config` — relies on bind-mounted `config.docker.yaml`    |
@@ -71,6 +79,10 @@ docker compose exec kafka kafka-console-consumer --bootstrap-server localhost:90
 ### DB Schema Fragmentation
 
 Fixed in migration 001 and entity updates — `infra/mariadb/init.sql` and Go entities now match. Table names verified across both sources.
+
+- `dorm_config` has `config_options TEXT` column (migration 003) — used by frontend to render `<el-select>` dropdowns. `init.sql` includes UPDATE statements to populate option lists.
+- `dorm_building` table exists in `init.sql` but was missing from some DB instances — run `CREATE TABLE IF NOT EXISTS` if missing.
+- `dorm_camera` table may be missing `type`/`protocol` columns on older DB instances — the `init.sql` INSERT uses a compatible column list (`camera_id, name, building, rtsp_url, direction, status, enabled`).
 
 ### Redis Config
 
@@ -119,6 +131,7 @@ Fixed in migration 001 and entity updates — `infra/mariadb/init.sql` and Go en
 - **stream-gateway**: 4 test files (health handler, mgmt handler, camera config, crypto).
 - **face-recognition**: 6 tests under `tests/` — use Haar Cascade fallback (no ONNX needed).
 - **dormitory-service-go**: 1 test file (`repository/base_test.go` — generic CRUD with go-sqlmock). All other packages untested.
+- **frontend**: 83 Vitest tests across 11 test files (dashboard, config, camera, attendance, alerts, events, face, inspection, layout, login, smoke).
 
 ### Cross-Cutting Patterns
 
@@ -127,6 +140,8 @@ Fixed in migration 001 and entity updates — `infra/mariadb/init.sql` and Go en
 - **DB migrations**: `infra/mariadb/migrations/` uses manual serial numbering (`001_*.sql`, `002_*.sql`). No Flyway, no golang-migrate. Apply manually.
 - **Kafka topic naming**: `t_dorm_<entity>` convention. `t_dorm_frame` (4p, hash by building, Snappy), `t_dorm_event` (2p), `t_dorm_alert` (1p).
 - **DB table naming**: `dorm_` prefix, InnoDB/utf8mb4, BIGINT AUTO_INCREMENT, Chinese column comments.
+- **Frontend lazy loading**: Heavy libs split into on-demand chunks: `echarts` (340KB gzip), `wangeditor` (306KB), `xlsx+jspdf` (231KB). Routes use dynamic `import()` already.
+- **Test data seed**: `init.sql` contains 22 students, 4 cameras, 24 entry events, 4 nightly reports, and 2 stranger records — all using `INSERT IGNORE` for idempotent re-runs.
 
 ## Team Division
 

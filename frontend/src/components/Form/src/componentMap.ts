@@ -1,4 +1,5 @@
 import type { Component } from 'vue';
+import { defineAsyncComponent } from 'vue';
 import {
   ElCascader,
   ElCheckboxGroup,
@@ -20,7 +21,6 @@ import {
   ElTreeSelect,
 } from 'element-plus';
 import { InputPassword } from '@/components/InputPassword';
-import { Editor } from '@/components/Editor';
 import { ComponentName } from '@/types/components';
 
 const componentMap: Recordable<Component, ComponentName> = {
@@ -44,7 +44,7 @@ const componentMap: Recordable<Component, ComponentName> = {
   SelectV2: ElSelectV2,
   RadioButton: ElRadioGroup,
   InputPassword: InputPassword,
-  Editor: Editor,
+  Editor: defineAsyncComponent(() => import('@/components/Editor/src/Editor.vue')),
   TreeSelect: ElTreeSelect,
 };
 
