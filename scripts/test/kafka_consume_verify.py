@@ -86,7 +86,7 @@ def main():
 
         actual_h, actual_w = frame.shape[:2]
         declared_w, declared_h = val["frame_width"], val["frame_height"]
-        match = "✓" if actual_w == declared_w and actual_h == declared_h else "✗"
+        match = "OK" if actual_w == declared_w and actual_h == declared_h else "MISMATCH"
 
         print(f"  seq={val['frame_sequence']:3d} "
               f"size=({actual_w}x{actual_h}) "
