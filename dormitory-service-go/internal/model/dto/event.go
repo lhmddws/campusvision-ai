@@ -20,6 +20,10 @@ type FaceEventMessage struct {
 	IsStranger      bool    `json:"is_stranger"`
 	SnapshotPath    string  `json:"snapshot_path"`
 	DirectionMethod string  `json:"direction_method"`
+	X1              float64 `json:"x1"`
+	Y1              float64 `json:"y1"`
+	X2              float64 `json:"x2"`
+	Y2              float64 `json:"y2"`
 }
 
 // EventDTO is the API response DTO for an event log entry.
