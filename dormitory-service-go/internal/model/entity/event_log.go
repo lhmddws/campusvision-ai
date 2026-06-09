@@ -24,5 +24,8 @@ type DormEventLog struct {
 	FaceSnapshotURL jsontype.NullString  `db:"face_snapshot_url" json:"face_snapshot_url"`
 	Timestamp       time.Time            `db:"timestamp" json:"timestamp"`
 	CreatedAt       time.Time            `db:"created_at" json:"created_at"`
+<<<<<<< HEAD
 	Source          string               `db:"-" json:"source"` // In-memory only; not persisted to DB
+=======
+>>>>>>> 2fee2d0 (fix(model): 自定义JSON Null序列化类型(sql.Null* -> jsontype.Null*))
 }

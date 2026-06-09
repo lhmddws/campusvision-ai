@@ -261,9 +261,12 @@ func (c *EventConsumer) buildEventLog(event dto.FaceEventMessage, buildingCode s
 	}
 	if event.SnapshotPath != "" {
 		eventLog.FaceSnapshotURL = jsontype.NewNullString(event.SnapshotPath)
+<<<<<<< HEAD
 	}
 	if event.Source != "" {
 		eventLog.Source = event.Source
+=======
+>>>>>>> 2fee2d0 (fix(model): 自定义JSON Null序列化类型(sql.Null* -> jsontype.Null*))
 	}
 
 	return eventLog
