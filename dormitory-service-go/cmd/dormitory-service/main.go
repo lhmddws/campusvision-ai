@@ -150,8 +150,8 @@ func main() {
 
 	// Setup scheduler manager
 	schedulerManager := scheduler.NewManager(logger)
-	schedulerManager.AddJob("0 */5 * * * *", scheduler.NewHealthCheckJob(logger, cameraSvc))
-	schedulerManager.AddJob("0 0 23 * * *", scheduler.NewGenerateNightlyReport(logger))
+	schedulerManager.AddJob("*/5 * * * *", scheduler.NewHealthCheckJob(logger, cameraSvc))
+	schedulerManager.AddJob("0 23 * * *", scheduler.NewGenerateNightlyReport(logger))
 
 	// Setup Gin router
 	ginMode := gin.ReleaseMode

@@ -132,6 +132,12 @@ func (s *CameraService) RegisterCamera(dto dto.CameraCreateDTO) (*entity.DormCam
 		Remark:      toNullString(dto.Remark),
 		PasswordEnc: passwordEnc,
 		Nonce:       nonce,
+		Type:        dto.Type,
+		Protocol:    dto.Protocol,
+		Host:        toNullString(dto.Host),
+		Port:        jsontype.NewNullInt64(int64(dto.Port)),
+		Path:        toNullString(dto.Path),
+		Username:    toNullString(dto.Username),
 		CreatedAt:   time.Now(),
 		UpdatedAt:   time.Now(),
 	}
@@ -378,10 +384,10 @@ func (s *CameraService) QuerySnapshots(cameraID string, startTime, endTime time.
 
 func (s *CameraService) insertCameraLog(cam *entity.DormCamera, statusFrom, statusTo, reason string) {
 	entry := &entity.DormCameraLog{
-		CameraID: cam.CameraID,
-		Building: cam.Building,
-		StatusTo: statusTo,
-		Reason:   toNullString(reason),
+		CameraID:  cam.CameraID,
+		Building:  cam.Building,
+		StatusTo:  statusTo,
+		Reason:    toNullString(reason),
 		CreatedAt: time.Now(),
 	}
 	if statusFrom != "" {
