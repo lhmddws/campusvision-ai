@@ -95,12 +95,14 @@
           </template>
         </el-table-column>
 
-        <el-table-column label="姓名" align="center" prop="student_id" min-width="120">
+        <el-table-column label="姓名" align="center" prop="student_name" min-width="120">
           <template #default="scope">
             <span v-if="scope.row.is_stranger" class="stranger-badge">
               <el-tag type="danger" size="small" effect="dark" round>陌生人</el-tag>
             </span>
-            <span v-else class="cell-name">{{ scope.row.student_id || '-' }}</span>
+            <span v-else class="cell-name">{{
+              scope.row.student_name || scope.row.student_id || '-'
+            }}</span>
           </template>
         </el-table-column>
 
@@ -155,10 +157,10 @@
           </template>
         </el-table-column>
 
-        <el-table-column label="抓拍照片" align="center" prop="snapshot_path" min-width="100">
+        <el-table-column label="抓拍照片" align="center" prop="face_snapshot_url" min-width="100">
           <template #default="scope">
             <el-popover
-              v-if="scope.row.snapshot_path"
+              v-if="scope.row.face_snapshot_url"
               placement="right"
               :width="280"
               trigger="hover"
@@ -167,7 +169,7 @@
               <template #reference>
                 <div class="photo-thumb-wrapper">
                   <el-image
-                    :src="scope.row.snapshot_path"
+                    :src="scope.row.face_snapshot_url"
                     fit="cover"
                     class="photo-thumb"
                     loading="lazy"
@@ -181,7 +183,11 @@
                 </div>
               </template>
               <div class="photo-preview">
-                <el-image :src="scope.row.snapshot_path" fit="contain" class="photo-preview-img">
+                <el-image
+                  :src="scope.row.face_snapshot_url"
+                  fit="contain"
+                  class="photo-preview-img"
+                >
                   <template #error>
                     <div class="photo-preview-fallback">图片加载失败</div>
                   </template>

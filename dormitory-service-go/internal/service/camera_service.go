@@ -5,8 +5,10 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"net"
 	"net/http"
 	"net/url"
+	"strconv"
 	"strings"
 	"sync"
 	"time"
@@ -14,6 +16,7 @@ import (
 	"github.com/sims/campusvision/dormitory-service-go/internal/client"
 	"github.com/sims/campusvision/dormitory-service-go/internal/model/dto"
 	"github.com/sims/campusvision/dormitory-service-go/internal/model/entity"
+	"github.com/sims/campusvision/dormitory-service-go/internal/model/jsontype"
 	"github.com/sims/campusvision/dormitory-service-go/internal/repository"
 	"github.com/sims/campusvision/dormitory-service-go/internal/util"
 	"go.uber.org/zap"
@@ -21,14 +24,14 @@ import (
 
 // CameraService handles camera lifecycle management.
 type CameraService struct {
-	cameraRepo   *repository.CameraRepository
-	eventLogRepo *repository.EventLogRepository
+	cameraRepo    *repository.CameraRepository
+	eventLogRepo  *repository.EventLogRepository
 	cameraLogRepo *repository.CameraLogRepository
-	pushClient   *client.PushClient
-	gatewayURL   string
-	maxCameras   int
-	logger       *zap.Logger
-	mu           sync.Mutex
+	pushClient    *client.PushClient
+	gatewayURL    string
+	maxCameras    int
+	logger        *zap.Logger
+	mu            sync.Mutex
 }
 
 // NewCameraService creates a new CameraService.
@@ -48,13 +51,13 @@ func NewCameraService(
 		logger, _ = zap.NewDevelopment()
 	}
 	return &CameraService{
-		cameraRepo:   cameraRepo,
+		cameraRepo:    cameraRepo,
 		eventLogRepo:  eventLogRepo,
 		cameraLogRepo: cameraLogRepo,
-		pushClient:   pushClient,
-		gatewayURL:   gatewayURL,
-		maxCameras:   maxCameras,
-		logger:       logger,
+		pushClient:    pushClient,
+		gatewayURL:    gatewayURL,
+		maxCameras:    maxCameras,
+		logger:        logger,
 	}
 }
 
@@ -79,9 +82,29 @@ func (s *CameraService) RegisterCamera(dto dto.CameraCreateDTO) (*entity.DormCam
 	}
 	s.mu.Unlock()
 
-	var passwordEnc, nonce sql.NullString
+	var passwordEnc, nonce jsontype.NullString
 	if dto.RtspURL != "" {
 		if parsed, err := url.Parse(dto.RtspURL); err == nil {
+			if dto.Host == "" && parsed.Host != "" {
+				if h, _, _ := net.SplitHostPort(parsed.Host); h != "" {
+					dto.Host = h
+				} else {
+					dto.Host = parsed.Host
+				}
+			}
+			if dto.Port == 0 {
+				if _, p, err := net.SplitHostPort(parsed.Host); err == nil {
+					if port, atoiErr := strconv.Atoi(p); atoiErr == nil {
+						dto.Port = port
+					}
+				}
+			}
+			if dto.Username == "" && parsed.User != nil {
+				dto.Username = parsed.User.Username()
+			}
+			if dto.Path == "" && parsed.Path != "" {
+				dto.Path = parsed.Path
+			}
 			if parsed.User != nil {
 				pass, hasPass := parsed.User.Password()
 				if hasPass && pass != "" {
@@ -109,6 +132,12 @@ func (s *CameraService) RegisterCamera(dto dto.CameraCreateDTO) (*entity.DormCam
 		Remark:      toNullString(dto.Remark),
 		PasswordEnc: passwordEnc,
 		Nonce:       nonce,
+		Type:        dto.Type,
+		Protocol:    dto.Protocol,
+		Host:        toNullString(dto.Host),
+		Port:        jsontype.NewNullInt64(int64(dto.Port)),
+		Path:        toNullString(dto.Path),
+		Username:    toNullString(dto.Username),
 		CreatedAt:   time.Now(),
 		UpdatedAt:   time.Now(),
 	}
@@ -355,10 +384,10 @@ func (s *CameraService) QuerySnapshots(cameraID string, startTime, endTime time.
 
 func (s *CameraService) insertCameraLog(cam *entity.DormCamera, statusFrom, statusTo, reason string) {
 	entry := &entity.DormCameraLog{
-		CameraID: cam.CameraID,
-		Building: cam.Building,
-		StatusTo: statusTo,
-		Reason:   toNullString(reason),
+		CameraID:  cam.CameraID,
+		Building:  cam.Building,
+		StatusTo:  statusTo,
+		Reason:    toNullString(reason),
 		CreatedAt: time.Now(),
 	}
 	if statusFrom != "" {
@@ -369,10 +398,7 @@ func (s *CameraService) insertCameraLog(cam *entity.DormCamera, statusFrom, stat
 	}
 }
 
-// toNullString converts a plain string to sql.NullString.
-func toNullString(s string) sql.NullString {
-	if s == "" {
-		return sql.NullString{Valid: false}
-	}
-	return sql.NullString{String: s, Valid: true}
+// toNullString converts a plain string to jsontype.NullString.
+func toNullString(s string) jsontype.NullString {
+	return jsontype.NewNullString(s)
 }

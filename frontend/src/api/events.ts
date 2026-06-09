@@ -15,13 +15,16 @@ export interface EventLogQuery {
 /** 事件日志实体 */
 export interface EventLog {
   id: number;
+  event_id: string;
   camera_id: string | null;
   building: string;
   event_type: string;
   student_id: string | null;
+  student_name: string | null;
   is_stranger: boolean;
+  is_processed: boolean;
   confidence: number | null;
-  snapshot_path: string | null;
+  face_snapshot_url: string | null;
   timestamp: string;
   created_at: string;
 }

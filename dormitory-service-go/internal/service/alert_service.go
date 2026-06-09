@@ -12,9 +12,9 @@ import (
 
 // AlertService handles alert record CRUD and acknowledgement.
 type AlertService struct {
-	alertRepo      *repository.AlertRepository
-	strangerRepo   *repository.StrangerRecordRepository
-	logger         *zap.Logger
+	alertRepo    *repository.AlertRepository
+	strangerRepo *repository.StrangerRecordRepository
+	logger       *zap.Logger
 }
 
 // NewAlertService creates a new AlertService.
