@@ -1,8 +1,9 @@
 package dto
 
 import (
-	"database/sql"
 	"time"
+
+	"github.com/sims/campusvision/dormitory-service-go/internal/model/jsontype"
 )
 
 // FaceEventMessage is the Kafka event message published by the Face Recognition (Python) service.
@@ -23,16 +24,16 @@ type FaceEventMessage struct {
 
 // EventDTO is the API response DTO for an event log entry.
 type EventDTO struct {
-	ID           int64           `json:"id"`
-	CameraID     sql.NullString  `json:"camera_id"`
-	Building     string          `json:"building"`
-	EventType    string          `json:"event_type"`
-	StudentID    sql.NullString  `json:"student_id"`
-	IsStranger   bool            `json:"is_stranger"`
-	Confidence   sql.NullFloat64 `json:"confidence"`
-	SnapshotPath sql.NullString  `json:"snapshot_path"`
-	Timestamp    time.Time       `json:"timestamp"`
-	CreatedAt    time.Time       `json:"created_at"`
+	ID           int64                `json:"id"`
+	CameraID     jsontype.NullString  `json:"camera_id"`
+	Building     string               `json:"building"`
+	EventType    string               `json:"event_type"`
+	StudentID    jsontype.NullString  `json:"student_id"`
+	IsStranger   bool                 `json:"is_stranger"`
+	Confidence   jsontype.NullFloat64 `json:"confidence"`
+	SnapshotPath jsontype.NullString  `json:"snapshot_path"`
+	Timestamp    time.Time            `json:"timestamp"`
+	CreatedAt    time.Time            `json:"created_at"`
 }
 
 // EventQueryDTO is the query parameters for filtering event logs.

@@ -2,7 +2,6 @@ package consumer
 
 import (
 	"context"
-	"database/sql"
 	"encoding/json"
 	"fmt"
 	"time"
@@ -13,6 +12,7 @@ import (
 	"github.com/sims/campusvision/dormitory-service-go/internal/model/dto"
 	"github.com/sims/campusvision/dormitory-service-go/internal/model/entity"
 	"github.com/sims/campusvision/dormitory-service-go/internal/model/enums"
+	"github.com/sims/campusvision/dormitory-service-go/internal/model/jsontype"
 	redisclient "github.com/sims/campusvision/dormitory-service-go/internal/redis"
 	"github.com/sims/campusvision/dormitory-service-go/internal/repository"
 )
@@ -20,16 +20,16 @@ import (
 // EventConsumer consumes t_dorm_event messages from Kafka and processes them
 // into the dormitory-service database with Redis-based deduplication.
 type EventConsumer struct {
-	logger       *zap.Logger
-	rdb          *redisclient.Client
-	reader       *kafka.Reader
+	logger *zap.Logger
+	rdb    *redisclient.Client
+	reader *kafka.Reader
 
-	buildingRepo  *repository.BuildingRepository
-	eventLogRepo  *repository.EventLogRepository
-	studentRepo   *repository.StudentRepository
-	alertRepo     *repository.AlertRepository
-	strangerRepo  *repository.StrangerRecordRepository
-	cameraRepo    *repository.CameraRepository
+	buildingRepo *repository.BuildingRepository
+	eventLogRepo *repository.EventLogRepository
+	studentRepo  *repository.StudentRepository
+	alertRepo    *repository.AlertRepository
+	strangerRepo *repository.StrangerRecordRepository
+	cameraRepo   *repository.CameraRepository
 
 	maxPollRecords int
 	cancel         context.CancelFunc
@@ -204,12 +204,12 @@ func (c *EventConsumer) processMessage(ctx context.Context, msg kafka.Message) e
 // buildEventLog creates a DormEventLog entity from the incoming event message.
 func (c *EventConsumer) buildEventLog(event dto.FaceEventMessage, buildingCode string) *entity.DormEventLog {
 	eventLog := &entity.DormEventLog{
-		EventID:    fmt.Sprintf("evt-%s-%d", event.CameraID, event.FrameSequence),
-		EventType:  event.EventType,
-		IsStranger: event.IsStranger,
+		EventID:     fmt.Sprintf("evt-%s-%d", event.CameraID, event.FrameSequence),
+		EventType:   event.EventType,
+		IsStranger:  event.IsStranger,
 		IsProcessed: true,
-		Building:   buildingCode,
-		CreatedAt:  time.Now(),
+		Building:    buildingCode,
+		CreatedAt:   time.Now(),
 	}
 
 	if event.Timestamp > 0 {
@@ -218,19 +218,19 @@ func (c *EventConsumer) buildEventLog(event dto.FaceEventMessage, buildingCode s
 		eventLog.Timestamp = time.Now()
 	}
 	if event.CameraID != "" {
-		eventLog.CameraID = sql.NullString{String: event.CameraID, Valid: true}
+		eventLog.CameraID = jsontype.NewNullString(event.CameraID)
 	}
 	if event.StudentID != "" {
-		eventLog.StudentID = sql.NullString{String: event.StudentID, Valid: true}
+		eventLog.StudentID = jsontype.NewNullString(event.StudentID)
 	}
 	if event.Name != "" {
-		eventLog.StudentName = sql.NullString{String: event.Name, Valid: true}
+		eventLog.StudentName = jsontype.NewNullString(event.Name)
 	}
 	if event.Confidence > 0 {
-		eventLog.Confidence = sql.NullFloat64{Float64: event.Confidence, Valid: true}
+		eventLog.Confidence = jsontype.NewNullFloat64(event.Confidence)
 	}
 	if event.SnapshotPath != "" {
-		eventLog.FaceSnapshotURL = sql.NullString{String: event.SnapshotPath, Valid: true}
+		eventLog.FaceSnapshotURL = jsontype.NewNullString(event.SnapshotPath)
 	}
 
 	return eventLog
@@ -243,22 +243,21 @@ func (c *EventConsumer) handleStrangerEvent(ctx context.Context, event dto.FaceE
 	// Create alert record
 	alert := &entity.DormAlert{
 		AlertType: string(enums.AlertTypeStrangerEntry),
-		Building:  sql.NullString{String: event.Building, Valid: event.Building != ""},
+		Building:  jsontype.NewNullString(event.Building),
 		Severity:  string(enums.SeverityMedium),
-		Description: sql.NullString{
-			String: fmt.Sprintf("Stranger detected at camera %s (building %s)", event.CameraID, event.Building),
-			Valid:  true,
-		},
+		Description: jsontype.NewNullString(
+			fmt.Sprintf("Stranger detected at camera %s (building %s)", event.CameraID, event.Building),
+		),
 		IsRead:     false,
 		IsResolved: false,
 		OccurredAt: now,
 		CreatedAt:  now,
 	}
 	if event.StudentID != "" {
-		alert.StudentID = sql.NullString{String: event.StudentID, Valid: true}
+		alert.StudentID = jsontype.NewNullString(event.StudentID)
 	}
 	if event.SnapshotPath != "" {
-		alert.FaceSnapshotURL = sql.NullString{String: event.SnapshotPath, Valid: true}
+		alert.FaceSnapshotURL = jsontype.NewNullString(event.SnapshotPath)
 	}
 
 	if _, err := c.alertRepo.Create(ctx, alert); err != nil {
@@ -270,23 +269,22 @@ func (c *EventConsumer) handleStrangerEvent(ctx context.Context, event dto.FaceE
 
 	// Create stranger record
 	strangerRecord := &entity.DormStrangerRecord{
-		Building:  event.Building,
-		EventType: event.EventType,
+		Building:     event.Building,
+		EventType:    event.EventType,
 		DetectedTime: now,
-		Status:    string(enums.StrangerStatusUnconfirmed),
-		CreatedAt: now,
+		Status:       string(enums.StrangerStatusUnconfirmed),
+		CreatedAt:    now,
 	}
 	if event.SnapshotPath != "" {
-		strangerRecord.FaceSnapshotURL = sql.NullString{String: event.SnapshotPath, Valid: true}
+		strangerRecord.FaceSnapshotURL = jsontype.NewNullString(event.SnapshotPath)
 	}
 	if event.Confidence > 0 {
-		strangerRecord.Confidence = sql.NullFloat64{Float64: event.Confidence, Valid: true}
+		strangerRecord.Confidence = jsontype.NewNullFloat64(event.Confidence)
 	}
 	if event.Name != "" {
-		strangerRecord.Remark = sql.NullString{
-			String: fmt.Sprintf("Detected at %s: name=%s, camera=%s", now.Format(time.RFC3339), event.Name, event.CameraID),
-			Valid:  true,
-		}
+		strangerRecord.Remark = jsontype.NewNullString(
+			fmt.Sprintf("Detected at %s: name=%s, camera=%s", now.Format(time.RFC3339), event.Name, event.CameraID),
+		)
 	}
 
 	if _, err := c.strangerRepo.Create(ctx, strangerRecord); err != nil {

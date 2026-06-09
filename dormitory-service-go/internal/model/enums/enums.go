@@ -22,13 +22,13 @@ const (
 type AlertType string
 
 const (
-	AlertTypeStrangerEntry   AlertType = "STRANGER_ENTRY"
-	AlertTypeLongAbsence     AlertType = "LONG_ABSENCE"
-	AlertTypeCameraOffline   AlertType = "CAMERA_OFFLINE"
-	AlertTypeCrossBuilding   AlertType = "CROSS_BUILDING"
+	AlertTypeStrangerEntry    AlertType = "STRANGER_ENTRY"
+	AlertTypeLongAbsence      AlertType = "LONG_ABSENCE"
+	AlertTypeCameraOffline    AlertType = "CAMERA_OFFLINE"
+	AlertTypeCrossBuilding    AlertType = "CROSS_BUILDING"
 	AlertTypeAbnormalBehavior AlertType = "ABNORMAL_BEHAVIOR"
-	AlertTypeLateReturn      AlertType = "LATE_RETURN"
-	AlertTypeSystem          AlertType = "SYSTEM"
+	AlertTypeLateReturn       AlertType = "LATE_RETURN"
+	AlertTypeSystem           AlertType = "SYSTEM"
 )
 
 // AttendanceStatus represents attendance status.
