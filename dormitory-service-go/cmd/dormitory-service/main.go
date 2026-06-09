@@ -204,6 +204,11 @@ func main() {
 		})
 	})
 
+	// Frontend route tree stub — returns empty array to fix frontend 404
+	router.GET("/getRouters", func(c *gin.Context) {
+		handler.Success(c, []string{})
+	})
+
 	// API v1 group (no auth — lightweight ping)
 	v1 := router.Group("/api/v1")
 	{

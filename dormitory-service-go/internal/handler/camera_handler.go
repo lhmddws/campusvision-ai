@@ -8,7 +8,6 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/sims/campusvision/dormitory-service-go/internal/model/dto"
-	"github.com/sims/campusvision/dormitory-service-go/internal/model/entity"
 	"github.com/sims/campusvision/dormitory-service-go/internal/service"
 )
 
@@ -40,7 +39,7 @@ func (h *CameraHandler) RegisterCamera(c *gin.Context) {
 		return
 	}
 
-	Created(c, cam)
+	Created(c, cam.ToDTO())
 }
 
 // UpdateCamera    PUT /sims/dorm/cameras/:id
@@ -83,10 +82,15 @@ func (h *CameraHandler) GetCameras(c *gin.Context) {
 		return
 	}
 
-	c.JSON(http.StatusOK, APIResponseT[[]entity.DormCamera]{
+	resp := make([]dto.CameraResponse, len(cameras))
+	for i, cam := range cameras {
+		resp[i] = cam.ToDTO()
+	}
+
+	c.JSON(http.StatusOK, APIResponseT[[]dto.CameraResponse]{
 		Code:    http.StatusOK,
 		Message: "success",
-		Data:    cameras,
+		Data:    resp,
 	})
 }
 
@@ -104,7 +108,7 @@ func (h *CameraHandler) GetCamera(c *gin.Context) {
 		return
 	}
 
-	Success(c, cam)
+	Success(c, cam.ToDTO())
 }
 
 // GetCameraStatus    GET /sims/dorm/cameras/:id/status
