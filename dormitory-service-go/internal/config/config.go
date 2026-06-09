@@ -49,7 +49,9 @@ type KafkaConfig struct {
 	EventTopic    string   `mapstructure:"event_topic"`
 	AlertTopic    string   `mapstructure:"alert_topic"`
 	GroupID       string   `mapstructure:"group_id"`
-	MaxPollRecord int      `mapstructure:"max_poll_records"`
+	MaxPollRecord  int      `mapstructure:"max_poll_records"`
+	FrameTopic     string   `mapstructure:"frame_topic"`
+	PreviewGroupID string   `mapstructure:"preview_group_id"`
 }
 
 // JWTConfig holds JWT settings.
