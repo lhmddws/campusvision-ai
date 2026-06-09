@@ -244,6 +244,10 @@ def main():
                 "is_stranger": match_result is None,
                 "snapshot_path": "",
                 "direction_method": "roi_line",
+                "x1": int(face.x1),
+                "y1": int(face.y1),
+                "x2": int(face.x2),
+                "y2": int(face.y2),
             }
 
             producer.send(cfg.kafka.event_topic, value=event)
