@@ -3,6 +3,7 @@ package entity
 import (
 	"time"
 
+	"github.com/sims/campusvision/dormitory-service-go/internal/model/dto"
 	"github.com/sims/campusvision/dormitory-service-go/internal/model/jsontype"
 )
 
@@ -36,4 +37,33 @@ type DormCamera struct {
 	KeyID           jsontype.NullString  `db:"key_id" json:"key_id"`
 	CreatedAt       time.Time            `db:"created_at" json:"created_at"`
 	UpdatedAt       time.Time            `db:"updated_at" json:"updated_at"`
+}
+
+func (c *DormCamera) ToDTO() dto.CameraResponse {
+	return dto.CameraResponse{
+		ID:              c.ID,
+		CameraID:        c.CameraID,
+		Name:            c.Name,
+		Building:        c.Building,
+		RtspURL:         c.RtspURL,
+		Direction:       c.Direction,
+		Resolution:      c.Resolution,
+		Status:          c.Status,
+		FPSCurrent:      c.FPSCurrent,
+		TotalFrames:     c.TotalFrames,
+		LastHeartbeat:   c.LastHeartbeat,
+		LastEventTime:   c.LastEventTime,
+		Enabled:         c.Enabled,
+		ConfigJSON:      c.ConfigJSON,
+		Remark:          c.Remark,
+		LastHealthCheck: c.LastHealthCheck,
+		Type:            c.Type,
+		Protocol:        c.Protocol,
+		Host:            c.Host,
+		Port:            c.Port,
+		Path:            c.Path,
+		Username:        c.Username,
+		CreatedAt:       c.CreatedAt,
+		UpdatedAt:       c.UpdatedAt,
+	}
 }

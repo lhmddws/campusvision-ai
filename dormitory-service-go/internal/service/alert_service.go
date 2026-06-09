@@ -87,8 +87,18 @@ func (s *AlertService) GetAlertCount(building string, acknowledged *bool) (int64
 	return s.alertRepo.Count(serviceCtx(), where, args...)
 }
 
-// GetAlertStats returns total and unresolved alert counts for a building.
-func (s *AlertService) GetAlertStats(building string) (map[string]interface{}, error) {
+// AlertStatsResponse represents alert statistics with additional breakdowns.
+type AlertStatsResponse struct {
+	Total      int64            `json:"total"`
+	Unresolved int64            `json:"unresolved"`
+	Unread     int64            `json:"unread"`
+	Today      int64            `json:"today"`
+	ByType     map[string]int64 `json:"by_type"`
+	BySeverity map[string]int64 `json:"by_severity"`
+}
+
+// GetAlertStats returns total, unresolved, unread, today counts and breakdowns by type and severity.
+func (s *AlertService) GetAlertStats(building string) (*AlertStatsResponse, error) {
 	total, err := s.GetAlertCount(building, nil)
 	if err != nil {
 		return nil, fmt.Errorf("count total: %w", err)
@@ -100,8 +110,86 @@ func (s *AlertService) GetAlertStats(building string) (map[string]interface{}, e
 		return nil, fmt.Errorf("count unresolved: %w", err)
 	}
 
-	return map[string]interface{}{
-		"total":      total,
-		"unresolved": unresolvedCount,
+	unreadQuery := "SELECT COUNT(*) FROM dorm_alert_record WHERE is_read = 0"
+	var unreadArgs []interface{}
+	if building != "" {
+		unreadQuery += " AND building = ?"
+		unreadArgs = append(unreadArgs, building)
+	}
+	var unreadCount int64
+	if err := s.alertRepo.DB.GetContext(serviceCtx(), &unreadCount, unreadQuery, unreadArgs...); err != nil {
+		return nil, fmt.Errorf("count unread: %w", err)
+	}
+
+	todayQuery := "SELECT COUNT(*) FROM dorm_alert_record WHERE DATE(created_at) = CURDATE()"
+	var todayArgs []interface{}
+	if building != "" {
+		todayQuery += " AND building = ?"
+		todayArgs = append(todayArgs, building)
+	}
+	var todayCount int64
+	if err := s.alertRepo.DB.GetContext(serviceCtx(), &todayCount, todayQuery, todayArgs...); err != nil {
+		return nil, fmt.Errorf("count today: %w", err)
+	}
+
+	typeQuery := "SELECT alert_type, COUNT(*) as count FROM dorm_alert_record"
+	var typeArgs []interface{}
+	if building != "" {
+		typeQuery += " WHERE building = ?"
+		typeArgs = append(typeArgs, building)
+	}
+	typeQuery += " GROUP BY alert_type"
+	typeRows, err := s.alertRepo.DB.QueryContext(serviceCtx(), typeQuery, typeArgs...)
+	if err != nil {
+		return nil, fmt.Errorf("query by_type: %w", err)
+	}
+	defer typeRows.Close()
+
+	byType := make(map[string]int64)
+	for typeRows.Next() {
+		var alertType string
+		var count int64
+		if err := typeRows.Scan(&alertType, &count); err != nil {
+			return nil, fmt.Errorf("scan by_type row: %w", err)
+		}
+		byType[alertType] = count
+	}
+	if err := typeRows.Err(); err != nil {
+		return nil, fmt.Errorf("iterate by_type rows: %w", err)
+	}
+
+	severityQuery := "SELECT severity, COUNT(*) as count FROM dorm_alert_record"
+	var severityArgs []interface{}
+	if building != "" {
+		severityQuery += " WHERE building = ?"
+		severityArgs = append(severityArgs, building)
+	}
+	severityQuery += " GROUP BY severity"
+	severityRows, err := s.alertRepo.DB.QueryContext(serviceCtx(), severityQuery, severityArgs...)
+	if err != nil {
+		return nil, fmt.Errorf("query by_severity: %w", err)
+	}
+	defer severityRows.Close()
+
+	bySeverity := make(map[string]int64)
+	for severityRows.Next() {
+		var severity string
+		var count int64
+		if err := severityRows.Scan(&severity, &count); err != nil {
+			return nil, fmt.Errorf("scan by_severity row: %w", err)
+		}
+		bySeverity[severity] = count
+	}
+	if err := severityRows.Err(); err != nil {
+		return nil, fmt.Errorf("iterate by_severity rows: %w", err)
+	}
+
+	return &AlertStatsResponse{
+		Total:      total,
+		Unresolved: unresolvedCount,
+		Unread:     unreadCount,
+		Today:      todayCount,
+		ByType:     byType,
+		BySeverity: bySeverity,
 	}, nil
 }
