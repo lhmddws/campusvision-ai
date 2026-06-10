@@ -113,8 +113,13 @@ func main() {
 		gatewayURL = cfg.Gateway.URL
 	}
 
+	managementURL := os.Getenv("STREAM_GATEWAY_MANAGEMENT_URL")
+	if managementURL == "" {
+		managementURL = cfg.Gateway.ManagementURL
+	}
+
 	// Initialize services
-	cameraSvc := service.NewCameraService(cameraRepo, eventLogRepo, cameraLogRepo, pushClient, gatewayURL, cfg.Camera.MaxCameras, logger)
+	cameraSvc := service.NewCameraService(cameraRepo, eventLogRepo, cameraLogRepo, pushClient, gatewayURL, managementURL, cfg.Camera.MaxCameras, logger)
 	recordSvc := service.NewRecordService(eventLogRepo, studentRepo, buildingRepo, logger)
 	alertSvc := service.NewAlertService(alertRepo, strangerRecordRepo, logger)
 	configSvc := service.NewConfigService(configRepo, logger)
@@ -144,9 +149,18 @@ func main() {
 		cameraRepo,
 	)
 
+	// Initialize Kafka DLQ consumer for dead letter queue inspection
+	dlqConsumer := consumer.NewDLQConsumer(
+		logger,
+		cfg.Kafka.Brokers,
+		cfg.Kafka.DLQTopic,
+		cfg.Kafka.DLQGroupID,
+	)
+
 	// Setup consumer manager
 	consumerManager := consumer.NewManager(logger)
 	consumerManager.Register(eventConsumer)
+	consumerManager.Register(dlqConsumer)
 
 	// Setup scheduler manager
 	schedulerManager := scheduler.NewManager(logger)
@@ -292,6 +306,7 @@ func main() {
 	// Start Kafka consumers and schedulers
 	consumerCtx, consumerCancel := context.WithCancel(context.Background())
 	eventConsumer.Start(consumerCtx)
+	dlqConsumer.Start(consumerCtx)
 	schedulerManager.Start()
 
 	logger.Info("Kafka consumers and schedulers started")

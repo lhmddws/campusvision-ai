@@ -100,9 +100,7 @@ class BehaviorAnalyzer:
         events: List[dict] = []
         threshold = self.config.loitering_threshold_seconds
         radius = self.config.loitering_radius_px
-        event_type = self.config.event.event_type_mapping.get(
-            "loitering", "loiter"
-        )
+        event_type = self.config.event.event_type_mapping.get("loitering", "loiter")
 
         for track in tracks:
             if len(track.timestamps) < 2 or len(track.positions) < 2:
@@ -124,10 +122,7 @@ class BehaviorAnalyzer:
                     self._make_event(
                         event_type=event_type,
                         track=track,
-                        detail=(
-                            f"Loitering detected: stayed {duration:.1f}s "
-                            f"within {distance:.0f}px radius"
-                        ),
+                        detail=(f"Loitering detected: stayed {duration:.1f}s within {distance:.0f}px radius"),
                         timestamp=now,
                     )
                 )
@@ -142,9 +137,7 @@ class BehaviorAnalyzer:
         """
         events: List[dict] = []
         threshold = self.config.running_speed_threshold_px_per_sec
-        event_type = self.config.event.event_type_mapping.get(
-            "running", "running"
-        )
+        event_type = self.config.event.event_type_mapping.get("running", "running")
 
         for track in tracks:
             if len(track.timestamps) < 2 or len(track.positions) < 2:
@@ -167,10 +160,7 @@ class BehaviorAnalyzer:
                     self._make_event(
                         event_type=event_type,
                         track=track,
-                        detail=(
-                            f"Running detected: speed {speed:.1f} px/s "
-                            f"exceeds threshold {threshold:.0f} px/s"
-                        ),
+                        detail=(f"Running detected: speed {speed:.1f} px/s exceeds threshold {threshold:.0f} px/s"),
                         timestamp=now,
                     )
                 )
@@ -192,9 +182,7 @@ class BehaviorAnalyzer:
                 cx, cy = int(track.center[0]), int(track.center[1])
                 dist = cv2.pointPolygonTest(polygon, (cx, cy), False)
                 if dist >= 0:
-                    event_type = self.config.event.event_type_mapping.get(
-                        "zone_intrusion", "zone"
-                    )
+                    event_type = self.config.event.event_type_mapping.get("zone_intrusion", "zone")
                     if not self._is_on_cooldown(event_type, track.track_id, track.last_seen):
                         self._mark_cooldown(event_type, track.track_id, track.last_seen)
                         events.append(
@@ -221,9 +209,7 @@ class BehaviorAnalyzer:
 
             if len(self._crowd_frames) >= debounce and not self._crowd_active:
                 self._crowd_active = True
-                event_type = self.config.event.event_type_mapping.get(
-                    "crowd_alert", "crowd"
-                )
+                event_type = self.config.event.event_type_mapping.get("crowd_alert", "crowd")
                 if not self._is_on_cooldown(event_type, "crowd", now):
                     self._mark_cooldown(event_type, "crowd", now)
                     events.append(
@@ -246,9 +232,7 @@ class BehaviorAnalyzer:
     # Cooldown helpers
     # ------------------------------------------------------------------
 
-    def _is_on_cooldown(
-        self, event_type: str, track_id: str, now: float
-    ) -> bool:
+    def _is_on_cooldown(self, event_type: str, track_id: str, now: float) -> bool:
         """Return ``True`` if this *(event_type, track_id)* is still on cooldown."""
         key = f"{event_type}:{track_id}"
         ts = self._cooldowns.get(key)

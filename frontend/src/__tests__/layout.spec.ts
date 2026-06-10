@@ -46,14 +46,14 @@ describe('Layout Components — Theme Variables', () => {
   });
 
   it('logo.vue uses #001529 background and white text', () => {
-    const vue = readFileSync(resolve(frontendRoot, 'layout/components/Sidebar/logo.vue'), 'utf8');
+    const vue = readFileSync(resolve(frontendRoot, 'layout/components/sidebar/logo.vue'), 'utf8');
 
     expect(vue).toContain("backgroundColor: '#001529'");
     expect(vue).toContain('color: #ffffff');
   });
 
   it('Navbar.vue has white background and notification bell', () => {
-    const vue = readFileSync(resolve(frontendRoot, 'layout/components/Navbar.vue'), 'utf8');
+    const vue = readFileSync(resolve(frontendRoot, 'layout/components/navbar.vue'), 'utf8');
 
     expect(vue).toContain('background: #ffffff');
     expect(vue).toContain('notification-bell');
@@ -76,7 +76,7 @@ describe('Layout Components — Theme Variables', () => {
   });
 
   it('AppMain.vue has page background color', () => {
-    const vue = readFileSync(resolve(frontendRoot, 'layout/components/AppMain.vue'), 'utf8');
+    const vue = readFileSync(resolve(frontendRoot, 'layout/components/appMain.vue'), 'utf8');
 
     expect(vue).toContain('#f0f2f5');
   });

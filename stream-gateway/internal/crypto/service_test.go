@@ -178,12 +178,12 @@ func TestInvalidBase64(t *testing.T) {
 		{
 			name:   "invalid ciphertext base64",
 			ct:     "!!!not-base64!!!",
-			nonce:  	base64.StdEncoding.EncodeToString(make([]byte, NonceSize)),
+			nonce:  base64.StdEncoding.EncodeToString(make([]byte, NonceSize)),
 			errMsg: "invalid base64",
 		},
 		{
 			name:   "invalid nonce base64",
-			ct:     	base64.StdEncoding.EncodeToString([]byte("ciphertext")),
+			ct:     base64.StdEncoding.EncodeToString([]byte("ciphertext")),
 			nonce:  "!!!not-base64!!!",
 			errMsg: "invalid base64",
 		},
@@ -210,7 +210,7 @@ func TestDecrypt_EmptyCiphertext(t *testing.T) {
 
 	// Empty string is valid base64 (decodes to empty bytes), so it bypasses
 	// the base64 check and hits GCM authentication, which fails.
-	nonce := 	base64.StdEncoding.EncodeToString(make([]byte, NonceSize))
+	nonce := base64.StdEncoding.EncodeToString(make([]byte, NonceSize))
 	_, err = s.Decrypt("", nonce)
 	if err == nil {
 		t.Fatal("decrypt empty ciphertext should error")
@@ -226,9 +226,9 @@ func TestInvalidNonceLength(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	shortNonce := 	base64.StdEncoding.EncodeToString(make([]byte, 4))  // 4 bytes, not 12
-	longNonce := 	base64.StdEncoding.EncodeToString(make([]byte, 16))  // 16 bytes, not 12
-	ct := 	base64.StdEncoding.EncodeToString([]byte("some-ciphertext"))
+	shortNonce := base64.StdEncoding.EncodeToString(make([]byte, 4)) // 4 bytes, not 12
+	longNonce := base64.StdEncoding.EncodeToString(make([]byte, 16)) // 16 bytes, not 12
+	ct := base64.StdEncoding.EncodeToString([]byte("some-ciphertext"))
 
 	tests := []struct {
 		name  string

@@ -138,6 +138,107 @@ func TestDeleteCamera(t *testing.T) {
 	}
 }
 
+func TestCameraHealth(t *testing.T) {
+	mgr := newTestManager()
+	mgr.UpdateStatus("CAM_A", camera.CameraStatus{
+		CameraID:      "CAM_A",
+		Building:      "A",
+		Connected:     true,
+		FPS:           4.8,
+		UptimeSeconds: 3600,
+	})
+
+	h := setupHandler(t, mgr, "")
+	mux := http.NewServeMux()
+	h.Register(mux)
+
+	req := httptest.NewRequest(http.MethodGet, "/cameras/CAM_A/health", nil)
+	rec := httptest.NewRecorder()
+	mux.ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusOK {
+		t.Fatalf("expected 200, got %d", rec.Code)
+	}
+
+	var resp cameraHealthResponse
+	if err := json.NewDecoder(rec.Body).Decode(&resp); err != nil {
+		t.Fatalf("decode response: %v", err)
+	}
+	if resp.CameraID != "CAM_A" {
+		t.Fatalf("expected camera_id CAM_A, got %s", resp.CameraID)
+	}
+	if resp.Status != "connected" {
+		t.Fatalf("expected status connected, got %s", resp.Status)
+	}
+	if resp.UptimeSeconds != 3600 {
+		t.Fatalf("expected uptime_seconds 3600, got %d", resp.UptimeSeconds)
+	}
+	if resp.FPS != 4.8 {
+		t.Fatalf("expected fps 4.8, got %f", resp.FPS)
+	}
+}
+
+func TestCameraHealthNotFound(t *testing.T) {
+	mgr := newTestManager()
+	h := setupHandler(t, mgr, "")
+	mux := http.NewServeMux()
+	h.Register(mux)
+
+	req := httptest.NewRequest(http.MethodGet, "/cameras/nonexistent/health", nil)
+	rec := httptest.NewRecorder()
+	mux.ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusNotFound {
+		t.Fatalf("expected 404, got %d", rec.Code)
+	}
+}
+
+func TestCameraHealthDisconnected(t *testing.T) {
+	mgr := newTestManager()
+	mgr.UpdateStatus("CAM_B", camera.CameraStatus{
+		CameraID:      "CAM_B",
+		Building:      "B",
+		Connected:     false,
+		UptimeSeconds: 0,
+	})
+
+	h := setupHandler(t, mgr, "")
+	mux := http.NewServeMux()
+	h.Register(mux)
+
+	req := httptest.NewRequest(http.MethodGet, "/cameras/CAM_B/health", nil)
+	rec := httptest.NewRecorder()
+	mux.ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusOK {
+		t.Fatalf("expected 200, got %d", rec.Code)
+	}
+
+	var resp cameraHealthResponse
+	if err := json.NewDecoder(rec.Body).Decode(&resp); err != nil {
+		t.Fatalf("decode response: %v", err)
+	}
+	if resp.Status != "disconnected" {
+		t.Fatalf("expected status disconnected, got %s", resp.Status)
+	}
+}
+
+func TestCameraHealthMethodNotAllowed(t *testing.T) {
+	mgr := newTestManager()
+	mgr.UpdateStatus("CAM_A", camera.CameraStatus{CameraID: "CAM_A"})
+	h := setupHandler(t, mgr, "")
+	mux := http.NewServeMux()
+	h.Register(mux)
+
+	req := httptest.NewRequest(http.MethodPost, "/cameras/CAM_A/health", nil)
+	rec := httptest.NewRecorder()
+	mux.ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusMethodNotAllowed {
+		t.Fatalf("expected 405, got %d", rec.Code)
+	}
+}
+
 func TestGetCameraByID(t *testing.T) {
 	mgr := newTestManager()
 	mgr.UpdateStatus("CAM_A", camera.CameraStatus{

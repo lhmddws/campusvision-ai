@@ -17,8 +17,8 @@ import numpy as np
 import structlog
 from kafka import KafkaConsumer, KafkaProducer
 
-from app.config import load_config
 from app.behavior import BehaviorAnalyzer
+from app.config import load_config
 from app.dedup import DedupFilter
 from app.detector import FaceDetector
 from app.direction import DirectionDetector
@@ -31,6 +31,7 @@ from app.tracker import FaceTracker
 
 def main():
     import argparse
+
     # ------------------------------------------------------------------
     # Load config
     # ------------------------------------------------------------------
@@ -43,9 +44,7 @@ def main():
     # Logging (structlog)
     # ------------------------------------------------------------------
     structlog.configure(
-        wrapper_class=structlog.make_filtering_bound_logger(
-            getattr(logging, cfg.log.level.upper(), logging.INFO)
-        ),
+        wrapper_class=structlog.make_filtering_bound_logger(getattr(logging, cfg.log.level.upper(), logging.INFO)),
         processors=[
             structlog.stdlib.add_log_level,
             structlog.dev.ConsoleRenderer(),
@@ -77,21 +76,9 @@ def main():
     enhancer = NightModeEnhancer(cfg.night_mode)
 
     # Behaviour components (only when enabled)
-    tracker = (
-        FaceTracker(iou_threshold=0.3, track_ttl=cfg.direction.track_ttl)
-        if cfg.behavior.enabled
-        else None
-    )
-    behavior_analyzer = (
-        BehaviorAnalyzer(cfg.behavior)
-        if cfg.behavior.enabled
-        else None
-    )
-    event_publisher = (
-        BehaviorEventPublisher(cfg)
-        if cfg.behavior.enabled
-        else None
-    )
+    tracker = FaceTracker(iou_threshold=0.3, track_ttl=cfg.direction.track_ttl) if cfg.behavior.enabled else None
+    behavior_analyzer = BehaviorAnalyzer(cfg.behavior) if cfg.behavior.enabled else None
+    event_publisher = BehaviorEventPublisher(cfg) if cfg.behavior.enabled else None
 
     # ------------------------------------------------------------------
     # Kafka consumer & producer
@@ -181,9 +168,7 @@ def main():
         # --- BEHAVIOUR PIPELINE (only when enabled) ---
         if tracker and behavior_analyzer and event_publisher:
             tracks = tracker.update(faces, embeddings, camera_id, timestamp)
-            behavior_events = behavior_analyzer.analyze(
-                tracks, len(faces), timestamp, camera_id=camera_id
-            )
+            behavior_events = behavior_analyzer.analyze(tracks, len(faces), timestamp, camera_id=camera_id)
             for be in behavior_events:
                 be["camera_id"] = camera_id
                 event_publisher.publish_behavior_event(be)
@@ -211,19 +196,13 @@ def main():
                 face_id = camera_id
 
             # Direction determination (ROI line crossing)
-            direction_result = direction.determine(
-                face_id, face_center_x, face_center_y, msg.get("frame_width", 640)
-            )
+            direction_result = direction.determine(face_id, face_center_x, face_center_y, msg.get("frame_width", 640))
 
             if direction_result is None:
                 continue
 
             # Deduplication
-            student_id = (
-                match_result["student_id"]
-                if match_result
-                else f"stranger_{msg.get('building', '')}"
-            )
+            student_id = match_result["student_id"] if match_result else f"stranger_{msg.get('building', '')}"
             if dedup.is_duplicate(student_id, direction_result):
                 continue
             dedup.mark_seen(student_id, direction_result)
@@ -233,6 +212,7 @@ def main():
 
             # Build & produce event
             event = {
+                "source": "face",
                 "camera_id": msg.get("camera_id", ""),
                 "building": msg.get("building", ""),
                 "event_type": direction_result,

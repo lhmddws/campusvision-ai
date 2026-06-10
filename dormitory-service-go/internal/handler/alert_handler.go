@@ -39,7 +39,7 @@ func (h *AlertHandler) GetAlerts(c *gin.Context) {
 		size = 20
 	}
 
-	alerts, total, err := h.svc.GetAlerts(building, alertType, acknowledged, page, size)
+	alerts, total, err := h.svc.GetAlerts(c.Request.Context(), building, alertType, acknowledged, page, size)
 	if err != nil {
 		Error(c, http.StatusInternalServerError, "Failed to query alerts: "+err.Error())
 		return
@@ -56,7 +56,7 @@ func (h *AlertHandler) AcknowledgeAlert(c *gin.Context) {
 		return
 	}
 
-	if err := h.svc.AcknowledgeAlert(id); err != nil {
+	if err := h.svc.AcknowledgeAlert(c.Request.Context(), id); err != nil {
 		if errors.Is(err, service.ErrNotFound) {
 			Error(c, http.StatusNotFound, "Alert not found")
 			return
@@ -75,7 +75,7 @@ func (h *AlertHandler) AcknowledgeAlert(c *gin.Context) {
 func (h *AlertHandler) GetAlertStats(c *gin.Context) {
 	building := c.Query("building")
 
-	stats, err := h.svc.GetAlertStats(building)
+	stats, err := h.svc.GetAlertStats(c.Request.Context(), building)
 	if err != nil {
 		Error(c, http.StatusInternalServerError, "Failed to get alert stats: "+err.Error())
 		return

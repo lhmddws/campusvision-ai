@@ -95,6 +95,13 @@ func (h *Handler) handleCameras(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+type cameraHealthResponse struct {
+	CameraID      string  `json:"camera_id"`
+	Status        string  `json:"status"`
+	UptimeSeconds int64   `json:"uptime_seconds"`
+	FPS           float64 `json:"fps"`
+}
+
 func (h *Handler) handleCameraByID(w http.ResponseWriter, r *http.Request) {
 	path := strings.TrimPrefix(r.URL.Path, "/cameras/")
 	parts := strings.SplitN(path, "/", 2)
@@ -102,6 +109,30 @@ func (h *Handler) handleCameraByID(w http.ResponseWriter, r *http.Request) {
 
 	if cameraID == "" {
 		http.Error(w, `{"error":"camera ID required"}`, http.StatusBadRequest)
+		return
+	}
+
+	if len(parts) > 1 && parts[1] == "health" {
+		if r.Method != http.MethodGet {
+			http.Error(w, `{"error":"method not allowed"}`, http.StatusMethodNotAllowed)
+			return
+		}
+		statuses := h.manager.Statuses()
+		status, ok := statuses[cameraID]
+		if !ok {
+			http.Error(w, `{"error":"camera not found"}`, http.StatusNotFound)
+			return
+		}
+		statusStr := "disconnected"
+		if status.Connected {
+			statusStr = "connected"
+		}
+		writeJSON(w, http.StatusOK, cameraHealthResponse{
+			CameraID:      status.CameraID,
+			Status:        statusStr,
+			UptimeSeconds: status.UptimeSeconds,
+			FPS:           status.FPS,
+		})
 		return
 	}
 
@@ -114,6 +145,40 @@ func (h *Handler) handleCameraByID(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		writeJSON(w, http.StatusOK, status)
+
+	case http.MethodPut:
+		ct := r.Header.Get("Content-Type")
+		if ct != "" && !strings.HasPrefix(ct, "application/json") {
+			http.Error(w, `{"error":"Content-Type must be application/json"}`, http.StatusUnsupportedMediaType)
+			return
+		}
+		var body struct {
+			ID       string `json:"id"`
+			Building string `json:"building"`
+			RTSPURL  string `json:"rtsp_url"`
+			Enabled  bool   `json:"enabled"`
+		}
+		r.Body = http.MaxBytesReader(w, r.Body, 1<<20)
+		if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+			http.Error(w, `{"error":"invalid JSON"}`, http.StatusBadRequest)
+			return
+		}
+
+		statuses := h.manager.Statuses()
+		if _, ok := statuses[cameraID]; !ok {
+			http.Error(w, `{"error":"camera not found"}`, http.StatusNotFound)
+			return
+		}
+
+		camCfg := config.CameraConfig{
+			ID:       cameraID,
+			Building: body.Building,
+			Type:     "RTSP",
+			RTSPURL:  body.RTSPURL,
+			Enabled:  body.Enabled,
+		}
+		h.manager.UpdateCamera(camCfg)
+		writeJSON(w, http.StatusOK, map[string]string{"status": "updated", "id": cameraID})
 
 	case http.MethodDelete:
 		h.manager.RemoveCamera(cameraID)

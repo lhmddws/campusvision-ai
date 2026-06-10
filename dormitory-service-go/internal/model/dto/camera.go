@@ -48,7 +48,8 @@ type CameraResponse struct {
 	CameraID        string               `json:"camera_id"`
 	Name            string               `json:"name"`
 	Building        string               `json:"building"`
-	RtspURL         string               `json:"rtsp_url"`
+	RtspURL         string               `json:"rtsp_url"`             // Sanitized (password masked by ToDTO)
+	SanitizedRtspURL string              `json:"sanitized_rtsp_url"`   // Always-masked RTSP URL
 	Direction       string               `json:"direction"`
 	Resolution      string               `json:"resolution"`
 	Status          string               `json:"status"`

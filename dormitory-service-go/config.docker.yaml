@@ -20,10 +20,21 @@ kafka:
     alert_topic: "t_dorm_alert"
     group_id: "dormitory-service-group"
     max_poll_records: 500
+    dlq_topic: "t_dorm_event_dlq"
+    dlq_group_id: "dormitory-service-dlq-group"
 
 jwt:
     secret: "dev-secret-change-in-production"
     expiration_hours: 24
+
+face:
+    # Authentication key for POST /api/face/match.
+    # The face-recognition module sends this as a Bearer token in the
+    # Authorization header (format: "Authorization: Bearer <match_key>").
+    # Can also be overridden via FACE_MATCH_KEY env var.
+    match_key: ""
+    # Cosine similarity threshold (0.0-1.0). Face match passes when >= threshold.
+    match_threshold: 0.65
 
 log:
     level: "info"

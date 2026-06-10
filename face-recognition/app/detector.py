@@ -1,8 +1,8 @@
 from dataclasses import dataclass
 from typing import Optional
 
-import numpy as np
 import cv2
+import numpy as np
 
 
 @dataclass
@@ -61,11 +61,16 @@ def _nms(boxes: np.ndarray, scores: np.ndarray, iou_threshold: float = 0.5) -> l
 
 
 class FaceDetector:
-    def __init__(self, model_path: str, conf_threshold: float,
-                 input_size: tuple, min_face_size: int,
-                 blur_threshold: float = 100.0,
-                 nms_iou_threshold: float = 0.5,
-                 haar_confidence: float = 0.9):
+    def __init__(
+        self,
+        model_path: str,
+        conf_threshold: float,
+        input_size: tuple,
+        min_face_size: int,
+        blur_threshold: float = 100.0,
+        nms_iou_threshold: float = 0.5,
+        haar_confidence: float = 0.9,
+    ):
         self.conf_threshold = conf_threshold
         self.input_size = input_size
         self.min_face_size = min_face_size
@@ -75,6 +80,7 @@ class FaceDetector:
         self.session = None
         if model_path:
             import onnxruntime as ort
+
             self.session = ort.InferenceSession(model_path)
 
     def detect(self, image: np.ndarray) -> list[Face]:
@@ -148,8 +154,8 @@ class FaceDetector:
         if self.session is None or len(outputs) < 3:
             return []
 
-        bbox_preds = outputs[0][0]   # (N, 4)
-        conf_preds = outputs[1][0]   # (N, 2)
+        bbox_preds = outputs[0][0]  # (N, 4)
+        conf_preds = outputs[1][0]  # (N, 2)
         landm_preds = outputs[2][0]  # (N, 10)
         N = bbox_preds.shape[0]
         if N == 0:
@@ -174,7 +180,7 @@ class FaceDetector:
         landm_parts = []
         for k in range(5):
             c = 2 * k
-            part = priors[:, :2] + landm_preds[:, c:c+2] * variance[0] * priors[:, 2:]
+            part = priors[:, :2] + landm_preds[:, c : c + 2] * variance[0] * priors[:, 2:]
             landm_parts.append(part)
         landms = np.concatenate(landm_parts, axis=1)
 
@@ -197,8 +203,7 @@ class FaceDetector:
         boxes[:, 3] = np.clip(boxes[:, 3], 0, orig_h)
 
         # 6. min_face_size filter
-        face_size = np.maximum(boxes[:, 2] - boxes[:, 0],
-                               boxes[:, 3] - boxes[:, 1])
+        face_size = np.maximum(boxes[:, 2] - boxes[:, 0], boxes[:, 3] - boxes[:, 1])
         size_keep = face_size >= self.min_face_size
         boxes = boxes[size_keep]
         landms = landms[size_keep]
@@ -215,21 +220,21 @@ class FaceDetector:
         # 8. Build Face objects with landmarks
         faces = []
         for i in range(len(scores)):
-            landmarks = [(float(landms[i, 2 * k]), float(landms[i, 2 * k + 1]))
-                         for k in range(5)]
-            faces.append(Face(
-                x1=float(boxes[i, 0]),
-                y1=float(boxes[i, 1]),
-                x2=float(boxes[i, 2]),
-                y2=float(boxes[i, 3]),
-                confidence=float(scores[i]),
-                landmarks=landmarks,
-            ))
+            landmarks = [(float(landms[i, 2 * k]), float(landms[i, 2 * k + 1])) for k in range(5)]
+            faces.append(
+                Face(
+                    x1=float(boxes[i, 0]),
+                    y1=float(boxes[i, 1]),
+                    x2=float(boxes[i, 2]),
+                    y2=float(boxes[i, 3]),
+                    confidence=float(scores[i]),
+                    landmarks=landmarks,
+                )
+            )
         return faces
 
     @staticmethod
-    def _generate_priors(input_h: int, input_w: int,
-                         strides: list, min_sizes: list) -> np.ndarray:
+    def _generate_priors(input_h: int, input_w: int, strides: list, min_sizes: list) -> np.ndarray:
         """Generate RetinaFace prior boxes (anchors) for all FPN levels.
 
         Each FPN level has a feature map of size (ceil(H/stride), ceil(W/stride))
@@ -255,15 +260,11 @@ class FaceDetector:
     def _fallback_detect(self, image: np.ndarray) -> list[Face]:
         # Haar Cascade fallback for dev/testing without ONNX model
         gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
-        cascade = cv2.CascadeClassifier(
-            cv2.data.haarcascades + "haarcascade_frontalface_default.xml"
-        )
+        cascade = cv2.CascadeClassifier(cv2.data.haarcascades + "haarcascade_frontalface_default.xml")
         rects = cascade.detectMultiScale(gray, 1.1, 5, minSize=(self.min_face_size, self.min_face_size))
         faces = []
         for x, y, w, h in rects:
-            faces.append(Face(
-                x1=float(x), y1=float(y),
-                x2=float(x + w), y2=float(y + h),
-                confidence=self.haar_confidence
-            ))
+            faces.append(
+                Face(x1=float(x), y1=float(y), x2=float(x + w), y2=float(y + h), confidence=self.haar_confidence)
+            )
         return faces

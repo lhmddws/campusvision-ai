@@ -1,6 +1,7 @@
 package entity
 
 import (
+	"strings"
 	"time"
 
 	"github.com/sims/campusvision/dormitory-service-go/internal/model/dto"
@@ -39,31 +40,59 @@ type DormCamera struct {
 	UpdatedAt       time.Time            `db:"updated_at" json:"updated_at"`
 }
 
+// sanitizeRtspURL masks the password portion of an RTSP URL.
+// Input:  rtsp://admin:secret@host:554/path
+// Output: rtsp://admin:***@host:554/path
+func sanitizeRtspURL(rawURL string) string {
+	if rawURL == "" {
+		return rawURL
+	}
+	idx := strings.Index(rawURL, "://")
+	if idx == -1 {
+		return rawURL
+	}
+	authEnd := strings.LastIndex(rawURL, "@")
+	if authEnd == -1 {
+		return rawURL // No credentials
+	}
+	colonIdx := strings.Index(rawURL[idx+3:], ":")
+	if colonIdx == -1 {
+		return rawURL // No password separator
+	}
+	colonIdx += idx + 3
+	if colonIdx >= authEnd {
+		return rawURL // Colon is after @ (port separator, not password)
+	}
+	return rawURL[:colonIdx+1] + "***" + rawURL[authEnd:]
+}
+
 func (c *DormCamera) ToDTO() dto.CameraResponse {
+	sanitizedURL := sanitizeRtspURL(c.RtspURL)
 	return dto.CameraResponse{
-		ID:              c.ID,
-		CameraID:        c.CameraID,
-		Name:            c.Name,
-		Building:        c.Building,
-		RtspURL:         c.RtspURL,
-		Direction:       c.Direction,
-		Resolution:      c.Resolution,
-		Status:          c.Status,
-		FPSCurrent:      c.FPSCurrent,
-		TotalFrames:     c.TotalFrames,
-		LastHeartbeat:   c.LastHeartbeat,
-		LastEventTime:   c.LastEventTime,
-		Enabled:         c.Enabled,
-		ConfigJSON:      c.ConfigJSON,
-		Remark:          c.Remark,
-		LastHealthCheck: c.LastHealthCheck,
-		Type:            c.Type,
-		Protocol:        c.Protocol,
-		Host:            c.Host,
-		Port:            c.Port,
-		Path:            c.Path,
-		Username:        c.Username,
-		CreatedAt:       c.CreatedAt,
-		UpdatedAt:       c.UpdatedAt,
+		ID:               c.ID,
+		CameraID:         c.CameraID,
+		Name:             c.Name,
+		Building:         c.Building,
+		RtspURL:          sanitizedURL,
+		SanitizedRtspURL: sanitizedURL,
+		Direction:        c.Direction,
+		Resolution:       c.Resolution,
+		Status:           c.Status,
+		FPSCurrent:       c.FPSCurrent,
+		TotalFrames:      c.TotalFrames,
+		LastHeartbeat:    c.LastHeartbeat,
+		LastEventTime:    c.LastEventTime,
+		Enabled:          c.Enabled,
+		ConfigJSON:       c.ConfigJSON,
+		Remark:           c.Remark,
+		LastHealthCheck:  c.LastHealthCheck,
+		Type:             c.Type,
+		Protocol:         c.Protocol,
+		Host:             c.Host,
+		Port:             c.Port,
+		Path:             c.Path,
+		Username:         c.Username,
+		CreatedAt:        c.CreatedAt,
+		UpdatedAt:        c.UpdatedAt,
 	}
 }

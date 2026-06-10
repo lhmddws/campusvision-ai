@@ -1,7 +1,8 @@
 import os
-from typing import List
-import yaml
 from dataclasses import dataclass, field
+from typing import List
+
+import yaml
 
 
 @dataclass
@@ -88,12 +89,14 @@ class LogConfig:
 @dataclass
 class BehaviorEventConfig:
     enabled: bool = True
-    event_type_mapping: dict = field(default_factory=lambda: {
-        "loitering": "loiter",
-        "running": "running",
-        "zone_intrusion": "zone",
-        "crowd_alert": "crowd",
-    })
+    event_type_mapping: dict = field(
+        default_factory=lambda: {
+            "loitering": "loiter",
+            "running": "running",
+            "zone_intrusion": "zone",
+            "crowd_alert": "crowd",
+        }
+    )
     event_confidence: float = 1.0
 
 
@@ -166,8 +169,17 @@ def load_config(path: str = "config.yaml") -> AppConfig:
 
     # Warn about unknown config keys
     known_keys = {
-        "kafka", "detection", "feature", "match", "direction",
-        "dedup", "stranger", "night_mode", "redis", "log", "behavior",
+        "kafka",
+        "detection",
+        "feature",
+        "match",
+        "direction",
+        "dedup",
+        "stranger",
+        "night_mode",
+        "redis",
+        "log",
+        "behavior",
     }
     unknown = set(data.keys()) - known_keys
     for key in sorted(unknown):

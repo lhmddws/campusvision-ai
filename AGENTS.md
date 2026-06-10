@@ -53,7 +53,7 @@ docker compose exec kafka kafka-console-consumer --bootstrap-server localhost:90
 | ---------------------- | ---------------------------- | ---------------------------------------------------------------------------- |
 | `zookeeper`            | —                            | `user: root` (permission fix for macOS)                                      |
 | `kafka`                | zookeeper                    | `user: root` (permission fix); topics auto-created by `kafka-init`           |
-| `kafka-init`           | kafka (healthy)              | One-shot: creates `t_dorm_frame`(4p), `t_dorm_event`(2p), `t_dorm_alert`(1p) |
+| `kafka-init`           | kafka (healthy)              | One-shot: creates `t_dorm_frame`(4p), `t_dorm_event`(2p), `t_dorm_alert`(1p, skeleton) |
 | `redis`                | —                            | Healthy check via redis-cli ping                                             |
 | `mariadb`              | —                            | Initialized with `infra/mariadb/init.sql` (13 tables + test data seed)       |
 | `minio`                | —                            | Unused by any service — `snapshot_path` always `""`                          |
@@ -138,7 +138,7 @@ Fixed in migration 001 and entity updates — `infra/mariadb/init.sql` and Go en
 - **Dual config**: Every module ships `config.yaml` (local dev) + `config.docker.yaml` (Docker override). Docker Compose bind-mounts the docker variant.
 - **Entrypoint nesting**: stream-gateway uses flat `cmd/main.go`, dormitory-service-go uses `cmd/<name>/main.go`.
 - **DB migrations**: `infra/mariadb/migrations/` uses manual serial numbering (`001_*.sql`, `002_*.sql`). No Flyway, no golang-migrate. Apply manually.
-- **Kafka topic naming**: `t_dorm_<entity>` convention. `t_dorm_frame` (4p, hash by building, Snappy), `t_dorm_event` (2p), `t_dorm_alert` (1p).
+- **Kafka topic naming**: `t_dorm_<entity>` convention. `t_dorm_frame` (4p, hash by building, Snappy), `t_dorm_event` (2p), `t_dorm_alert` (1p, skeleton).
 - **DB table naming**: `dorm_` prefix, InnoDB/utf8mb4, BIGINT AUTO_INCREMENT, Chinese column comments.
 - **Frontend lazy loading**: Heavy libs split into on-demand chunks: `echarts` (340KB gzip), `wangeditor` (306KB), `xlsx+jspdf` (231KB). Routes use dynamic `import()` already.
 - **Test data seed**: `init.sql` contains 22 students, 4 cameras, 24 entry events, 4 nightly reports, and 2 stranger records — all using `INSERT IGNORE` for idempotent re-runs.

@@ -84,3 +84,21 @@ func (c *Client) CheckAndSetDedup(ctx context.Context, cameraID string, frameSeq
 	key := fmt.Sprintf("dedup:%s:%d", cameraID, frameSequence)
 	return c.SetNX(ctx, key, "1", DefaultDedupTTL)
 }
+
+// CheckAndSetDedupEventID checks if an event has already been processed (for deduplication).
+// Key format: "dedup:{event_id}"
+// Returns true if this is a new event (not yet processed).
+// This should be called AFTER the event is persisted to DB.
+func (c *Client) CheckAndSetDedupEventID(ctx context.Context, eventID string) (bool, error) {
+	key := fmt.Sprintf("dedup:%s", eventID)
+	return c.SetNX(ctx, key, "1", DefaultDedupTTL)
+}
+
+// ExistsDedup checks if an event has already been processed (read-only, does not set).
+// Key format mirrors CheckAndSetDedup: "dedup:{camera_id}:{frame_sequence}"
+// This is a read-only pre-check before DB persistence. The actual dedup set happens
+// AFTER DB write via CheckAndSetDedupEventID.
+func (c *Client) ExistsDedup(ctx context.Context, cameraID string, frameSequence int) (bool, error) {
+	key := fmt.Sprintf("dedup:%s:%d", cameraID, frameSequence)
+	return c.Exists(ctx, key)
+}

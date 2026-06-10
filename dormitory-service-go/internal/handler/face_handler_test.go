@@ -71,7 +71,7 @@ func TestFaceMatch_Success(t *testing.T) {
 	// Mock DB: one row with the same embedding
 	rows := sqlmock.NewRows([]string{"id", "name", "student_id", "embedding"}).
 		AddRow(int64(1), "Alice", "S001", embBytes)
-	mock.ExpectQuery(regexp.QuoteMeta("SELECT id, name, student_id, embedding FROM face_embedding LIMIT ? OFFSET ?")).
+	mock.ExpectQuery(regexp.QuoteMeta("SELECT id, name, student_id, embedding FROM face_embedding ORDER BY id LIMIT ? OFFSET ?")).
 		WithArgs(100, 0).
 		WillReturnRows(rows)
 
@@ -111,7 +111,7 @@ func TestFaceMatch_NoMatchFound(t *testing.T) {
 
 	rows := sqlmock.NewRows([]string{"id", "name", "student_id", "embedding"}).
 		AddRow(int64(1), "Alice", "S001", storedBytes)
-	mock.ExpectQuery(regexp.QuoteMeta("SELECT id, name, student_id, embedding FROM face_embedding LIMIT ? OFFSET ?")).
+	mock.ExpectQuery(regexp.QuoteMeta("SELECT id, name, student_id, embedding FROM face_embedding ORDER BY id LIMIT ? OFFSET ?")).
 		WithArgs(100, 0).
 		WillReturnRows(rows)
 
@@ -157,7 +157,7 @@ func TestFaceMatch_WithValidAPIKey(t *testing.T) {
 
 	rows := sqlmock.NewRows([]string{"id", "name", "student_id", "embedding"}).
 		AddRow(int64(1), "Bob", "S002", embBytes)
-	mock.ExpectQuery(regexp.QuoteMeta("SELECT id, name, student_id, embedding FROM face_embedding LIMIT ? OFFSET ?")).
+	mock.ExpectQuery(regexp.QuoteMeta("SELECT id, name, student_id, embedding FROM face_embedding ORDER BY id LIMIT ? OFFSET ?")).
 		WithArgs(100, 0).
 		WillReturnRows(rows)
 
@@ -165,7 +165,7 @@ func TestFaceMatch_WithValidAPIKey(t *testing.T) {
 	require.NoError(t, err)
 
 	c := ginTestContext(w, "POST", "/api/face/match", string(reqBody))
-	c.Request.Header.Set("X-API-Key", "test-key")
+	c.Request.Header.Set("Authorization", "Bearer test-key")
 	h.FaceMatch(c)
 
 	var resp handler.FaceMatchResponse

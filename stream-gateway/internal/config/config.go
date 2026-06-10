@@ -11,10 +11,10 @@ import (
 )
 
 type Config struct {
-	Cameras  []CameraConfig  `yaml:"cameras"`
-	Frame    FrameConfig     `yaml:"frame"`
-	Kafka    KafkaConfig     `yaml:"kafka"`
-	RTSP     RTSPConfig      `yaml:"rtsp"`
+	Cameras    []CameraConfig   `yaml:"cameras"`
+	Frame      FrameConfig      `yaml:"frame"`
+	Kafka      KafkaConfig      `yaml:"kafka"`
+	RTSP       RTSPConfig       `yaml:"rtsp"`
 	Health     HealthConfig     `yaml:"health"`
 	Management ManagementConfig `yaml:"management"`
 	Database   DatabaseConfig   `yaml:"database"`
