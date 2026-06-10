@@ -58,8 +58,8 @@ CHUNK_SIZE = 8192
 
 # Built-in mirrors tried in order (duplicates are skipped)
 DEFAULT_MIRRORS = [
-    "https://huggingface.co",       # official
-    "https://hf-mirror.com",        # Chinese mirror (may redirect)
+    "https://huggingface.co",  # official
+    "https://hf-mirror.com",  # Chinese mirror (may redirect)
 ]
 
 
@@ -69,23 +69,30 @@ def parse_args() -> argparse.Namespace:
         description="Download ONNX models for face-recognition",
     )
     parser.add_argument(
-        "--mirror", default=None,
+        "--mirror",
+        default=None,
         help="Custom HuggingFace mirror URL (overrides HF_ENDPOINT env var)",
     )
     parser.add_argument(
-        "--retries", type=int, default=DEFAULT_RETRIES,
+        "--retries",
+        type=int,
+        default=DEFAULT_RETRIES,
         help=f"Max retries per mirror (default: {DEFAULT_RETRIES})",
     )
     parser.add_argument(
-        "--timeout", type=int, default=DEFAULT_TIMEOUT,
+        "--timeout",
+        type=int,
+        default=DEFAULT_TIMEOUT,
         help=f"Download timeout in seconds (default: {DEFAULT_TIMEOUT})",
     )
     parser.add_argument(
-        "--proxy", default=None,
+        "--proxy",
+        default=None,
         help="HTTP/HTTPS proxy URL, e.g. http://127.0.0.1:7890",
     )
     parser.add_argument(
-        "--list-mirrors", action="store_true",
+        "--list-mirrors",
+        action="store_true",
         help="List configured mirrors and exit",
     )
     return parser.parse_args()
@@ -154,7 +161,9 @@ def download_model(
             return True
         logger.warning(
             "⚠ %s: exists but SHA256 mismatch (expected=%s, actual=%s), re-downloading",
-            name, expected_sha256, actual,
+            name,
+            expected_sha256,
+            actual,
         )
         target_path.unlink()
 
@@ -170,7 +179,10 @@ def download_model(
             for attempt in range(1, max_retries + 1):
                 logger.info(
                     "↓ %s: attempt %d/%d — %s",
-                    name, attempt, max_retries, effective_url,
+                    name,
+                    attempt,
+                    max_retries,
+                    effective_url,
                 )
 
                 try:
@@ -182,20 +194,25 @@ def download_model(
                         final_url = resp.url
                         for hist in resp.history:
                             logger.debug(
-                                "  ↪ %s → %s", hist.url, hist.headers.get("Location", ""),
+                                "  ↪ %s → %s",
+                                hist.url,
+                                hist.headers.get("Location", ""),
                             )
                         if "huggingface.co" in final_url and final_url != effective_url:
                             logger.warning(
                                 "⚠ %s: mirror %s redirected to huggingface.co (may be blocked). "
                                 "Trying next strategy...",
-                                name, mirror,
+                                name,
+                                mirror,
                             )
                             break  # try next mirror
 
                     # Stream write to temp file
                     try:
                         tmp = tempfile.NamedTemporaryFile(
-                            delete=False, dir=target_path.parent, suffix=".onnx",
+                            delete=False,
+                            dir=target_path.parent,
+                            suffix=".onnx",
                         )
                         with tmp:
                             for chunk in resp.iter_content(chunk_size=CHUNK_SIZE):
@@ -213,7 +230,8 @@ def download_model(
                     if expected_sha256 == PLACEHOLDER_SHA256:
                         logger.info(
                             "✓ %s: downloaded (%.1f MB, SHA256 placeholder — skipping verification)",
-                            name, size_mb,
+                            name,
+                            size_mb,
                         )
                         is_valid = True
                     elif actual == expected_sha256:
@@ -222,14 +240,16 @@ def download_model(
                     else:
                         logger.error(
                             "✗ %s: SHA256 mismatch (expected=%s, actual=%s)",
-                            name, expected_sha256, actual,
+                            name,
+                            expected_sha256,
+                            actual,
                         )
                         tmp_path.unlink(missing_ok=True)
                         is_valid = False
 
                     if not is_valid:
                         if attempt < max_retries:
-                            wait = 2 ** attempt
+                            wait = 2**attempt
                             logger.info("  retrying in %ds...", wait)
                             time.sleep(wait)
                         continue
@@ -248,7 +268,7 @@ def download_model(
                 except requests.RequestException as e:
                     logger.warning("⚠ %s: attempt %d/%d failed: %s", name, attempt, max_retries, e)
                     if attempt < max_retries:
-                        wait = 2 ** attempt
+                        wait = 2**attempt
                         logger.info("  retrying in %ds...", wait)
                         time.sleep(wait)
 

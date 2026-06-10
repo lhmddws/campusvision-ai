@@ -92,7 +92,7 @@ func (s *Stream) Run(ctx context.Context) {
 		s.dec = dec
 		s.mu.Unlock()
 
-		log.Printf("[stream] starting decoder for %s (%s栋) – %s", s.camCfg.ID, s.camCfg.Building, s.rtspURL)
+		log.Printf("[stream] starting decoder for %s (%s栋) – %s", s.camCfg.ID, s.camCfg.Building, sanitizeRTSPURL(s.rtspURL))
 		frameCh, err := dec.Start(ctx)
 		if err != nil {
 			log.Printf("[stream] decoder start error [%s]: %v", s.camCfg.ID, err)

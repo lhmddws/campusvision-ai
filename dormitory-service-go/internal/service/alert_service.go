@@ -1,6 +1,7 @@
 package service
 
 import (
+	"context"
 	"database/sql"
 	"errors"
 	"fmt"
@@ -41,13 +42,13 @@ func (s *AlertService) log() *zap.Logger {
 }
 
 // GetAlerts returns a paginated list of alerts with optional filters.
-func (s *AlertService) GetAlerts(building string, alertType string, acknowledged *bool, page, size int) ([]entity.DormAlert, int64, error) {
-	return s.alertRepo.FindWithPagination(serviceCtx(), building, alertType, acknowledged, nil, nil, page, size)
+func (s *AlertService) GetAlerts(ctx context.Context, building string, alertType string, acknowledged *bool, page, size int) ([]entity.DormAlert, int64, error) {
+	return s.alertRepo.FindWithPagination(ctx, building, alertType, acknowledged, nil, nil, page, size)
 }
 
 // AcknowledgeAlert marks an alert as resolved/acknowledged.
-func (s *AlertService) AcknowledgeAlert(id int64) error {
-	alert, err := s.alertRepo.FindByID(serviceCtx(), id)
+func (s *AlertService) AcknowledgeAlert(ctx context.Context, id int64) error {
+	alert, err := s.alertRepo.FindByID(ctx, id)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return ErrNotFound
@@ -56,11 +57,11 @@ func (s *AlertService) AcknowledgeAlert(id int64) error {
 	}
 
 	s.log().Info("acknowledging alert", zap.Int64("id", id), zap.String("type", alert.AlertType))
-	return s.alertRepo.ResolveAlert(serviceCtx(), id)
+	return s.alertRepo.ResolveAlert(ctx, id)
 }
 
 // GetAlertCount returns the count of alerts with optional filters.
-func (s *AlertService) GetAlertCount(building string, acknowledged *bool) (int64, error) {
+func (s *AlertService) GetAlertCount(ctx context.Context, building string, acknowledged *bool) (int64, error) {
 	where := ""
 	var args []interface{}
 	conditions := []string{}
@@ -84,7 +85,7 @@ func (s *AlertService) GetAlertCount(building string, acknowledged *bool) (int64
 		}
 	}
 
-	return s.alertRepo.Count(serviceCtx(), where, args...)
+	return s.alertRepo.Count(ctx, where, args...)
 }
 
 // AlertStatsResponse represents alert statistics with additional breakdowns.
@@ -98,14 +99,14 @@ type AlertStatsResponse struct {
 }
 
 // GetAlertStats returns total, unresolved, unread, today counts and breakdowns by type and severity.
-func (s *AlertService) GetAlertStats(building string) (*AlertStatsResponse, error) {
-	total, err := s.GetAlertCount(building, nil)
+func (s *AlertService) GetAlertStats(ctx context.Context, building string) (*AlertStatsResponse, error) {
+	total, err := s.GetAlertCount(ctx, building, nil)
 	if err != nil {
 		return nil, fmt.Errorf("count total: %w", err)
 	}
 
 	unresolved := false
-	unresolvedCount, err := s.GetAlertCount(building, &unresolved)
+	unresolvedCount, err := s.GetAlertCount(ctx, building, &unresolved)
 	if err != nil {
 		return nil, fmt.Errorf("count unresolved: %w", err)
 	}
@@ -117,7 +118,7 @@ func (s *AlertService) GetAlertStats(building string) (*AlertStatsResponse, erro
 		unreadArgs = append(unreadArgs, building)
 	}
 	var unreadCount int64
-	if err := s.alertRepo.DB.GetContext(serviceCtx(), &unreadCount, unreadQuery, unreadArgs...); err != nil {
+	if err := s.alertRepo.DB.GetContext(ctx, &unreadCount, unreadQuery, unreadArgs...); err != nil {
 		return nil, fmt.Errorf("count unread: %w", err)
 	}
 
@@ -128,7 +129,7 @@ func (s *AlertService) GetAlertStats(building string) (*AlertStatsResponse, erro
 		todayArgs = append(todayArgs, building)
 	}
 	var todayCount int64
-	if err := s.alertRepo.DB.GetContext(serviceCtx(), &todayCount, todayQuery, todayArgs...); err != nil {
+	if err := s.alertRepo.DB.GetContext(ctx, &todayCount, todayQuery, todayArgs...); err != nil {
 		return nil, fmt.Errorf("count today: %w", err)
 	}
 
@@ -139,7 +140,7 @@ func (s *AlertService) GetAlertStats(building string) (*AlertStatsResponse, erro
 		typeArgs = append(typeArgs, building)
 	}
 	typeQuery += " GROUP BY alert_type"
-	typeRows, err := s.alertRepo.DB.QueryContext(serviceCtx(), typeQuery, typeArgs...)
+	typeRows, err := s.alertRepo.DB.QueryContext(ctx, typeQuery, typeArgs...)
 	if err != nil {
 		return nil, fmt.Errorf("query by_type: %w", err)
 	}
@@ -165,7 +166,7 @@ func (s *AlertService) GetAlertStats(building string) (*AlertStatsResponse, erro
 		severityArgs = append(severityArgs, building)
 	}
 	severityQuery += " GROUP BY severity"
-	severityRows, err := s.alertRepo.DB.QueryContext(serviceCtx(), severityQuery, severityArgs...)
+	severityRows, err := s.alertRepo.DB.QueryContext(ctx, severityQuery, severityArgs...)
 	if err != nil {
 		return nil, fmt.Errorf("query by_severity: %w", err)
 	}

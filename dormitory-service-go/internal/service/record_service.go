@@ -52,9 +52,7 @@ func (s *RecordService) formatDate(t time.Time) string {
 }
 
 // GetAttendanceStats returns aggregated attendance statistics.
-func (s *RecordService) GetAttendanceStats(buildingId int64, startDate, endDate time.Time) dto.AttendanceStatsDTO {
-	ctx := serviceCtx()
-
+func (s *RecordService) GetAttendanceStats(ctx context.Context, buildingId int64, startDate, endDate time.Time) dto.AttendanceStatsDTO {
 	building, err := s.buildingRepo.FindByID(ctx, buildingId)
 	if err != nil {
 		s.log().Warn("building not found", zap.Int64("id", buildingId), zap.Error(err))
@@ -98,9 +96,7 @@ func (s *RecordService) GetAttendanceStats(buildingId int64, startDate, endDate 
 }
 
 // GetDailySummary returns daily attendance summaries for a date range.
-func (s *RecordService) GetDailySummary(buildingId int64, startDate, endDate time.Time) []dto.DailySummaryDTO {
-	ctx := serviceCtx()
-
+func (s *RecordService) GetDailySummary(ctx context.Context, buildingId int64, startDate, endDate time.Time) []dto.DailySummaryDTO {
 	building, err := s.buildingRepo.FindByID(ctx, buildingId)
 	if err != nil {
 		s.log().Warn("building not found", zap.Int64("id", buildingId), zap.Error(err))

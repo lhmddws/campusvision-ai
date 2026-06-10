@@ -124,7 +124,10 @@ func (c *EventConsumer) consumeLoop(ctx context.Context) {
 				zap.Int64("offset", msg.Offset),
 				zap.Int("partition", msg.Partition),
 			)
-			// Commit anyway to avoid re-processing poison messages
+			// Do not commit offset — message will be re-delivered for retry.
+			// Deserialisation and validation failures return nil from processMessage
+			// (poison committed), so only DB failures reach this path.
+			continue
 		}
 
 		if err := c.reader.CommitMessages(ctx, msg); err != nil {
@@ -141,7 +144,11 @@ func (c *EventConsumer) processMessage(ctx context.Context, msg kafka.Message) e
 	// 1. Deserialize
 	var event dto.FaceEventMessage
 	if err := json.Unmarshal(msg.Value, &event); err != nil {
-		return fmt.Errorf("deserialize event: %w", err)
+		c.logger.Error("Failed to deserialize event message, committing offset to skip poison pill",
+			zap.Error(err),
+			zap.Int64("offset", msg.Offset),
+		)
+		return nil
 	}
 
 	c.logger.Debug("Received event",
@@ -149,26 +156,44 @@ func (c *EventConsumer) processMessage(ctx context.Context, msg kafka.Message) e
 		zap.String("event_type", event.EventType),
 		zap.String("student_id", event.StudentID),
 		zap.Bool("is_stranger", event.IsStranger),
+		zap.String("source", event.Source),
 	)
 
 	// 2. Validate
 	if event.CameraID == "" {
-		return fmt.Errorf("event missing camera_id")
+		c.logger.Error("Event missing camera_id, committing offset to skip poison pill",
+			zap.Int64("offset", msg.Offset),
+		)
+		return nil
 	}
 	if event.EventType == "" {
-		return fmt.Errorf("event missing event_type")
+		c.logger.Error("Event missing event_type, committing offset to skip poison pill",
+			zap.Int64("offset", msg.Offset),
+		)
+		return nil
 	}
 
-	// 3. Redis dedup
-	isNew, err := c.rdb.CheckAndSetDedup(ctx, event.CameraID, event.FrameSequence)
+	// 3. Source-based routing — non-face events skip all face-specific processing
+	// (no eventlog, no face match, no stranger logic, no camera status update, no dedup)
+	if event.Source == "behavior" || event.Source == "alert" {
+		c.logger.Debug("Skipping face-specific processing for non-face event",
+			zap.String("source", event.Source),
+			zap.String("camera_id", event.CameraID),
+			zap.String("event_type", event.EventType),
+		)
+		return nil
+	}
+
+	// 4. Pre-DB dedup check (read-only — don't set yet)
+	isExisting, err := c.rdb.ExistsDedup(ctx, event.CameraID, event.FrameSequence)
 	if err != nil {
-		c.logger.Warn("Dedup check failed, processing anyway",
+		c.logger.Warn("Dedup pre-check failed, processing anyway",
 			zap.Error(err),
 			zap.String("camera_id", event.CameraID),
 			zap.Int("frame_sequence", event.FrameSequence),
 		)
 		// Proceed on Redis error (defensive)
-	} else if !isNew {
+	} else if isExisting {
 		c.logger.Debug("Skipping duplicate event",
 			zap.String("camera_id", event.CameraID),
 			zap.Int("frame_sequence", event.FrameSequence),
@@ -179,23 +204,28 @@ func (c *EventConsumer) processMessage(ctx context.Context, msg kafka.Message) e
 	// 5. Persist event log
 	eventLog := c.buildEventLog(event, event.Building)
 	if _, err := c.eventLogRepo.Create(ctx, eventLog); err != nil {
-		c.logger.Error("Failed to persist event log",
-			zap.Error(err),
-			zap.String("camera_id", event.CameraID),
-		)
+		return fmt.Errorf("persist event log: %w", err)
 	}
 
 	// 6. Stranger detection
 	if event.IsStranger {
-		c.handleStrangerEvent(ctx, event)
+		if err := c.handleStrangerEvent(ctx, event); err != nil {
+			return fmt.Errorf("stranger event processing: %w", err)
+		}
 	}
 
 	// 7. Update camera last_event_time
 	if err := c.cameraRepo.UpdateLastEventTime(ctx, event.CameraID); err != nil {
-		c.logger.Warn("Failed to update camera last_event_time",
+		return fmt.Errorf("update camera last_event_time: %w", err)
+	}
+
+	// 8. Set dedup AFTER DB persistence succeeds
+	if _, err := c.rdb.CheckAndSetDedupEventID(ctx, eventLog.EventID); err != nil {
+		c.logger.Warn("Failed to set dedup mark after DB persistence",
 			zap.Error(err),
-			zap.String("camera_id", event.CameraID),
+			zap.String("event_id", eventLog.EventID),
 		)
+		// Non-fatal — DB already has the event
 	}
 
 	return nil
@@ -232,12 +262,17 @@ func (c *EventConsumer) buildEventLog(event dto.FaceEventMessage, buildingCode s
 	if event.SnapshotPath != "" {
 		eventLog.FaceSnapshotURL = jsontype.NewNullString(event.SnapshotPath)
 	}
+	if event.Source != "" {
+		eventLog.Source = event.Source
+	}
 
 	return eventLog
 }
 
 // handleStrangerEvent creates an alert and a stranger record when an unknown person is detected.
-func (c *EventConsumer) handleStrangerEvent(ctx context.Context, event dto.FaceEventMessage) {
+// Returns an error if the alert creation fails (fatal). Stranger record creation failure is
+// non-fatal: it is logged but does not return an error.
+func (c *EventConsumer) handleStrangerEvent(ctx context.Context, event dto.FaceEventMessage) error {
 	now := time.Now()
 
 	// Create alert record
@@ -265,9 +300,10 @@ func (c *EventConsumer) handleStrangerEvent(ctx context.Context, event dto.FaceE
 			zap.Error(err),
 			zap.String("camera_id", event.CameraID),
 		)
+		return fmt.Errorf("create stranger alert: %w", err)
 	}
 
-	// Create stranger record
+	// Create stranger record (non-fatal)
 	strangerRecord := &entity.DormStrangerRecord{
 		Building:     event.Building,
 		EventType:    event.EventType,
@@ -299,4 +335,5 @@ func (c *EventConsumer) handleStrangerEvent(ctx context.Context, event dto.FaceE
 		zap.String("building", event.Building),
 		zap.String("event_type", event.EventType),
 	)
+	return nil
 }

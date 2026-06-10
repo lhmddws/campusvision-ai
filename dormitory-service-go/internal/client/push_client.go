@@ -27,17 +27,36 @@ func NewPushClient(baseURL, apiKey string) *PushClient {
 }
 
 func (c *PushClient) doPost(path string, body interface{}) error {
-	jsonBody, err := json.Marshal(body)
-	if err != nil {
-		return fmt.Errorf("marshal body: %w", err)
-	}
+	return c.doRequest(http.MethodPost, path, body)
+}
 
-	req, err := http.NewRequest(http.MethodPost, c.BaseURL+path, bytes.NewReader(jsonBody))
+func (c *PushClient) doPut(path string, body interface{}) error {
+	return c.doRequest(http.MethodPut, path, body)
+}
+
+func (c *PushClient) doDelete(path string) error {
+	return c.doRequest(http.MethodDelete, path, nil)
+}
+
+func (c *PushClient) doRequest(method, path string, body interface{}) error {
+	var req *http.Request
+	var err error
+
+	if body != nil {
+		var jsonBody []byte
+		jsonBody, err = json.Marshal(body)
+		if err != nil {
+			return fmt.Errorf("marshal body: %w", err)
+		}
+		req, err = http.NewRequest(method, c.BaseURL+path, bytes.NewReader(jsonBody))
+		req.Header.Set("Content-Type", "application/json")
+	} else {
+		req, err = http.NewRequest(method, c.BaseURL+path, nil)
+	}
 	if err != nil {
 		return fmt.Errorf("create request: %w", err)
 	}
 
-	req.Header.Set("Content-Type", "application/json")
 	if c.APIKey != "" {
 		req.Header.Set("X-Management-Key", c.APIKey)
 	}
@@ -56,31 +75,25 @@ func (c *PushClient) doPost(path string, body interface{}) error {
 
 // NotifyRegister notifies the stream-gateway about a newly registered camera.
 func (c *PushClient) NotifyRegister(camera entity.DormCamera) error {
-	return c.doPost("/api/cameras/register", map[string]interface{}{
-		"camera_id": camera.CameraID,
-		"building":  camera.Building,
-		"name":      camera.Name,
-		"rtsp_url":  camera.RtspURL,
-		"status":    camera.Status,
-		"enabled":   camera.Enabled,
+	return c.doPost("/cameras", map[string]interface{}{
+		"id":       camera.CameraID,
+		"building": camera.Building,
+		"rtsp_url": camera.RtspURL,
+		"enabled":  camera.Enabled,
 	})
 }
 
 // NotifyUpdate notifies the stream-gateway about a camera configuration change.
 func (c *PushClient) NotifyUpdate(cameraID string, camera entity.DormCamera) error {
-	return c.doPost("/api/cameras/update", map[string]interface{}{
-		"camera_id": cameraID,
-		"building":  camera.Building,
-		"name":      camera.Name,
-		"rtsp_url":  camera.RtspURL,
-		"status":    camera.Status,
-		"enabled":   camera.Enabled,
+	return c.doPut("/cameras/"+cameraID, map[string]interface{}{
+		"id":       camera.CameraID,
+		"building": camera.Building,
+		"rtsp_url": camera.RtspURL,
+		"enabled":  camera.Enabled,
 	})
 }
 
 // NotifyDelete notifies the stream-gateway that a camera has been removed.
 func (c *PushClient) NotifyDelete(cameraID string) error {
-	return c.doPost("/api/cameras/delete", map[string]string{
-		"camera_id": cameraID,
-	})
+	return c.doDelete("/cameras/" + cameraID)
 }

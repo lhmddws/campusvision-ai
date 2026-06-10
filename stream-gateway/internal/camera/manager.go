@@ -134,6 +134,34 @@ func (m *Manager) RemoveCamera(id string) {
 	}
 }
 
+// UpdateCamera replaces a camera stream with updated configuration.
+// Existing stream is stopped before applying the new config.
+func (m *Manager) UpdateCamera(cfg config.CameraConfig) {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+
+	if stream, ok := m.streams[cfg.ID]; ok {
+		stream.Stop()
+		delete(m.streams, cfg.ID)
+	}
+
+	m.statuses[cfg.ID] = CameraStatus{
+		CameraID:  cfg.ID,
+		Building:  cfg.Building,
+		Connected: false,
+	}
+
+	if cfg.Enabled {
+		stream := NewStream(cfg, m.cfg, m.rtspCfg, m.producer,
+			func(id string, s CameraStatus) { m.UpdateStatus(id, s) },
+			m.encKey,
+		)
+		m.streams[cfg.ID] = stream
+		go stream.Run(m.ctx())
+		log.Printf("[manager] camera stream updated: %s (%s栋)", cfg.ID, cfg.Building)
+	}
+}
+
 // DiffAndSync diffs current streams against desired camera configs and reconciles them.
 // Adds new cameras, removes stale ones, skips unchanged.
 func (m *Manager) DiffAndSync(desired []config.CameraConfig) {

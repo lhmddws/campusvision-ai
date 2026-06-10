@@ -71,10 +71,6 @@ class DirectionDetector:
         now = time.time()
         stale_before = now - self._track_ttl
         with self._lock:
-            stale_ids = [
-                fid
-                for fid, track in self._tracks.items()
-                if track[-1][2] < stale_before
-            ]
+            stale_ids = [fid for fid, track in self._tracks.items() if track[-1][2] < stale_before]
             for fid in stale_ids:
                 del self._tracks[fid]

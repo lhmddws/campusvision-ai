@@ -156,7 +156,7 @@ func dbPollLoop(ctx context.Context, dbCfg config.DatabaseConfig, camManager *ca
 
 func syncCamerasFromDB(ctx context.Context, db *sql.DB, camManager *camera.Manager) {
 	rows, err := db.QueryContext(ctx,
-		"SELECT camera_id, building, rtsp_url, enabled FROM dorm_camera WHERE enabled = 1")
+		"SELECT camera_id, building, rtsp_url, enabled, password_enc, nonce, key_id FROM dorm_camera WHERE enabled = 1")
 	if err != nil {
 		log.Printf("[dbpoll] query error: %v", err)
 		return
@@ -167,7 +167,7 @@ func syncCamerasFromDB(ctx context.Context, db *sql.DB, camManager *camera.Manag
 	for rows.Next() {
 		var cam config.CameraConfig
 		var enabled int
-		if err := rows.Scan(&cam.ID, &cam.Building, &cam.RTSPURL, &enabled); err != nil {
+		if err := rows.Scan(&cam.ID, &cam.Building, &cam.RTSPURL, &enabled, &cam.Components.PasswordEnc, &cam.Components.Nonce, &cam.Components.KeyID); err != nil {
 			log.Printf("[dbpoll] scan error: %v", err)
 			continue
 		}

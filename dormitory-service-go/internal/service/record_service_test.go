@@ -142,7 +142,7 @@ func TestGetAttendanceStats_ReturnsZeroWhenBuildingNotFound(t *testing.T) {
 	mock, svc := newMockRecordService(t)
 	expectBuildingByIDError(mock, 1)
 
-	stats := svc.GetAttendanceStats(1, time.Date(2026, 5, 1, 0, 0, 0, 0, time.UTC), time.Date(2026, 5, 28, 0, 0, 0, 0, time.UTC))
+	stats := svc.GetAttendanceStats(context.Background(), 1, time.Date(2026, 5, 1, 0, 0, 0, 0, time.UTC), time.Date(2026, 5, 28, 0, 0, 0, 0, time.UTC))
 	assert.Equal(t, int64(0), stats.Total)
 	assert.NoError(t, mock.ExpectationsWereMet())
 }
@@ -165,7 +165,7 @@ func TestGetAttendanceStats_ReturnsCorrectStats(t *testing.T) {
 
 	startDate := time.Date(2026, 5, 1, 0, 0, 0, 0, time.UTC)
 	endDate := time.Date(2026, 5, 28, 0, 0, 0, 0, time.UTC)
-	stats := svc.GetAttendanceStats(1, startDate, endDate)
+	stats := svc.GetAttendanceStats(context.Background(), 1, startDate, endDate)
 
 	assert.Equal(t, int64(100), stats.Total)
 	assert.Equal(t, int64(80), stats.Present)
@@ -193,7 +193,7 @@ func TestGetAttendanceStats_DivisionByZeroReturnsZeroRate(t *testing.T) {
 
 	startDate := time.Date(2026, 5, 1, 0, 0, 0, 0, time.UTC)
 	endDate := time.Date(2026, 5, 28, 0, 0, 0, 0, time.UTC)
-	stats := svc.GetAttendanceStats(1, startDate, endDate)
+	stats := svc.GetAttendanceStats(context.Background(), 1, startDate, endDate)
 
 	assert.Equal(t, int64(0), stats.Total)
 	assert.Equal(t, int64(0), stats.Present)
@@ -207,7 +207,7 @@ func TestGetDailySummary_ReturnsEmptyWhenBuildingNotFound(t *testing.T) {
 	mock, svc := newMockRecordService(t)
 	expectBuildingByIDError(mock, 1)
 
-	summaries := svc.GetDailySummary(1, time.Date(2026, 5, 1, 0, 0, 0, 0, time.UTC), time.Date(2026, 5, 3, 0, 0, 0, 0, time.UTC))
+	summaries := svc.GetDailySummary(context.Background(), 1, time.Date(2026, 5, 1, 0, 0, 0, 0, time.UTC), time.Date(2026, 5, 3, 0, 0, 0, 0, time.UTC))
 	assert.Empty(t, summaries)
 	assert.NoError(t, mock.ExpectationsWereMet())
 }
@@ -230,7 +230,7 @@ func TestGetDailySummary_ReturnsDailyRowsForDateRange(t *testing.T) {
 
 	startDate := time.Date(2026, 5, 1, 0, 0, 0, 0, time.UTC)
 	endDate := time.Date(2026, 5, 3, 0, 0, 0, 0, time.UTC)
-	summaries := svc.GetDailySummary(1, startDate, endDate)
+	summaries := svc.GetDailySummary(context.Background(), 1, startDate, endDate)
 
 	require.Len(t, summaries, 3)
 
@@ -263,7 +263,7 @@ func TestGetDailySummary_FillsMissingDatesWithZeroRate(t *testing.T) {
 
 	startDate := time.Date(2026, 5, 1, 0, 0, 0, 0, time.UTC)
 	endDate := time.Date(2026, 5, 3, 0, 0, 0, 0, time.UTC)
-	summaries := svc.GetDailySummary(1, startDate, endDate)
+	summaries := svc.GetDailySummary(context.Background(), 1, startDate, endDate)
 
 	require.Len(t, summaries, 3)
 
@@ -293,7 +293,7 @@ func TestGetDailySummary_DivisionByZeroReturnsZeroRate(t *testing.T) {
 
 	startDate := time.Date(2026, 5, 1, 0, 0, 0, 0, time.UTC)
 	endDate := time.Date(2026, 5, 1, 0, 0, 0, 0, time.UTC)
-	summaries := svc.GetDailySummary(1, startDate, endDate)
+	summaries := svc.GetDailySummary(context.Background(), 1, startDate, endDate)
 
 	require.Len(t, summaries, 1)
 	assert.Equal(t, "2026-05-01", summaries[0].Date)

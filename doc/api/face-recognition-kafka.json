@@ -250,6 +250,10 @@
           "direction_method": {
             "type": "string",
             "description": "Always roi_line"
+          },
+          "source": {
+            "type": "string",
+            "description": "Event source — empty or \"face\" for face events, \"behavior\" for behavior events"
           }
         }
       },

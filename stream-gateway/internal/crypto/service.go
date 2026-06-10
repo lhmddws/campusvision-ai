@@ -14,8 +14,8 @@ import (
 )
 
 const (
-	NonceSize = 12            // AES-GCM standard nonce size (96 bits)
-	KeyLength = 32            // AES-256 requires 32-byte key
+	NonceSize = 12 // AES-GCM standard nonce size (96 bits)
+	KeyLength = 32 // AES-256 requires 32-byte key
 	EnvKey    = "CAMERA_ENCRYPTION_KEY"
 )
 

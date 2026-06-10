@@ -31,10 +31,11 @@ func init() {
 // In production, set via SetEncryptionKey at startup or CAMERA_ENCRYPTION_KEY env var.
 var encryptionKey = []byte("01234567890123456789012345678901")
 
-// EncryptedPassword holds the AES-GCM encrypted password and its nonce.
+// EncryptedPassword holds the AES-GCM encrypted password, its nonce, and key identifier.
 type EncryptedPassword struct {
 	Ciphertext string `json:"ciphertext"`
 	Nonce      string `json:"nonce"`
+	KeyID      string `json:"key_id"`
 }
 
 // EncryptPassword encrypts a plaintext string using AES-256-GCM.
@@ -60,5 +61,6 @@ func EncryptPassword(plaintext string) (*EncryptedPassword, error) {
 	return &EncryptedPassword{
 		Ciphertext: base64.StdEncoding.EncodeToString(ciphertext),
 		Nonce:      base64.StdEncoding.EncodeToString(nonce),
+		KeyID:      "default",
 	}, nil
 }

@@ -24,6 +24,7 @@ type FaceEventMessage struct {
 	Y1              float64 `json:"y1"`
 	X2              float64 `json:"x2"`
 	Y2              float64 `json:"y2"`
+	Source          string  `json:"source"`
 }
 
 // EventDTO is the API response DTO for an event log entry.

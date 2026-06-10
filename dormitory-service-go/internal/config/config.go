@@ -52,6 +52,8 @@ type KafkaConfig struct {
 	MaxPollRecord  int      `mapstructure:"max_poll_records"`
 	FrameTopic     string   `mapstructure:"frame_topic"`
 	PreviewGroupID string   `mapstructure:"preview_group_id"`
+	DLQTopic       string   `mapstructure:"dlq_topic"`
+	DLQGroupID     string   `mapstructure:"dlq_group_id"`
 }
 
 // JWTConfig holds JWT settings.
@@ -79,7 +81,8 @@ type CameraConfig struct {
 
 // GatewayConfig holds stream-gateway connection settings.
 type GatewayConfig struct {
-	URL string `mapstructure:"url"`
+	URL           string `mapstructure:"url"`
+	ManagementURL string `mapstructure:"management_url"`
 }
 
 // LogConfig holds logging settings.
@@ -111,6 +114,8 @@ func Load(configPath string) (*Config, error) {
 	v.SetDefault("kafka.alert_topic", "t_dorm_alert")
 	v.SetDefault("kafka.group_id", "dormitory-service-group")
 	v.SetDefault("kafka.max_poll_records", 500)
+	v.SetDefault("kafka.dlq_topic", "t_dorm_event_dlq")
+	v.SetDefault("kafka.dlq_group_id", "dormitory-service-dlq-group")
 	v.SetDefault("jwt.secret", "dev-secret-change-in-production")
 	v.SetDefault("jwt.expiration_hours", 24)
 	v.SetDefault("auth.admin_username", "admin")
@@ -119,6 +124,7 @@ func Load(configPath string) (*Config, error) {
 	v.SetDefault("face.match_key", "")
 	v.SetDefault("camera.max_cameras", 50)
 	v.SetDefault("gateway.url", "http://localhost:8080")
+	v.SetDefault("gateway.management_url", "http://localhost:8081")
 	v.SetDefault("log.level", "info")
 
 	// --- Config file ---

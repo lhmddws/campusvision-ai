@@ -1,6 +1,8 @@
 package scheduler
 
 import (
+	"context"
+
 	"go.uber.org/zap"
 
 	"github.com/sims/campusvision/dormitory-service-go/internal/service"
@@ -21,10 +23,9 @@ func NewHealthCheckJob(logger *zap.Logger, cameraSvc *service.CameraService) *He
 	}
 }
 
-// Run executes health checks for all enabled cameras.
-// Implements cron.Job interface.
 func (j *HealthCheckJob) Run() {
-	cameras, err := j.cameraSvc.ListEnabledCameras()
+	ctx := context.Background()
+	cameras, err := j.cameraSvc.ListEnabledCameras(ctx)
 	if err != nil {
 		j.logger.Error("Failed to list enabled cameras for health check",
 			zap.Error(err),
@@ -42,7 +43,7 @@ func (j *HealthCheckJob) Run() {
 	)
 
 	for _, cam := range cameras {
-		if err := j.cameraSvc.HealthCheck(cam.CameraID); err != nil {
+		if err := j.cameraSvc.HealthCheck(ctx, cam.CameraID); err != nil {
 			j.logger.Warn("Camera health check failed",
 				zap.String("camera_id", cam.CameraID),
 				zap.String("building", cam.Building),

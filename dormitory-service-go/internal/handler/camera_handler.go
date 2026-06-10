@@ -29,7 +29,7 @@ func (h *CameraHandler) RegisterCamera(c *gin.Context) {
 		return
 	}
 
-	cam, err := h.svc.RegisterCamera(req)
+	cam, err := h.svc.RegisterCamera(c.Request.Context(), req)
 	if err != nil {
 		if errors.Is(err, service.ErrCameraLimitExceeded) {
 			Error(c, http.StatusBadRequest, "Camera limit exceeded (max 50)")
@@ -56,7 +56,7 @@ func (h *CameraHandler) UpdateCamera(c *gin.Context) {
 		return
 	}
 
-	cam, err := h.svc.UpdateCamera(cameraID, req)
+	cam, err := h.svc.UpdateCamera(c.Request.Context(), cameraID, req)
 	if err != nil {
 		if errors.Is(err, service.ErrNotFound) {
 			Error(c, http.StatusNotFound, "Camera not found")
@@ -76,7 +76,7 @@ func (h *CameraHandler) UpdateCamera(c *gin.Context) {
 func (h *CameraHandler) GetCameras(c *gin.Context) {
 	building := c.Query("building")
 
-	cameras, err := h.svc.GetCameras(building)
+	cameras, err := h.svc.GetCameras(c.Request.Context(), building)
 	if err != nil {
 		Error(c, http.StatusInternalServerError, "Failed to list cameras: "+err.Error())
 		return
@@ -98,7 +98,7 @@ func (h *CameraHandler) GetCameras(c *gin.Context) {
 func (h *CameraHandler) GetCamera(c *gin.Context) {
 	cameraID := c.Param("id")
 
-	cam, err := h.svc.GetByCameraID(cameraID)
+	cam, err := h.svc.GetByCameraID(c.Request.Context(), cameraID)
 	if err != nil {
 		if errors.Is(err, service.ErrNotFound) {
 			Error(c, http.StatusNotFound, "Camera not found")
@@ -115,7 +115,7 @@ func (h *CameraHandler) GetCamera(c *gin.Context) {
 func (h *CameraHandler) GetCameraStatus(c *gin.Context) {
 	cameraID := c.Param("id")
 
-	cam, err := h.svc.GetByCameraID(cameraID)
+	cam, err := h.svc.GetByCameraID(c.Request.Context(), cameraID)
 	if err != nil {
 		if errors.Is(err, service.ErrNotFound) {
 			Error(c, http.StatusNotFound, "Camera not found")
@@ -141,7 +141,7 @@ func (h *CameraHandler) GetCameraStatus(c *gin.Context) {
 func (h *CameraHandler) GetCamerasStatus(c *gin.Context) {
 	building := c.Query("building")
 
-	result, err := h.svc.GetCameraStatus(building)
+	result, err := h.svc.GetCameraStatus(c.Request.Context(), building)
 	if err != nil {
 		Error(c, http.StatusInternalServerError, "Failed to get status: "+err.Error())
 		return
@@ -158,7 +158,7 @@ func (h *CameraHandler) DeleteCamera(c *gin.Context) {
 		return
 	}
 
-	if err := h.svc.DeleteCamera(cameraID); err != nil {
+	if err := h.svc.DeleteCamera(c.Request.Context(), cameraID); err != nil {
 		if errors.Is(err, service.ErrNotFound) {
 			Error(c, http.StatusNotFound, "Camera not found")
 			return
@@ -177,7 +177,7 @@ func (h *CameraHandler) DeleteCamera(c *gin.Context) {
 func (h *CameraHandler) HealthCheck(c *gin.Context) {
 	cameraID := c.Param("id")
 
-	if err := h.svc.HealthCheck(cameraID); err != nil {
+	if err := h.svc.HealthCheck(c.Request.Context(), cameraID); err != nil {
 		if errors.Is(err, service.ErrNotFound) {
 			Error(c, http.StatusNotFound, "Camera not found")
 			return
@@ -206,7 +206,7 @@ func (h *CameraHandler) QuerySnapshots(c *gin.Context) {
 		size = 20
 	}
 
-	events, total, err := h.svc.QuerySnapshots(cameraID, time.Time{}, time.Time{}, page, size)
+	events, total, err := h.svc.QuerySnapshots(c.Request.Context(), cameraID, time.Time{}, time.Time{}, page, size)
 	if err != nil {
 		Error(c, http.StatusInternalServerError, "Failed to query snapshots: "+err.Error())
 		return

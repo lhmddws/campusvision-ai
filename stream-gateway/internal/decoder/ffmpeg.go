@@ -40,7 +40,9 @@ func NewDecoder(rtspURL string, width, height, fps int) *Decoder {
 
 // Start spawns the ffmpeg subprocess and returns a channel that delivers raw
 // YUV420P frames as []byte.  Each frame is exactly
-//   width*height + 2 * ceil(width/2)*ceil(height/2) bytes.
+//
+//	width*height + 2 * ceil(width/2)*ceil(height/2) bytes.
+//
 // The channel is closed when the stream ends, on read error, or when Stop() is
 // called.
 func (d *Decoder) Start(ctx context.Context) (<-chan []byte, error) {

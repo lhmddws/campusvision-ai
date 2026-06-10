@@ -24,4 +24,5 @@ type DormEventLog struct {
 	FaceSnapshotURL jsontype.NullString  `db:"face_snapshot_url" json:"face_snapshot_url"`
 	Timestamp       time.Time            `db:"timestamp" json:"timestamp"`
 	CreatedAt       time.Time            `db:"created_at" json:"created_at"`
+	Source          string               `db:"-" json:"source"` // In-memory only; not persisted to DB
 }

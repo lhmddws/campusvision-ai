@@ -775,6 +775,9 @@
         "summary": "Match face embedding against enrolled students",
         "description": "Called internally by face-recognition's FaceMatcher. Computes cosine similarity between the input 512-dim embedding and stored embeddings in the `face_embedding` table. Returns the best match above 0.65 threshold.",
         "operationId": "faceMatch",
+        "security": [
+          { "bearerAuth": [] }
+        ],
         "requestBody": {
           "required": true,
           "content": {
@@ -808,12 +811,23 @@
                 }
               }
             }
+          },
+          "401": {
+            "description": "Missing or invalid Bearer token"
           }
         }
       }
     }
   },
   "components": {
+    "securitySchemes": {
+      "bearerAuth": {
+        "type": "http",
+        "scheme": "bearer",
+        "bearerFormat": "API Key",
+        "description": "Bearer token authentication. The face-recognition module sends the configured match_key as a Bearer token in the Authorization header."
+      }
+    },
     "responses": {
       "ValidationError": {
         "description": "Validation error",
@@ -956,6 +970,37 @@
           "port": { "type": "integer" },
           "path": { "type": "string" },
           "username": { "type": "string" }
+        }
+      },
+      "CameraResponse": {
+        "type": "object",
+        "description": "Camera response DTO — rtsp_url is sanitized (password masked).",
+        "properties": {
+          "id": { "type": "integer", "format": "int64" },
+          "camera_id": { "type": "string" },
+          "name": { "type": "string" },
+          "building": { "type": "string" },
+          "rtsp_url": { "type": "string", "description": "RTSP URL with password masked (e.g. rtsp://admin:***@host:554/path)" },
+          "sanitized_rtsp_url": { "type": "string", "description": "Always-masked RTSP URL (password replaced with ***)" },
+          "direction": { "type": "string" },
+          "resolution": { "type": "string" },
+          "status": { "type": "string" },
+          "fps_current": { "type": "number", "nullable": true },
+          "total_frames": { "type": "integer", "nullable": true },
+          "last_heartbeat": { "type": "string", "format": "date-time", "nullable": true },
+          "last_event_time": { "type": "string", "format": "date-time", "nullable": true },
+          "enabled": { "type": "boolean" },
+          "config_json": { "type": "string", "nullable": true },
+          "remark": { "type": "string", "nullable": true },
+          "last_health_check": { "type": "string", "format": "date-time", "nullable": true },
+          "type": { "type": "string" },
+          "protocol": { "type": "string" },
+          "host": { "type": "string", "nullable": true },
+          "port": { "type": "integer", "nullable": true },
+          "path": { "type": "string", "nullable": true },
+          "username": { "type": "string", "nullable": true },
+          "created_at": { "type": "string", "format": "date-time" },
+          "updated_at": { "type": "string", "format": "date-time" }
         }
       },
       "CameraStatusItem": {

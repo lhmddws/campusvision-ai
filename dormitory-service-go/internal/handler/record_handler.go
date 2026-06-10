@@ -34,7 +34,7 @@ func (h *RecordHandler) GetAttendanceStats(c *gin.Context) {
 	startDate, _ := time.Parse("2006-01-02", c.DefaultQuery("start_date", "2000-01-01"))
 	endDate, _ := time.Parse("2006-01-02", c.DefaultQuery("end_date", "2099-12-31"))
 
-	stats := h.svc.GetAttendanceStats(buildingID, startDate, endDate)
+	stats := h.svc.GetAttendanceStats(c.Request.Context(), buildingID, startDate, endDate)
 	Success(c, stats)
 }
 
@@ -52,7 +52,7 @@ func (h *RecordHandler) GetDailySummary(c *gin.Context) {
 	startDate, _ := time.Parse("2006-01-02", c.DefaultQuery("start_date", "2000-01-01"))
 	endDate, _ := time.Parse("2006-01-02", c.DefaultQuery("end_date", "2099-12-31"))
 
-	summaries := h.svc.GetDailySummary(buildingID, startDate, endDate)
+	summaries := h.svc.GetDailySummary(c.Request.Context(), buildingID, startDate, endDate)
 	Success(c, summaries)
 }
 

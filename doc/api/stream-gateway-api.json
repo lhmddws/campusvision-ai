@@ -44,10 +44,11 @@
     },
     "/cameras/{camera_id}/health": {
       "get": {
-        "tags": ["health"],
+        "tags": ["management"],
         "summary": "Per-camera health status",
-        "description": "Returns health status for a single camera by ID.",
+        "description": "Returns lightweight health status for a single camera by ID. Unlike GET /cameras/{camera_id}, this endpoint returns a dedicated health response with string status field. Requires X-Management-Key header if configured.",
         "operationId": "getCameraHealth",
+        "security": [{ "managementKey": [] }],
         "parameters": [
           {
             "name": "camera_id",
@@ -62,7 +63,7 @@
             "description": "Camera health status",
             "content": {
               "application/json": {
-                "schema": { "$ref": "#/components/schemas/CameraStatus" }
+                "schema": { "$ref": "#/components/schemas/CameraHealthResponse" }
               }
             }
           },
@@ -189,6 +190,64 @@
           }
         }
       },
+      "put": {
+        "tags": ["management"],
+        "summary": "Update camera configuration",
+        "description": "Updates an existing camera's configuration (building, RTSP URL, enabled state). The stream is restarted with the new config if enabled.",
+        "operationId": "updateCamera",
+        "security": [{ "managementKey": [] }],
+        "parameters": [
+          {
+            "name": "camera_id",
+            "in": "path",
+            "required": true,
+            "schema": { "type": "string" },
+            "description": "Camera identifier (e.g. cam-a)"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/CameraCreateRequest" }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Camera updated",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/CameraAddedResponse" }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid JSON or missing required fields",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/ErrorResponse" }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/ErrorResponse" }
+              }
+            }
+          },
+          "404": {
+            "description": "Camera not found",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/ErrorResponse" }
+              }
+            }
+          }
+        }
+      },
       "delete": {
         "tags": ["management"],
         "summary": "Remove a camera",
@@ -240,6 +299,34 @@
             "type": "array",
             "items": { "$ref": "#/components/schemas/CameraStatus" },
             "description": "Health status for each registered camera"
+          }
+        }
+      },
+      "CameraHealthResponse": {
+        "type": "object",
+        "description": "Lightweight health status for a single camera.",
+        "properties": {
+          "camera_id": {
+            "type": "string",
+            "description": "Camera identifier",
+            "example": "cam-a"
+          },
+          "status": {
+            "type": "string",
+            "description": "Stream connection state",
+            "example": "connected"
+          },
+          "uptime_seconds": {
+            "type": "integer",
+            "format": "int64",
+            "description": "Seconds since stream started",
+            "example": 3600
+          },
+          "fps": {
+            "type": "number",
+            "format": "float",
+            "description": "Rolling frames-per-second",
+            "example": 4.8
           }
         }
       },

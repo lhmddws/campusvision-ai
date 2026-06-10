@@ -9,10 +9,10 @@ import numpy as np
 
 from app.detector import Face
 
-
 # ---------------------------------------------------------------------------
 # Track data
 # ---------------------------------------------------------------------------
+
 
 @dataclass
 class Track:
@@ -55,8 +55,8 @@ class Track:
 # IoU helper
 # ---------------------------------------------------------------------------
 
-def _iou(a: Tuple[float, float, float, float],
-         b: Tuple[float, float, float, float]) -> float:
+
+def _iou(a: Tuple[float, float, float, float], b: Tuple[float, float, float, float]) -> float:
     """Intersection-over-Union between two bounding boxes ``(x1, y1, x2, y2)``."""
     x1 = max(a[0], b[0])
     y1 = max(a[1], b[1])
@@ -75,6 +75,7 @@ def _iou(a: Tuple[float, float, float, float],
 # FaceTracker
 # ---------------------------------------------------------------------------
 
+
 class FaceTracker:
     """Assign persistent track IDs to faces across consecutive frames.
 
@@ -85,9 +86,7 @@ class FaceTracker:
     Thread-safe (uses ``threading.Lock``).
     """
 
-    def __init__(self, iou_threshold: float = 0.3,
-                 max_tracks: int = 100,
-                 track_ttl: float = 5.0):
+    def __init__(self, iou_threshold: float = 0.3, max_tracks: int = 100, track_ttl: float = 5.0):
         self.iou_threshold = iou_threshold
         self.max_tracks = max_tracks
         self.track_ttl = track_ttl
@@ -100,10 +99,13 @@ class FaceTracker:
     # Public API
     # ------------------------------------------------------------------
 
-    def update(self, faces: List[Face],
-               embeddings: Optional[List[np.ndarray]] = None,
-               camera_id: str = "",
-               timestamp: Optional[float] = None) -> List[Track]:
+    def update(
+        self,
+        faces: List[Face],
+        embeddings: Optional[List[np.ndarray]] = None,
+        camera_id: str = "",
+        timestamp: Optional[float] = None,
+    ) -> List[Track]:
         """Update tracks with a new set of face detections.
 
         Parameters
@@ -184,10 +186,9 @@ class FaceTracker:
                         center=(cx, cy),
                         timestamps=[now],
                         positions=[(cx, cy)],
-                        embedding=(embeddings[det_idx]
-                                   if embeddings is not None
-                                   and det_idx < len(embeddings)
-                                   else None),
+                        embedding=(
+                            embeddings[det_idx] if embeddings is not None and det_idx < len(embeddings) else None
+                        ),
                         face=faces[det_idx],
                         last_seen=now,
                         frames_alive=1,
@@ -226,7 +227,6 @@ class FaceTracker:
     def _evict_stale(self, now: float):
         """Remove tracks whose ``last_seen`` is older than ``track_ttl``."""
         cutoff = now - self.track_ttl
-        stale_ids = [tid for tid, t in self._tracks.items()
-                     if t.last_seen < cutoff]
+        stale_ids = [tid for tid, t in self._tracks.items() if t.last_seen < cutoff]
         for tid in stale_ids:
             del self._tracks[tid]

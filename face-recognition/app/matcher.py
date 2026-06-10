@@ -1,7 +1,7 @@
 """SIMS API face match client with Redis cache and fallback."""
 
-import logging
 import json
+import logging
 import time
 from typing import Optional
 
@@ -47,7 +47,7 @@ class FaceMatcher:
         try:
             import redis as redis_mod
 
-            rc = self.config.redis if hasattr(self.config, 'redis') else None
+            rc = self.config.redis if hasattr(self.config, "redis") else None
             host = rc.host if rc else "localhost"
             port = rc.port if rc else 6379
             db_idx = rc.db if rc else 0

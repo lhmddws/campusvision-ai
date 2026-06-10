@@ -126,6 +126,6 @@ func (h *FaceHandler) BatchImport(c *gin.Context) {
 	Success(c, gin.H{
 		"created":    created,
 		"duplicates": duplicates,
-		"total":     len(req.Students),
+		"total":      len(req.Students),
 	})
 }

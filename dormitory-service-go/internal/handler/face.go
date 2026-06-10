@@ -4,6 +4,7 @@ import (
 	"math"
 	"net/http"
 	"strconv"
+	"strings"
 
 	"github.com/gin-gonic/gin"
 
@@ -37,7 +38,15 @@ const matchThreshold = 0.65
 // POST /api/face/match
 func (h *Handler) FaceMatch(c *gin.Context) {
 	if h.FaceMatchKey != "" {
-		apiKey := c.GetHeader("X-API-Key")
+		authHeader := c.GetHeader("Authorization")
+		if authHeader == "" || !strings.HasPrefix(authHeader, "Bearer ") {
+			c.JSON(http.StatusUnauthorized, FaceMatchResponse{
+				Success: false,
+				Error:   "invalid or missing API key",
+			})
+			return
+		}
+		apiKey := strings.TrimPrefix(authHeader, "Bearer ")
 		if apiKey != h.FaceMatchKey {
 			c.JSON(http.StatusUnauthorized, FaceMatchResponse{
 				Success: false,
@@ -65,7 +74,7 @@ func (h *Handler) FaceMatch(c *gin.Context) {
 		offset = 0
 	}
 
-	query := "SELECT id, name, student_id, embedding FROM face_embedding LIMIT ? OFFSET ?"
+	query := "SELECT id, name, student_id, embedding FROM face_embedding ORDER BY id LIMIT ? OFFSET ?"
 	rows, err := h.DB.QueryContext(c.Request.Context(), query, limit, offset)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, FaceMatchResponse{
