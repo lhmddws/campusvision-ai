@@ -9,26 +9,68 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
-- **frontend**: 配置系统优化 + 前端懒加载 + 测试数据 (#23) — 配置页面支持 Element UI 动态下拉选择，ECharts/wangeditor/xlsx 按需加载，83 个 Vitest 测试用例
-- **api**: 新增 `/getRouters` 动态路由、`AlertStats` 扩展、摄像头敏感字段脱敏 (#24)
-- **core**: 人脸事件消息增加 `bbox` 字段（bounding box）——识别结果包含人脸位置信息
+#### Frontend — Live Monitoring & Config System
+- **Live monitoring page**: Real-time camera frame display with `FrameCanvas` Vue component and WebSocket-based live streaming (`frontend/src/views/live/`) — 4 new test files with 436 assertions
+- **Config system optimization**: Dynamic `<el-select>` dropdowns driven by `config_options` from the database (migration 003), lazy-loaded ECharts (340KB gzip) / wangeditor (306KB) / xlsx (231KB) via dynamic `import()` — reducing initial bundle size
+- **Test data seed**: 22 students, 4 cameras, 24 entry events, 4 nightly reports, 2 stranger records — idempotent `INSERT IGNORE` in `init.sql`
+- **83 Vitest tests** across 11 test files covering dashboard, config, camera, attendance, alerts, events, face, inspection, layout, login, and smoke
 
-### Fixed
+#### Backend — WebSocket, Real-time Events & Frame Processing
+- **Event Hub** (`dormitory-service-go/internal/handler/event_hub.go`): WebSocket-based real-time event broadcasting — pushes face recognition results to connected frontend clients in real time
+- **Frame Consumer** (`dormitory-service-go/internal/consumer/frame_consumer.go`): Kafka consumer that processes `t_dorm_frame` frames directly — enables the dormitory service to receive and forward frames to the live monitoring page
+- **DLQ Consumer** (`dormitory-service-go/internal/consumer/dlq_consumer.go`): Dead Letter Queue consumer for failed events — prevents message loss when processing errors occur
+- **Live streaming handler** (`dormitory-service-go/internal/handler/live_handler.go`): HTTP + WebSocket endpoints for camera live feed — `/api/live/stream` with SSE/WS upgrade, includes comprehensive unit + integration tests (607 lines)
+- **bbox fields**: `FaceEventMessage` and Kafka event schema now include `bbox` (bounding box) — face detection results carry precise face position (x, y, width, height)
 
-- **model**: 自定义 JSON Null 序列化类型（`sql.Null*` → `jsontype.Null*`），解决 JSON 空值序列化兼容问题
-- **lint**: Codebase Hardening — 修复全部 9 个 Brooks-Lint 发现项
+#### API Extensions
+- **Dynamic routes**: `/getRouters` endpoint for frontend route generation (#24)
+- **Alert stats extension**: `AlertStats` response now includes trend data and severity breakdown (#24)
+- **Camera field sanitization**: RTSP URL password masking — `/api/cameras` returns `sanitizeRtspURL` to hide credentials (`rtsp://admin:***@host:554/path`) (#24)
+- **Camera DTO layer**: `ToDTO()` transforms entity → response with automatic field filtering, preventing password leaks in API responses
+
+#### Stream Gateway Management API
+- **Management handlers**: New HTTP endpoints on port 8081 (`X-Management-Key` auth) for camera CRUD operations — `GET/POST /api/cameras`, `PUT/DELETE /api/cameras/:id`, `GET /api/cameras/status` (stream-gateway/internal/management/)
+- **Camera config sanitization**: Dedicated `camera/sanitize.go` for URL credential masking
+- **Connection manager enhancements**: Thread-safe camera lifecycle tracking via `sync.Map`
+
+#### Infrastructure
+- **Health check scheduler**: Periodic camera health monitoring every 30 seconds in `dormitory-service-go` — auto-detects offline cameras and updates status
+- **Frame topic config**: `frame_topic` field in stream-gateway config for customizable Kafka topic mapping
+- **DB migrations**: `003_add_config_options.sql` (dropdown options), `004_sanitize_rtsp.sql` (camera URL sanitization)
+- **Start/stop scripts**: `scripts/start-all.sh` and `scripts/stop-all.sh` — one-command full stack lifecycle management
 
 ### Changed
 
-- **deps**: 新增 `gorilla/websocket` 依赖、添加 `frame_topic` 配置项
+- **Dependencies**: Added `gorilla/websocket` for WebSocket support, `frame_topic` config field in stream-gateway configuration
+- **Config schema**: `dormitory-service-go` config now includes `websocket.addr` and `websocket.allowed_origins` sections
+- **Entity layer**: All 13 domain entities (`DormCamera`, `DormEventLog`, `DormAlert`, `DormStudent`, `DormFaceEmbedding`, `DormStrangerRecord`, etc.) updated with consistent `jsontype.Null*` fields and `db:` / `json:` tags
+- **Docker Compose**: Added health checks for Zookeeper and Kafka services, `depends_on` with condition for `kafka-init`
+
+### Fixed
+
+- **JSON serialization**: Custom `jsontype.NullString` / `NullInt64` / `NullFloat64` / `NullBool` / `NullTime` types replace `sql.Null*` — fixes `null` value JSON marshaling across all API responses (`dormitory-service-go/internal/model/jsontype/null_types.go`)
+- **Codebase Hardening**: Resolved all 9 Brooks-Lint findings across 3 modules:
+  - `stream-gateway`: golangci-lint error-level issues in decoder, crypto, and camera packages
+  - `face-recognition`: ruff error-level issues in detector, tracker, behavior, direction modules
+  - `dormitory-service-go`: All linter errors in handlers, services, and entities — verified with `go vet` and `golangci-lint`
+- **Frontend**: Fixed stale theme test assertions, resolved TypeScript deprecation warnings
+- **Face matching**: `AppConfig` now correctly passed to `FaceMatcher` constructor, relaxed detection thresholds for debug mode
+- **DLQ routing**: Failed Kafka messages are routed to DLQ topic instead of being silently dropped
+
+### Performance
+
+- **Frontend lazy loading**: Heavy dependencies split into on-demand chunks via Vite `rollupOptions` — reduces initial page load by ~850KB (uncompressed)
+- **Stream gateway**: Configurable FPS adjustment via `management PUT /api/cameras/:id` — allows runtime frame rate tuning per camera
 
 ### Documentation
 
-- **project-planning**: 项目规划文档替换 `main.md` → `README.md`，涵盖架构、技术栈、推荐方案
+- **Project planning**: Comprehensive `doc/README.md` covering system architecture, tech stack rationale, recommended deployment topology, hardware specs (RTX 4070–A100), security guidelines, and future roadmap
+- **OpenAPI specs**: Updated all 3 spec files (`stream-gateway-api.json`, `face-recognition-kafka.json`, `dormitory-service-api.json`) — new endpoints documented with request/response schemas
 
 ### Chores
 
-- **.gitignore**: 添加 `skills-lock.json` 忽略规则
+- **.gitignore**: Added `skills-lock.json` to ignore list
+- **uv.lock**: Python dependency lockfile for reproducible builds (507 lines)
 
 ## [0.4.0] - 2026-06-08
 
