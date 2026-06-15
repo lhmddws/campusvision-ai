@@ -5,6 +5,31 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.0.0] - 2026-06-15
+
+### Added
+
+- **frontend**: 配置系统优化 + 前端懒加载 + 测试数据 (#23) — 配置页面支持 Element UI 动态下拉选择，ECharts/wangeditor/xlsx 按需加载，83 个 Vitest 测试用例
+- **api**: 新增 `/getRouters` 动态路由、`AlertStats` 扩展、摄像头敏感字段脱敏 (#24)
+- **core**: 人脸事件消息增加 `bbox` 字段（bounding box）——识别结果包含人脸位置信息
+
+### Fixed
+
+- **model**: 自定义 JSON Null 序列化类型（`sql.Null*` → `jsontype.Null*`），解决 JSON 空值序列化兼容问题
+- **lint**: Codebase Hardening — 修复全部 9 个 Brooks-Lint 发现项
+
+### Changed
+
+- **deps**: 新增 `gorilla/websocket` 依赖、添加 `frame_topic` 配置项
+
+### Documentation
+
+- **project-planning**: 项目规划文档替换 `main.md` → `README.md`，涵盖架构、技术栈、推荐方案
+
+### Chores
+
+- **.gitignore**: 添加 `skills-lock.json` 忽略规则
+
 ## [0.4.0] - 2026-06-08
 
 ### Added
