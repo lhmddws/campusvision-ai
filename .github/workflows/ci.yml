@@ -42,11 +42,11 @@ jobs:
           cache: 'pip'
           cache-dependency-path: face-recognition/requirements.txt
 
-      - name: Setup Node.js 20
+      - name: Setup Node.js 24
         if: ${{ matrix.service == 'frontend' }}
         uses: actions/setup-node@v4
         with:
-          node-version: '20'
+          node-version: '24'
 
       - name: Enable pnpm via corepack
         if: ${{ matrix.service == 'frontend' }}
@@ -127,11 +127,11 @@ jobs:
           cache: 'pip'
           cache-dependency-path: face-recognition/requirements.txt
 
-      - name: Setup Node.js 20
+      - name: Setup Node.js 24
         if: ${{ matrix.service == 'frontend' }}
         uses: actions/setup-node@v4
         with:
-          node-version: '20'
+          node-version: '24'
 
       - name: Enable pnpm via corepack
         if: ${{ matrix.service == 'frontend' }}
@@ -193,10 +193,10 @@ jobs:
             stream-gateway/go.sum
             dormitory-service-go/go.sum
 
-      - name: Setup Node.js 20
+      - name: Setup Node.js 24
         uses: actions/setup-node@v4
         with:
-          node-version: '20'
+          node-version: '24'
 
       - name: Enable pnpm via corepack
         run: corepack enable pnpm && corepack prepare pnpm@9 --activate && pnpm --version
