@@ -1,5 +1,5 @@
-import numpy as np
 import cv2
+import numpy as np
 
 # ArcFace 112×112 alignment: left_eye, right_eye, nose, left_mouth, right_mouth
 ARCFACE_112_TARGETS = np.array([

@@ -31,10 +31,10 @@ def main():
     }
     msg_json = json.dumps(msg)
 
-    print(f"=== Publishing test frame ===")
+    print("=== Publishing test frame ===")
     print(f"  Image: 480x640, JPEG: {len(jpeg)} bytes")
-    print(f"  Kafka: localhost:9092 -> t_dorm_frame")
-    print(f"  camera_id: test-cam-01, building: A, seq: 1")
+    print("  Kafka: localhost:9092 -> t_dorm_frame")
+    print("  camera_id: test-cam-01, building: A, seq: 1")
     print(f"  Message size: {len(msg_json)} bytes")
     print()
 

@@ -1,4 +1,9 @@
-import cv2, numpy as np, onnxruntime as ort, os, sys
+import os
+import sys
+
+import cv2
+import numpy as np
+import onnxruntime as ort
 os.environ['PYTHONWARNINGS'] = 'ignore'
 
 # Load fixture
@@ -18,6 +23,12 @@ s = ort.InferenceSession(r'C:\Users\lhmddws\campusvision-ai\face-recognition\app
                           providers=['CPUExecutionProvider'])
 o = s.run(None, {s.get_inputs()[0].name: x})
 sc = o[1][0][:, 1]
-print(f'Conf: max={sc.max():.6f} >=0.5:{(sc>=0.5).sum()} >=0.3:{(sc>=0.3).sum()} >=0.1:{(sc>=0.1).sum()} >=0.01:{(sc>=0.01).sum()}')
+print(
+    f'Conf: max={sc.max():.6f}'
+    f' >=0.5:{(sc>=0.5).sum()}'
+    f' >=0.3:{(sc>=0.3).sum()}'
+    f' >=0.1:{(sc>=0.1).sum()}'
+    f' >=0.01:{(sc>=0.01).sum()}'
+)
 top10 = np.sort(sc)[::-1][:10].tolist()
 print(f'Top10: {[f"{s:.6f}" for s in top10]}')

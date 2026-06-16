@@ -157,8 +157,8 @@ class FaceDetector:
         bbox_preds = outputs[0][0]  # (N, 4)
         conf_preds = outputs[1][0]  # (N, 2)
         landm_preds = outputs[2][0]  # (N, 10)
-        N = bbox_preds.shape[0]
-        if N == 0:
+        n = bbox_preds.shape[0]
+        if n == 0:
             return []
 
         # 1. Generate prior boxes (anchors) for 3 RetinaFace FPN levels

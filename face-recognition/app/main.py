@@ -10,7 +10,6 @@ import json
 import logging
 import signal
 import time
-from datetime import datetime
 
 import cv2
 import numpy as np
