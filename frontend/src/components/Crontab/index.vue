@@ -146,14 +146,11 @@ import CrontabWeek from './week.vue';
 import CrontabYear from './year.vue';
 import CrontabResult from './result.vue';
 import {
-  ComponentInternalInstance,
   computed,
-  getCurrentInstance,
   onMounted,
   ref,
   watch,
 } from 'vue';
-const { proxy } = getCurrentInstance() as ComponentInternalInstance;
 const emit = defineEmits(['hide', 'fill']);
 const props = defineProps({
   hideComponent: {
@@ -223,12 +220,8 @@ function resolveExp() {
     clearCron();
   }
 }
-// tab切换值
-function tabCheck(index: number) {
-  tabActive.value = index;
-}
 // 由子组件触发，更改表达式组成的字段值
-function updateCrontabValue(name: any, value: any, from: any) {
+function updateCrontabValue(name: any, value: any) {
   crontabValueObj.value[name] = value;
 }
 // 表单选项的子组件校验数字格式（通过-props传递）

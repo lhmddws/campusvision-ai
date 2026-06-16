@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ElDialog, ElScrollbar } from 'element-plus';
+import { ElDialog } from 'element-plus';
 import VueTypes from '@/utils/propTypes';
 import { computed, useAttrs, ref, unref, useSlots, watch, nextTick, onMounted } from 'vue';
 import { isNumber } from '@/utils/is';

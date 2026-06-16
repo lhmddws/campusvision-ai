@@ -229,6 +229,7 @@ describe('FrameCanvas', () => {
     await flushPromises();
 
     const canvas = wrapper.find('canvas').element as HTMLCanvasElement;
+    // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
     const ctx = canvas.getContext('2d')!;
     expect(ctx.drawImage).toHaveBeenCalled();
   });
@@ -250,6 +251,7 @@ describe('FrameCanvas', () => {
     await flushPromises();
 
     const canvas = wrapper.find('canvas').element as HTMLCanvasElement;
+    // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
     const ctx = canvas.getContext('2d')!;
     expect(ctx.strokeRect).toHaveBeenCalledTimes(2);
 
@@ -271,6 +273,7 @@ describe('FrameCanvas', () => {
     await flushPromises();
 
     const canvas = wrapper.find('canvas').element as HTMLCanvasElement;
+    // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
     const ctx = canvas.getContext('2d')!;
     expect(ctx.fillText).toHaveBeenCalledTimes(2);
 
@@ -295,6 +298,7 @@ describe('FrameCanvas', () => {
     await flushPromises();
 
     const canvas = wrapper.find('canvas').element as HTMLCanvasElement;
+    // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
     const ctx = canvas.getContext('2d')!;
 
     // Reset call counts for the re-render check

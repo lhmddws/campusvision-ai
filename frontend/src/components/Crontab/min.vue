@@ -24,8 +24,8 @@
       <el-radio v-model="radioValue" :label="4">
         指定
         <el-select
-          clearable
           v-model="checkboxList"
+          clearable
           placeholder="可多选"
           multiple
           :multiple-limit="10"
