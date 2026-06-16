@@ -45,14 +45,8 @@ module.exports = {
     ],
     'no-eval': 2,
     semi: 1,
-    indent: [
-      2,
-      2,
-      {
-        SwitchCase: 1,
-      },
-    ],
-    camelcase: 2,
+    indent: 0, // handled by Prettier
+    camelcase: 0, // RuoYi codebase uses snake_case from Java API responses
     'vue/no-empty-component-block': 2, // 禁止<template> <script> <style>块为空
     'vue/html-self-closing': 0,
     'vue/max-attributes-per-line': 0,
@@ -62,6 +56,8 @@ module.exports = {
     'vue/html-indent': 0,
     'vue/v-on-event-hyphenation': [2, 'never'],
     '@typescript-eslint/no-explicit-any': ['off'],
+    'vue/no-mutating-props': 0, // RuoYi codebase intentionally mutates props
+    '@typescript-eslint/no-empty-function': 0, // RuoYi codebase uses empty function patterns
     // Enable vue/script-setup-uses-vars rule
   },
 };

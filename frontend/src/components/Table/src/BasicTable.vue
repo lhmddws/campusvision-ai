@@ -176,7 +176,7 @@ export default defineComponent({
       return expand ? (
         <ElTableColumn type="expand" align={align} headerAlign={headerAlign}>
           {{
-            // @ts-ignore
+            // @ts-expect-error: JSX slot type mismatch
             default: (data: TableSlotDefault) => getSlot(slots, 'expand', data),
           }}
         </ElTableColumn>
@@ -200,11 +200,11 @@ export default defineComponent({
               default: (data: TableSlotDefault) =>
                 v.children && v.children.length
                   ? rnderTableColumn(v.children)
-                  : // @ts-ignore
+                  : // @ts-expect-error: JSX slot type mismatch
                     getSlot(slots, v.field, data) ||
                     v?.formatter?.(data.row, data.column, data.row[v.field], data.$index) ||
                     data.row[v.field],
-              // @ts-ignore
+              // @ts-expect-error: JSX slot type mismatch
               header: getSlot(slots, `${v.field}-header`),
             }}
           </ElTableColumn>
@@ -253,11 +253,11 @@ export default defineComponent({
                   default: (data: TableSlotDefault) =>
                     v.children && v.children.length
                       ? rnderTreeTableColumn(v.children)
-                      : // @ts-ignore
+                      : // @ts-expect-error: JSX slot type mismatch
                         getSlot(slots, v.field, data) ||
                         v?.formatter?.(data.row, data.column, data.row[v.field], data.$index) ||
                         data.row[v.field],
-                  // @ts-ignore
+                  // @ts-expect-error: JSX slot type mismatch
                   header: () => getSlot(slots, `${v.field}-header`) || v.label,
                 }}
               </ElTableColumn>
@@ -270,7 +270,7 @@ export default defineComponent({
     return () => (
       <div v-loading={unref(getProps).loading}>
         <ElTable
-          // @ts-ignore
+          // @ts-expect-error: ElTable ref type mismatch
           ref={elTableRef}
           data={unref(getProps).data}
           onSelection-change={selectionChange}
@@ -279,7 +279,7 @@ export default defineComponent({
         >
           {{
             default: () => rnderTableColumn(),
-            // @ts-ignore
+            // @ts-expect-error: JSX slot type mismatch
             append: () => getSlot(slots, 'append'),
           }}
         </ElTable>

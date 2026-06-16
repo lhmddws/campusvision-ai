@@ -60,7 +60,7 @@ export function isString(val: unknown): val is string {
   return is(val, 'String');
 }
 
-export function isFunction(val: unknown): val is Function {
+export function isFunction(val: unknown): val is (...args: unknown[]) => unknown {
   return typeof val === 'function';
 }
 

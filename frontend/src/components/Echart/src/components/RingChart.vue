@@ -26,4 +26,3 @@ watch(options, data => {
 });
 </script>
 
-<style scoped></style>
