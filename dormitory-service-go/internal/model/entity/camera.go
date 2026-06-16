@@ -1,15 +1,10 @@
 package entity
 
 import (
-<<<<<<< HEAD
 	"strings"
 	"time"
 
 	"github.com/sims/campusvision/dormitory-service-go/internal/model/dto"
-=======
-	"time"
-
->>>>>>> 2fee2d0 (fix(model): 自定义JSON Null序列化类型(sql.Null* -> jsontype.Null*))
 	"github.com/sims/campusvision/dormitory-service-go/internal/model/jsontype"
 )
 
@@ -43,7 +38,6 @@ type DormCamera struct {
 	KeyID           jsontype.NullString  `db:"key_id" json:"key_id"`
 	CreatedAt       time.Time            `db:"created_at" json:"created_at"`
 	UpdatedAt       time.Time            `db:"updated_at" json:"updated_at"`
-<<<<<<< HEAD
 }
 
 // sanitizeRtspURL masks the password portion of an RTSP URL.
@@ -101,6 +95,4 @@ func (c *DormCamera) ToDTO() dto.CameraResponse {
 		CreatedAt:        c.CreatedAt,
 		UpdatedAt:        c.UpdatedAt,
 	}
-=======
->>>>>>> 2fee2d0 (fix(model): 自定义JSON Null序列化类型(sql.Null* -> jsontype.Null*))
 }

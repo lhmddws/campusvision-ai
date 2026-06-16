@@ -6,10 +6,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-<<<<<<< HEAD
-=======
-	"io"
->>>>>>> 2fee2d0 (fix(model): 自定义JSON Null序列化类型(sql.Null* -> jsontype.Null*))
+
 	"net"
 	"net/http"
 	"net/url"
@@ -29,7 +26,6 @@ import (
 
 // CameraService handles camera lifecycle management.
 type CameraService struct {
-<<<<<<< HEAD
 	cameraRepo     *repository.CameraRepository
 	eventLogRepo   *repository.EventLogRepository
 	cameraLogRepo  *repository.CameraLogRepository
@@ -39,16 +35,6 @@ type CameraService struct {
 	maxCameras     int
 	logger         *zap.Logger
 	mu             sync.Mutex
-=======
-	cameraRepo    *repository.CameraRepository
-	eventLogRepo  *repository.EventLogRepository
-	cameraLogRepo *repository.CameraLogRepository
-	pushClient    *client.PushClient
-	gatewayURL    string
-	maxCameras    int
-	logger        *zap.Logger
-	mu            sync.Mutex
->>>>>>> 2fee2d0 (fix(model): 自定义JSON Null序列化类型(sql.Null* -> jsontype.Null*))
 }
 
 // NewCameraService creates a new CameraService.
@@ -77,10 +63,7 @@ func NewCameraService(
 		cameraLogRepo: cameraLogRepo,
 		pushClient:    pushClient,
 		gatewayURL:    gatewayURL,
-<<<<<<< HEAD
 		managementURL: managementURL,
-=======
->>>>>>> 2fee2d0 (fix(model): 自定义JSON Null序列化类型(sql.Null* -> jsontype.Null*))
 		maxCameras:    maxCameras,
 		logger:        logger,
 	}
