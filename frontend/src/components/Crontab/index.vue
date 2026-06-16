@@ -163,7 +163,6 @@ const props = defineProps({
   },
 });
 const tabTitles = ref(['秒', '分钟', '小时', '日', '月', '周', '年']);
-const tabActive = ref(0);
 const hideComponent = ref<string[]>([]);
 const expression = ref('');
 const crontabValueObj = ref<Record<string, string>>({

@@ -10,9 +10,6 @@ concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
-env:
-  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
-
 jobs:
   lint:
     runs-on: ubuntu-latest
@@ -26,11 +23,11 @@ jobs:
           - face-recognition
           - frontend
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
       - name: Setup Go 1.26
         if: ${{ matrix.service == 'stream-gateway' || matrix.service == 'dormitory-service-go' }}
-        uses: actions/setup-go@v5
+        uses: actions/setup-go@v6
         with:
           go-version: '1.26'
           cache-dependency-path: |
@@ -39,7 +36,7 @@ jobs:
 
       - name: Setup Python 3.11
         if: ${{ matrix.service == 'face-recognition' }}
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@v6
         with:
           python-version: '3.11'
           cache: 'pip'
@@ -47,7 +44,7 @@ jobs:
 
       - name: Setup Node.js 24
         if: ${{ matrix.service == 'frontend' }}
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v6
         with:
           node-version: '24'
 
@@ -57,7 +54,7 @@ jobs:
 
       - name: Cache pnpm store
         if: ${{ matrix.service == 'frontend' }}
-        uses: actions/cache@v4
+        uses: actions/cache@v5
         with:
           path: frontend/node_modules
           key: ${{ runner.os }}-pnpm-${{ hashFiles('frontend/pnpm-lock.yaml') }}
@@ -111,11 +108,11 @@ jobs:
           - face-recognition
           - frontend
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
       - name: Setup Go 1.26
         if: ${{ matrix.service == 'stream-gateway' || matrix.service == 'dormitory-service-go' }}
-        uses: actions/setup-go@v5
+        uses: actions/setup-go@v6
         with:
           go-version: '1.26'
           cache-dependency-path: |
@@ -124,7 +121,7 @@ jobs:
 
       - name: Setup Python 3.11
         if: ${{ matrix.service == 'face-recognition' }}
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@v6
         with:
           python-version: '3.11'
           cache: 'pip'
@@ -132,7 +129,7 @@ jobs:
 
       - name: Setup Node.js 24
         if: ${{ matrix.service == 'frontend' }}
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v6
         with:
           node-version: '24'
 
@@ -142,7 +139,7 @@ jobs:
 
       - name: Cache pnpm store
         if: ${{ matrix.service == 'frontend' }}
-        uses: actions/cache@v4
+        uses: actions/cache@v5
         with:
           path: frontend/node_modules
           key: ${{ runner.os }}-pnpm-${{ hashFiles('frontend/pnpm-lock.yaml') }}
@@ -186,10 +183,10 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
       - name: Setup Go 1.26
-        uses: actions/setup-go@v5
+        uses: actions/setup-go@v6
         with:
           go-version: '1.26'
           cache-dependency-path: |
@@ -197,7 +194,7 @@ jobs:
             dormitory-service-go/go.sum
 
       - name: Setup Node.js 24
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v6
         with:
           node-version: '24'
 
@@ -205,7 +202,7 @@ jobs:
         run: corepack enable pnpm && corepack prepare pnpm@9 --activate && pnpm --version
 
       - name: Cache pnpm store
-        uses: actions/cache@v4
+        uses: actions/cache@v5
         with:
           path: frontend/node_modules
           key: ${{ runner.os }}-pnpm-${{ hashFiles('frontend/pnpm-lock.yaml') }}

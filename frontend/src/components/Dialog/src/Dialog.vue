@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { ElDialog } from 'element-plus';
 import VueTypes from '@/utils/propTypes';
-import { computed, useAttrs, ref, unref, useSlots, watch, nextTick, onMounted } from 'vue';
+import { computed, useAttrs, ref, unref, useSlots, watch, nextTick } from 'vue';
 import { isNumber } from '@/utils/is';
 
 const slots = useSlots();
@@ -27,8 +27,6 @@ const getBindValue = computed(() => {
 });
 
 const isFullscreen = ref(false);
-
-const elDialogRef = ref();
 
 const toggleFull = () => {
   isFullscreen.value = !unref(isFullscreen);
