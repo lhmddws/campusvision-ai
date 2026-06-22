@@ -323,13 +323,11 @@ func (s *CameraService) GetCameraStatus(ctx context.Context, building string) (m
 	}
 
 	return map[string]interface{}{
+		"total":   total,
+		"online":  online,
+		"offline": offline,
+		"error":   idle,
 		"cameras": items,
-		"summary": map[string]int{
-			"total":   total,
-			"online":  online,
-			"offline": offline,
-			"idle":    idle,
-		},
 	}, nil
 }
 
