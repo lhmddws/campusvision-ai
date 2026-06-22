@@ -119,6 +119,7 @@
 <script setup lang="ts">
 import { ref, reactive, onMounted, onBeforeUnmount, watch, nextTick } from 'vue';
 import { VideoCamera, Bell, UserFilled, Top, Bottom, Sort } from '@element-plus/icons-vue';
+import { ElMessage } from 'element-plus';
 import {
   getCamerasStatus,
   getAlertStats,
@@ -249,7 +250,7 @@ async function fetchCamerasStatus() {
       });
     }
   } catch {
-    // error handled by request interceptor
+    ElMessage.error('获取摄像头状态数据失败');
   } finally {
     camerasLoading.value = false;
   }
@@ -275,7 +276,7 @@ async function fetchAlertStats() {
       });
     }
   } catch {
-    // error handled by request interceptor
+    ElMessage.error('获取告警统计数据失败');
   } finally {
     alertsLoading.value = false;
   }
@@ -297,7 +298,7 @@ async function fetchAttendanceStats() {
       });
     }
   } catch {
-    // error handled by request interceptor
+    ElMessage.error('获取出勤统计数据失败');
   } finally {
     attendanceLoading.value = false;
   }
@@ -313,7 +314,7 @@ async function fetchRecentEvents() {
       eventsTotal.value = data.total ?? 0;
     }
   } catch {
-    // error handled by request interceptor
+    ElMessage.error('获取最近事件数据失败');
   } finally {
     eventsLoading.value = false;
   }
