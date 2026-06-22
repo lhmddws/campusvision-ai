@@ -97,6 +97,17 @@ func (r *StudentRepository) CountActiveByBuilding(ctx context.Context, building 
 	return count, nil
 }
 
+// CountActiveAll returns the number of active students across all buildings.
+func (r *StudentRepository) CountActiveAll(ctx context.Context) (int64, error) {
+	var count int64
+	query := "SELECT COUNT(*) FROM dorm_student_assignment WHERE active = 1"
+	err := r.DB.GetContext(ctx, &count, query)
+	if err != nil {
+		return 0, fmt.Errorf("count active students all: %w", err)
+	}
+	return count, nil
+}
+
 // FindWithPagination paginates students with optional building filter.
 func (r *StudentRepository) FindWithPagination(ctx context.Context, building string, page, size int) ([]entity.DormStudent, int64, error) {
 	where := ""

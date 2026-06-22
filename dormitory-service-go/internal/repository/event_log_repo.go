@@ -119,6 +119,28 @@ func (r *EventLogRepository) CountDistinctStrangers(ctx context.Context, buildin
 	return count, nil
 }
 
+// CountDistinctPresentStudentsAll counts distinct students with entry events across all buildings.
+func (r *EventLogRepository) CountDistinctPresentStudentsAll(ctx context.Context, startDate, endDate string) (int64, error) {
+	var count int64
+	query := "SELECT COUNT(DISTINCT student_id) FROM dorm_entry_exit_event WHERE DATE(timestamp) BETWEEN ? AND ? AND event_type = 'entry'"
+	err := r.DB.GetContext(ctx, &count, query, startDate, endDate)
+	if err != nil {
+		return 0, fmt.Errorf("count distinct present students all: %w", err)
+	}
+	return count, nil
+}
+
+// CountDistinctStrangersAll counts distinct stranger entries across all buildings.
+func (r *EventLogRepository) CountDistinctStrangersAll(ctx context.Context, startDate, endDate string) (int64, error) {
+	var count int64
+	query := "SELECT COUNT(DISTINCT student_id) FROM dorm_entry_exit_event WHERE DATE(timestamp) BETWEEN ? AND ? AND is_stranger = 1"
+	err := r.DB.GetContext(ctx, &count, query, startDate, endDate)
+	if err != nil {
+		return 0, fmt.Errorf("count distinct strangers all: %w", err)
+	}
+	return count, nil
+}
+
 // GetDailyPresentCounts returns per-day present student counts grouped by date.
 func (r *EventLogRepository) GetDailyPresentCounts(ctx context.Context, building, startDate, endDate string) ([]DailyPresentCount, error) {
 	var counts []DailyPresentCount

@@ -53,31 +53,54 @@ func (s *RecordService) formatDate(t time.Time) string {
 
 // GetAttendanceStats returns aggregated attendance statistics.
 func (s *RecordService) GetAttendanceStats(ctx context.Context, buildingId int64, startDate, endDate time.Time) dto.AttendanceStatsDTO {
-	building, err := s.buildingRepo.FindByID(ctx, buildingId)
-	if err != nil {
-		s.log().Warn("building not found", zap.Int64("id", buildingId), zap.Error(err))
-		return dto.AttendanceStatsDTO{}
-	}
-
 	startStr := s.formatDate(startDate)
 	endStr := s.formatDate(endDate)
 
-	total, err := s.studentRepo.CountActiveByBuilding(ctx, building.Code)
-	if err != nil {
-		s.log().Warn("error counting active students", zap.Error(err))
-		return dto.AttendanceStatsDTO{}
-	}
+	var total, present, stranger int64
+	var err error
 
-	present, err := s.eventLogRepo.CountDistinctPresentStudents(ctx, building.Code, startStr, endStr)
-	if err != nil {
-		s.log().Warn("error counting present students", zap.Error(err))
-		return dto.AttendanceStatsDTO{}
-	}
+	if buildingId == 0 {
+		total, err = s.studentRepo.CountActiveAll(ctx)
+		if err != nil {
+			s.log().Warn("error counting active students (all)", zap.Error(err))
+			return dto.AttendanceStatsDTO{}
+		}
 
-	stranger, err := s.eventLogRepo.CountDistinctStrangers(ctx, building.Code, startStr, endStr)
-	if err != nil {
-		s.log().Warn("error counting strangers", zap.Error(err))
-		return dto.AttendanceStatsDTO{}
+		present, err = s.eventLogRepo.CountDistinctPresentStudentsAll(ctx, startStr, endStr)
+		if err != nil {
+			s.log().Warn("error counting present students (all)", zap.Error(err))
+			return dto.AttendanceStatsDTO{}
+		}
+
+		stranger, err = s.eventLogRepo.CountDistinctStrangersAll(ctx, startStr, endStr)
+		if err != nil {
+			s.log().Warn("error counting strangers (all)", zap.Error(err))
+			return dto.AttendanceStatsDTO{}
+		}
+	} else {
+		building, bErr := s.buildingRepo.FindByID(ctx, buildingId)
+		if bErr != nil {
+			s.log().Warn("building not found", zap.Int64("id", buildingId), zap.Error(bErr))
+			return dto.AttendanceStatsDTO{}
+		}
+
+		total, err = s.studentRepo.CountActiveByBuilding(ctx, building.Code)
+		if err != nil {
+			s.log().Warn("error counting active students", zap.Error(err))
+			return dto.AttendanceStatsDTO{}
+		}
+
+		present, err = s.eventLogRepo.CountDistinctPresentStudents(ctx, building.Code, startStr, endStr)
+		if err != nil {
+			s.log().Warn("error counting present students", zap.Error(err))
+			return dto.AttendanceStatsDTO{}
+		}
+
+		stranger, err = s.eventLogRepo.CountDistinctStrangers(ctx, building.Code, startStr, endStr)
+		if err != nil {
+			s.log().Warn("error counting strangers", zap.Error(err))
+			return dto.AttendanceStatsDTO{}
+		}
 	}
 
 	var rate float64
