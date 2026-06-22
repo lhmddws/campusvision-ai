@@ -135,7 +135,7 @@
       "get": {
         "tags": ["cameras"],
         "summary": "Aggregated camera status summary",
-        "description": "Returns online/offline/idle counts per building, plus per-camera status detail.",
+        "description": "Returns online/offline/error counts per building, plus per-camera status detail.",
         "operationId": "getCamerasStatus",
         "parameters": [
           {
@@ -152,14 +152,15 @@
                 "schema": {
                   "type": "object",
                   "properties": {
+                    "total": { "type": "integer", "example": 4 },
+                    "online": { "type": "integer", "example": 2 },
+                    "offline": { "type": "integer", "example": 1 },
+                    "error": { "type": "integer", "example": 1 },
                     "cameras": {
                       "type": "array",
                       "items": {
                         "$ref": "#/components/schemas/CameraStatusItem"
                       }
-                    },
-                    "summary": {
-                      "$ref": "#/components/schemas/CameraStatusSummary"
                     }
                   }
                 }
@@ -373,8 +374,7 @@
           {
             "name": "building_id",
             "in": "query",
-            "schema": { "type": "integer", "format": "int64" },
-            "required": true
+            "schema": { "type": "integer", "format": "int64" }
           },
           {
             "name": "start_date",
@@ -1008,7 +1008,7 @@
         "properties": {
           "building": { "type": "string" },
           "camera_id": { "type": "string" },
-          "status": { "type": "string", "enum": ["online", "offline", "idle"] },
+          "status": { "type": "string", "enum": ["online", "offline", "error"] },
           "last_health_check": { "type": "string", "format": "date-time" }
         }
       },
@@ -1018,7 +1018,7 @@
           "total": { "type": "integer", "example": 4 },
           "online": { "type": "integer", "example": 2 },
           "offline": { "type": "integer", "example": 1 },
-          "idle": { "type": "integer", "example": 1 }
+          "error": { "type": "integer", "example": 1 }
         }
       },
       "FaceEventMessage": {
