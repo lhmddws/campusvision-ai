@@ -300,3 +300,89 @@ func TestGetDailySummary_DivisionByZeroReturnsZeroRate(t *testing.T) {
 	assert.Equal(t, 0.0, summaries[0].CheckinRate)
 	assert.NoError(t, mock.ExpectationsWereMet())
 }
+
+// ---------- GetAttendanceStats with go-sqlmock ----------
+
+func TestGetAttendanceStats_BuildingIDZeroAggregatesAll(t *testing.T) {
+	mockDB, svc := newMockRecordService(t)
+
+	// building_id=0 path: no building lookup
+	mockDB.ExpectQuery(regexp.QuoteMeta("SELECT COUNT(*) FROM dorm_student_assignment WHERE active = 1")).
+		WillReturnRows(sqlmock.NewRows([]string{"COUNT(*)"}).AddRow(100))
+
+	mockDB.ExpectQuery(regexp.QuoteMeta("SELECT COUNT(DISTINCT student_id) FROM dorm_entry_exit_event WHERE DATE(timestamp) BETWEEN ? AND ? AND event_type = 'entry'")).
+		WithArgs("2025-01-01", "2025-01-02").
+		WillReturnRows(sqlmock.NewRows([]string{"COUNT(DISTINCT student_id)"}).AddRow(60))
+
+	mockDB.ExpectQuery(regexp.QuoteMeta("SELECT COUNT(DISTINCT student_id) FROM dorm_entry_exit_event WHERE DATE(timestamp) BETWEEN ? AND ? AND is_stranger = 1")).
+		WithArgs("2025-01-01", "2025-01-02").
+		WillReturnRows(sqlmock.NewRows([]string{"COUNT(DISTINCT student_id)"}).AddRow(5))
+
+	ctx := context.Background()
+	startDate := time.Date(2025, 1, 1, 0, 0, 0, 0, time.UTC)
+	endDate := time.Date(2025, 1, 2, 0, 0, 0, 0, time.UTC)
+	result := svc.GetAttendanceStats(ctx, 0, startDate, endDate)
+
+	assert.Equal(t, int64(100), result.Total)
+	assert.Equal(t, int64(60), result.Present)
+	assert.Equal(t, int64(5), result.Stranger)
+	assert.Equal(t, float64(60.0), result.Rate)
+	assert.NoError(t, mockDB.ExpectationsWereMet())
+}
+
+func TestGetAttendanceStats_BuildingIDNonzeroUsesExisting(t *testing.T) {
+	mockDB, svc := newMockRecordService(t)
+
+	// building_id!=0 path: lookup building first
+	expectBuildingByID(mockDB, 1, "A", "Building A")
+
+	mockDB.ExpectQuery(regexp.QuoteMeta("SELECT COUNT(*) FROM dorm_student_assignment WHERE building = ? AND active = 1")).
+		WithArgs("A").
+		WillReturnRows(sqlmock.NewRows([]string{"COUNT(*)"}).AddRow(80))
+
+	mockDB.ExpectQuery(regexp.QuoteMeta("SELECT COUNT(DISTINCT student_id) FROM dorm_entry_exit_event WHERE building = ? AND DATE(timestamp) BETWEEN ? AND ? AND event_type = 'entry'")).
+		WithArgs("A", "2025-01-01", "2025-01-02").
+		WillReturnRows(sqlmock.NewRows([]string{"COUNT(DISTINCT student_id)"}).AddRow(50))
+
+	mockDB.ExpectQuery(regexp.QuoteMeta("SELECT COUNT(DISTINCT student_id) FROM dorm_entry_exit_event WHERE building = ? AND DATE(timestamp) BETWEEN ? AND ? AND is_stranger = 1")).
+		WithArgs("A", "2025-01-01", "2025-01-02").
+		WillReturnRows(sqlmock.NewRows([]string{"COUNT(DISTINCT student_id)"}).AddRow(3))
+
+	ctx := context.Background()
+	startDate := time.Date(2025, 1, 1, 0, 0, 0, 0, time.UTC)
+	endDate := time.Date(2025, 1, 2, 0, 0, 0, 0, time.UTC)
+	result := svc.GetAttendanceStats(ctx, 1, startDate, endDate)
+
+	assert.Equal(t, int64(80), result.Total)
+	assert.Equal(t, int64(50), result.Present)
+	assert.Equal(t, int64(3), result.Stranger)
+	assert.Equal(t, float64(62.5), result.Rate)
+	assert.NoError(t, mockDB.ExpectationsWereMet())
+}
+
+func TestGetAttendanceStats_EmptyDataReturnsZeroRate(t *testing.T) {
+	mockDB, svc := newMockRecordService(t)
+
+	// building_id=0 path: no building lookup, zero results
+	mockDB.ExpectQuery(regexp.QuoteMeta("SELECT COUNT(*) FROM dorm_student_assignment WHERE active = 1")).
+		WillReturnRows(sqlmock.NewRows([]string{"COUNT(*)"}).AddRow(0))
+
+	mockDB.ExpectQuery(regexp.QuoteMeta("SELECT COUNT(DISTINCT student_id) FROM dorm_entry_exit_event WHERE DATE(timestamp) BETWEEN ? AND ? AND event_type = 'entry'")).
+		WithArgs("2025-01-01", "2025-01-02").
+		WillReturnRows(sqlmock.NewRows([]string{"COUNT(DISTINCT student_id)"}).AddRow(0))
+
+	mockDB.ExpectQuery(regexp.QuoteMeta("SELECT COUNT(DISTINCT student_id) FROM dorm_entry_exit_event WHERE DATE(timestamp) BETWEEN ? AND ? AND is_stranger = 1")).
+		WithArgs("2025-01-01", "2025-01-02").
+		WillReturnRows(sqlmock.NewRows([]string{"COUNT(DISTINCT student_id)"}).AddRow(0))
+
+	ctx := context.Background()
+	startDate := time.Date(2025, 1, 1, 0, 0, 0, 0, time.UTC)
+	endDate := time.Date(2025, 1, 2, 0, 0, 0, 0, time.UTC)
+	result := svc.GetAttendanceStats(ctx, 0, startDate, endDate)
+
+	assert.Equal(t, int64(0), result.Total)
+	assert.Equal(t, int64(0), result.Present)
+	assert.Equal(t, int64(0), result.Stranger)
+	assert.Equal(t, float64(0.0), result.Rate)
+	assert.NoError(t, mockDB.ExpectationsWereMet())
+}
