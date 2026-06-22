@@ -7,9 +7,8 @@
   <img src="https://img.shields.io/badge/TypeScript-5-3176C8?logo=typescript" alt="TypeScript">
   <img src="https://img.shields.io/badge/Kafka-7.6-231F20?logo=apache-kafka" alt="Kafka">
   <img src="https://img.shields.io/badge/license-MIT-green" alt="License">
+  <a href="https://github.com/lhmddws/campusvision-ai/actions/workflows/ci.yml"><img src="https://github.com/lhmddws/campusvision-ai/actions/workflows/ci.yml/badge.svg" alt="CI"></a>
 </p>
-
-[![CI](https://github.com/lhmddws/campusvision-ai/actions/workflows/ci.yml/badge.svg)](https://github.com/lhmddws/campusvision-ai/actions/workflows/ci.yml)
 
 AI-powered dormitory surveillance system with multi-camera RTSP streaming, real-time face recognition, automated attendance & alerting, and a Vue 3 SPA dashboard.
 
