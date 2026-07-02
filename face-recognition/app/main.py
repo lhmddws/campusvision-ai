@@ -8,6 +8,7 @@ SIMS API matching → direction detection → and produces events to
 import base64
 import json
 import logging
+import os
 import signal
 import time
 
@@ -16,6 +17,7 @@ import numpy as np
 import structlog
 from kafka import KafkaConsumer, KafkaProducer
 
+from app.api import start_api_server
 from app.behavior import BehaviorAnalyzer
 from app.config import load_config
 from app.dedup import DedupFilter
@@ -105,6 +107,12 @@ def main():
         event_topic=cfg.kafka.event_topic,
         brokers=cfg.kafka.brokers,
     )
+
+    # ------------------------------------------------------------------
+    # Start face-extraction API (background thread)
+    # ------------------------------------------------------------------
+    api_port = int(os.environ.get("FACE_API_PORT", "8084"))
+    api_server = start_api_server(detector, extractor, port=api_port)
 
     # ------------------------------------------------------------------
     # Graceful shutdown
@@ -272,6 +280,7 @@ def main():
                 time.sleep(1)
     finally:
         log.info("shutting_down")
+        api_server.shutdown()
         consumer.close()
         producer.close()
         if event_publisher:
