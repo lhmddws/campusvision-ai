@@ -27,6 +27,11 @@ export default defineConfig(({ mode, command }) => {
           changeOrigin: true,
           rewrite: p => p.replace(/^\/dev-api/, ''),
         },
+        '/api/gateway': {
+          target: 'http://localhost:8081',
+          changeOrigin: true,
+          rewrite: p => p.replace(/^\/api\/gateway/, ''),
+        },
       },
     },
     resolve: {
