@@ -9,6 +9,9 @@ onnxruntime>=1.16
 # Kafka
 kafka-python>=2.0
 
+# Snappy decompression for Kafka topics (t_dorm_frame uses Snappy)
+python-snappy>=0.6
+
 # HTTP (SIMS API)
 httpx>=0.26
 

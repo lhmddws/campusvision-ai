@@ -48,6 +48,9 @@ RUN if [ "$BUILD_MODELS" = "1" ]; then \
         python -c "import os; f=[x for x in os.listdir('app/models') if x.endswith('.onnx')]; print(f'[INFO] Found {len(f)} pre-downloaded model(s)' if f else '[INFO] No pre-downloaded models. Will download at runtime if needed.')"; \
     fi
 
+# models/ were COPY'd as root — make them readable by appuser
+RUN chown -R appuser:appgroup app/models/
+
 USER appuser
 HEALTHCHECK --interval=30s --timeout=10s --start-period=60s --retries=3 \
   CMD python -c "import app.main; exit(0)" 2>/dev/null || exit 1

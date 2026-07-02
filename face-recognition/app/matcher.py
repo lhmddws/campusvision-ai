@@ -86,7 +86,7 @@ class FaceMatcher:
                 result["from_cache"] = False
                 return result
         except (httpx.RequestError, httpx.HTTPStatusError, Exception) as exc:
-            logger.warning("SIMS API call failed, falling back to cache", error=str(exc))
+            logger.warning("SIMS API call failed, falling back to cache: %s", str(exc))
 
         # 2. Fallback: scan cached embeddings
         if self.config.match.fallback_to_cache:
