@@ -84,12 +84,19 @@ export const constantRoutes: RouteRecordRaw[] = [
   {
     path: '/camera',
     component: Layout,
+    meta: { title: '摄像头管理', icon: 'date' },
     children: [
       {
         path: 'index',
         component: () => import('@/views/camera/index.vue'),
         name: 'Camera',
-        meta: { title: '摄像头管理', icon: 'monitor' },
+        meta: { title: '编辑摄像头', icon: 'monitor' },
+      },
+      {
+        path: 'detection-status',
+        component: () => import('@/views/camera/detection-status.vue'),
+        name: 'CameraDetectionStatus',
+        meta: { title: '检测状态', icon: 'monitor' },
       },
     ],
   },

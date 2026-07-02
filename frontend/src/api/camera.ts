@@ -13,6 +13,7 @@ export interface Camera {
   total_frames: number | null;
   last_heartbeat: string | null;
   last_event_time: string | null;
+  last_health_check: string | null;
   enabled: boolean;
   config_json: string | null;
   remark: string | null;
@@ -22,7 +23,12 @@ export interface Camera {
 
 /** 查询摄像头列表 */
 export function listCameras(building?: string) {
-  return request({ url: '/sims/dorm/cameras', method: 'get', params: { building } });
+  return request({ url: '/sims/dorm/cameras', method: 'get', params: { building } }).then((res: any) => {
+    if (res?.data?.length > 0) {
+      console.log('=== listCameras last item rtsp_url ===', res.data[res.data.length - 1]?.rtsp_url);
+    }
+    return res;
+  });
 }
 
 /** 查询单个摄像头详情 */
@@ -32,6 +38,7 @@ export function getCamera(id: string) {
 
 /** 新增摄像头 */
 export function addCamera(data: Partial<Camera>) {
+  console.log('=== addCamera request data ===', JSON.stringify(data));
   return request({ url: '/sims/dorm/cameras', method: 'post', data });
 }
 
@@ -61,5 +68,18 @@ export function getCameraSnapshots(id: string, page: number, size: number) {
     url: `/sims/dorm/cameras/${id}/snapshots`,
     method: 'get',
     params: { page, size },
+  });
+}
+
+/** 查询网关摄像头健康状态（stream-gateway 管理端口） */
+export function getGatewayCameraHealth(cameraId: string) {
+  return request({
+    url: `/api/gateway/cameras/${cameraId}/health`,
+    method: 'get',
+    headers: {
+      'X-Management-Key': import.meta.env.VITE_GATEWAY_MGMT_KEY || '',
+      isToken: false,
+    },
+    baseURL: '',
   });
 }
