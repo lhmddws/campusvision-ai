@@ -13,6 +13,7 @@ RUN addgroup -S appgroup && adduser -S appuser -G appgroup
 WORKDIR /app
 COPY --from=builder /build/dormitory-service .
 COPY config.docker.yaml config.yaml
+RUN mkdir -p uploads/faces && chown -R appuser:appgroup uploads
 EXPOSE 8083
 USER appuser
 HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \

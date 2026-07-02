@@ -2,6 +2,7 @@ package handler
 
 import (
 	"errors"
+	"io"
 	"net/http"
 	"strconv"
 
@@ -36,6 +37,47 @@ func (h *FaceHandler) Create(c *gin.Context) {
 			return
 		}
 		Error(c, http.StatusInternalServerError, "Failed to create face record: "+err.Error())
+		return
+	}
+
+	Created(c, face)
+}
+
+// Enroll    POST /sims/dorm/faces/enroll
+func (h *FaceHandler) Enroll(c *gin.Context) {
+	studentID := c.PostForm("student_id")
+	name := c.PostForm("name")
+	if studentID == "" || name == "" {
+		Error(c, http.StatusBadRequest, "student_id and name are required")
+		return
+	}
+	roomNumber := c.PostForm("room_number")
+
+	file, _, err := c.Request.FormFile("photo")
+	if err != nil {
+		Error(c, http.StatusBadRequest, "photo file is required: "+err.Error())
+		return
+	}
+	defer func() { _ = file.Close() }()
+
+	photoBytes, err := io.ReadAll(file)
+	if err != nil {
+		Error(c, http.StatusInternalServerError, "failed to read photo: "+err.Error())
+		return
+	}
+
+	face, err := h.svc.Enroll(c.Request.Context(), dto.FaceEnrollDTO{
+		StudentID:  studentID,
+		Name:       name,
+		RoomNumber: roomNumber,
+		PhotoBytes: photoBytes,
+	})
+	if err != nil {
+		if errors.Is(err, service.ErrDuplicateStudentID) {
+			Error(c, http.StatusConflict, "student_id already exists")
+			return
+		}
+		Error(c, http.StatusInternalServerError, "Failed to enroll face: "+err.Error())
 		return
 	}
 

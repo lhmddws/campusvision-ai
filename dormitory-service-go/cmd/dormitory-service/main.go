@@ -123,7 +123,7 @@ func main() {
 	recordSvc := service.NewRecordService(eventLogRepo, studentRepo, buildingRepo, logger)
 	alertSvc := service.NewAlertService(alertRepo, strangerRecordRepo, logger)
 	configSvc := service.NewConfigService(configRepo, logger)
-	faceSvc := service.NewFaceService(faceRepo, logger)
+	faceSvc := service.NewFaceService(faceRepo, logger, cfg.FaceRecognition.APIURL)
 
 	// Initialize handlers
 	h := handler.NewHandler(cameraSvc, recordSvc, alertSvc, configSvc, db, cfg.Face.MatchThreshold, cfg.Face.MatchKey)
@@ -292,6 +292,7 @@ func main() {
 	{
 		faces.GET("", faceHandler.List)
 		faces.POST("", faceHandler.Create)
+		faces.POST("/enroll", faceHandler.Enroll)
 		faces.PUT("/:id", faceHandler.Update)
 		faces.DELETE("/:id", faceHandler.Delete)
 		faces.POST("/batch-import", faceHandler.BatchImport)
@@ -302,6 +303,9 @@ func main() {
 	{
 		faceInternal.POST("/match", h.FaceMatch)
 	}
+
+	// Serve uploaded face photos
+	router.Static("/uploads", "./uploads")
 
 	// Start Kafka consumers and schedulers
 	consumerCtx, consumerCancel := context.WithCancel(context.Background())

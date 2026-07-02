@@ -18,8 +18,9 @@ type Config struct {
 	Auth     AuthConfig     `mapstructure:"auth"`
 	Face     FaceConfig     `mapstructure:"face"`
 	Camera   CameraConfig   `mapstructure:"camera"`
-	Gateway  GatewayConfig  `mapstructure:"gateway"`
-	Log      LogConfig      `mapstructure:"log"`
+	Gateway          GatewayConfig          `mapstructure:"gateway"`
+	FaceRecognition  FaceRecognitionConfig  `mapstructure:"face_recognition"`
+	Log              LogConfig              `mapstructure:"log"`
 }
 
 // ServerConfig holds HTTP server settings.
@@ -74,6 +75,10 @@ type FaceConfig struct {
 	MatchKey       string  `mapstructure:"match_key"`
 }
 
+type FaceRecognitionConfig struct {
+	APIURL string `mapstructure:"api_url"`
+}
+
 // CameraConfig holds camera management settings.
 type CameraConfig struct {
 	MaxCameras int `mapstructure:"max_cameras"`
@@ -125,6 +130,7 @@ func Load(configPath string) (*Config, error) {
 	v.SetDefault("camera.max_cameras", 50)
 	v.SetDefault("gateway.url", "http://localhost:8080")
 	v.SetDefault("gateway.management_url", "http://localhost:8081")
+	v.SetDefault("face_recognition.api_url", "http://localhost:8084/api/face/extract")
 	v.SetDefault("log.level", "info")
 
 	// --- Config file ---

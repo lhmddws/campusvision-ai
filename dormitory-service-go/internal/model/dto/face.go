@@ -17,3 +17,11 @@ type FaceUpdateDTO struct {
 type FaceBatchImportDTO struct {
 	Students []FaceCreateDTO `json:"students" binding:"required,min=1"`
 }
+
+// FaceEnrollDTO holds enrollment data decoded from multipart form.
+type FaceEnrollDTO struct {
+	StudentID  string
+	Name       string
+	RoomNumber string
+	PhotoBytes []byte
+}

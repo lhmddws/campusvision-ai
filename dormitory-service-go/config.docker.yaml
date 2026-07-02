@@ -36,5 +36,8 @@ face:
     # Cosine similarity threshold (0.0-1.0). Face match passes when >= threshold.
     match_threshold: 0.65
 
+face_recognition:
+    api_url: "http://face-recognition:8084/api/face/extract"
+
 log:
     level: "info"
