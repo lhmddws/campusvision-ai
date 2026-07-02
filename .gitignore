@@ -85,6 +85,8 @@ doc/api/*.env
 # ==================== Go Binaries ====================
 stream-gateway/main
 dormitory-service-go/dormitory-service
+**/bin/
+uploads/
 
 # ==================== Agent / Tool Artifacts ====================
 .agents/
