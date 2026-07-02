@@ -341,6 +341,7 @@ type cameraHealthResp struct {
 	Status        string  `json:"status"`
 	UptimeSeconds int64   `json:"uptime_seconds"`
 	FPS           float64 `json:"fps"`
+	FramesSent    int64   `json:"frames_sent"`
 }
 
 // HealthCheck calls per-camera health endpoint on stream-gateway and updates camera status.
@@ -355,6 +356,8 @@ func (s *CameraService) HealthCheck(ctx context.Context, cameraID string) error 
 
 	oldStatus := cam.Status
 	newStatus := "offline"
+	var fps float64
+	var totalFrames int64
 	healthURL := s.managementURL + "/cameras/" + cameraID + "/health"
 
 	client := &http.Client{Timeout: 5 * time.Second}
@@ -367,6 +370,8 @@ func (s *CameraService) HealthCheck(ctx context.Context, cameraID string) error 
 				switch healthResp.Status {
 				case "connected":
 					newStatus = "online"
+					fps = healthResp.FPS
+					totalFrames = healthResp.FramesSent
 				case "disconnected":
 					newStatus = "offline"
 				}
@@ -376,7 +381,7 @@ func (s *CameraService) HealthCheck(ctx context.Context, cameraID string) error 
 		}
 	}
 
-	if err := s.cameraRepo.UpdateStatus(ctx, cameraID, newStatus, 0, 0); err != nil {
+	if err := s.cameraRepo.UpdateStatus(ctx, cameraID, newStatus, fps, totalFrames); err != nil {
 		return fmt.Errorf("update status: %w", err)
 	}
 	if err := s.cameraRepo.UpdateHealthCheck(ctx, cameraID); err != nil {
