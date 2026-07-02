@@ -228,6 +228,10 @@ function getList() {
   listCameras(queryParams.building)
     .then((res: any) => {
       cameraList.value = res.data || [];
+      if (cameraList.value.length > 0) {
+        const last = cameraList.value[cameraList.value.length - 1];
+        console.log('=== getList last item ===', JSON.stringify(last));
+      }
     })
     .catch(() => {
       cameraList.value = [];
@@ -446,7 +450,7 @@ function submitForm() {
           ElMessage.error('修改失败');
         });
     } else {
-      addCamera({
+      const submitData = {
         camera_id: form.camera_id,
         name: form.name,
         building: form.building,
@@ -454,7 +458,9 @@ function submitForm() {
         direction: form.direction,
         resolution: form.resolution,
         remark: form.remark,
-      } as Partial<Camera>)
+      };
+      console.log('=== submitData rtsp_url ===', JSON.stringify(submitData));
+      addCamera(submitData as Partial<Camera>)
         .then(() => {
           ElMessage.success('新增成功');
           dialogVisible.value = false;

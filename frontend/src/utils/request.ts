@@ -41,7 +41,7 @@ service.interceptors.request.use(
       config.params = {};
       config.url = url;
     }
-    if (!isRepeatSubmit && (config.method === 'post' || config.method === 'put')) {
+    if (!isRepeatSubmit && (config.method === 'post' || config.method === 'put') && !(config.data instanceof FormData)) {
       const requestObj = {
         url: config.url,
         data: typeof config.data === 'object' ? JSON.stringify(config.data) : config.data,
@@ -120,7 +120,7 @@ service.interceptors.response.use(
         type: 'warning',
       });
       return Promise.reject(new Error(msg));
-    } else if (code !== 200) {
+    } else if (code !== 200 && code !== 201) {
       ElNotification.error({
         title: msg,
       });

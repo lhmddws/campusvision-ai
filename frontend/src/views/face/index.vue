@@ -34,7 +34,7 @@
     </div>
 
     <!-- Photo Card Grid -->
-    <div v-loading="snapshotsLoading" class="cv-grid-wrap">
+    <div v-loading="selectedCameraId ? snapshotsLoading : faceListLoading" class="cv-grid-wrap">
       <div v-if="filteredSnapshots.length > 0" class="cv-face-grid">
         <div
           v-for="snap in paginatedSnapshots"
@@ -87,9 +87,12 @@
           </div>
           <div class="cv-face-card__info">
             <div class="cv-face-card__name">
-              {{ snap.student_id || '未知' }}
+              {{ snap.name || snap.student_id || '未知' }}
             </div>
-            <div v-if="snap.event_time" class="cv-face-card__meta">
+            <div v-if="snap.student_id && snap.name" class="cv-face-card__meta">
+              {{ snap.student_id }}
+            </div>
+            <div v-else-if="snap.event_time" class="cv-face-card__meta">
               {{ snap.event_time }}
             </div>
           </div>
@@ -240,11 +243,15 @@ import { Picture, Plus, Upload } from '@element-plus/icons-vue';
 import {
   getSnapshots,
   listCameras,
+  listFaces,
   addFace,
+  enrollFace,
   updateFace,
   deleteFace,
   batchImportFaces,
 } from '@/api/face';
+
+const apiBase = import.meta.env.VITE_APP_BASE_API || '';
 
 // ── 类型定义 ──────────────────────────────────────────
 
@@ -283,6 +290,33 @@ async function fetchCameras() {
 function handleCameraChange() {
   snapshotsPage.value = 1;
   fetchSnapshots();
+}
+
+// ── 已录入人脸列表 ─────────────────────────────────────
+
+interface FaceRecord {
+  id: number;
+  student_id: string;
+  name: string;
+  room_number?: string;
+  image_path?: string;
+  created_at: string;
+}
+
+const faceList = ref<FaceRecord[]>([]);
+const faceListLoading = ref(false);
+
+async function fetchFaces() {
+  faceListLoading.value = true;
+  try {
+    const res: any = await listFaces(1, 100);
+    const data = res.data;
+    faceList.value = data?.items ?? data ?? [];
+  } catch {
+    faceList.value = [];
+  } finally {
+    faceListLoading.value = false;
+  }
 }
 
 // ── 快照列表 ───────────────────────────────────────────
@@ -327,6 +361,24 @@ function handleSizeChange() {
 const searchKeyword = ref('');
 
 const filteredSnapshots = computed(() => {
+  // When no camera selected, show enrolled faces
+  if (!selectedCameraId.value) {
+    let list = faceList.value.map(f => ({
+      id: f.id,
+      snapshot_path: f.image_path ? apiBase + '/' + f.image_path : '',
+      student_id: f.student_id,
+      name: f.name,
+      room_number: f.room_number || '',
+      confidence: 0,
+      event_time: f.created_at || '',
+    }));
+    if (searchKeyword.value) {
+      const kw = searchKeyword.value.toLowerCase();
+      list = list.filter(s => (s.student_id && s.student_id.toLowerCase().includes(kw)) ||
+        (s.name && s.name.toLowerCase().includes(kw)));
+    }
+    return list;
+  }
   let list = snapshots.value;
   if (searchKeyword.value) {
     const kw = searchKeyword.value.toLowerCase();
@@ -403,7 +455,7 @@ function handleEdit(snap: Snapshot) {
   dialogTitle.value = '编辑人脸';
   form.student_id = snap.student_id || '';
   form.name = snap.name || '';
-  form.room_number = snap.room_number || '';
+  form.room_number = (snap as any).room_number || '';
   dialogVisible.value = true;
 }
 
@@ -418,30 +470,37 @@ function handlePhotoRemove() {
 function submitForm() {
   formRef.value?.validate((valid: boolean) => {
     if (!valid) return;
-    const payload = {
-      student_id: form.student_id,
-      name: form.name,
-      room_number: form.room_number,
+    const afterSubmit = () => {
+      dialogVisible.value = false;
+      fetchFaces();
+      if (selectedCameraId.value) fetchSnapshots();
     };
     if (isEdit.value) {
       updateFace(form.student_id as any, { name: form.name, room_number: form.room_number })
         .then(() => {
           ElMessage.success('修改成功');
-          dialogVisible.value = false;
-          fetchSnapshots();
+          afterSubmit();
         })
         .catch(() => {
           ElMessage.error('修改失败');
         });
     } else {
-      addFace(payload)
+      if (!form.photo) {
+        ElMessage.warning('请上传人脸照片');
+        return;
+      }
+      const fd = new FormData();
+      fd.append('student_id', form.student_id);
+      fd.append('name', form.name);
+      fd.append('room_number', form.room_number || '');
+      fd.append('photo', form.photo);
+      enrollFace(fd)
         .then(() => {
-          ElMessage.success('添加成功');
-          dialogVisible.value = false;
-          fetchSnapshots();
+          ElMessage.success('录入成功');
+          afterSubmit();
         })
         .catch(() => {
-          ElMessage.error('添加失败');
+          ElMessage.error('录入失败');
         });
     }
   });
@@ -465,7 +524,8 @@ function handleDelete(snap: Snapshot) {
     })
     .then(() => {
       ElMessage.success('删除成功');
-      fetchSnapshots();
+      fetchFaces();
+      if (selectedCameraId.value) fetchSnapshots();
     })
     .catch((err: any) => {
       if (err !== 'cancel' && err !== 'close') {
@@ -516,7 +576,8 @@ function submitBatchImport() {
           `导入完成：成功 ${data.created || students.length} 条，重复跳过 ${data.duplicates || 0} 条`,
         );
         batchDialogVisible.value = false;
-        fetchSnapshots();
+        fetchFaces();
+        if (selectedCameraId.value) fetchSnapshots();
       })
       .catch(() => {
         ElMessage.error('批量导入失败');
@@ -529,6 +590,7 @@ function submitBatchImport() {
 
 onMounted(() => {
   fetchCameras();
+  fetchFaces();
 });
 </script>
 

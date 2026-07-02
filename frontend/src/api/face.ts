@@ -27,12 +27,22 @@ export function listFaces(page = 1, size = 20) {
   });
 }
 
-/** 新增人脸记录 */
+/** 新增人脸记录 (JSON) */
 export function addFace(data: { student_id: string; name: string; room_number?: string }) {
   return request({
     url: '/sims/dorm/faces',
     method: 'post',
     data,
+  });
+}
+
+/** 新增人脸记录 (FormData, 含照片) */
+export function enrollFace(data: FormData) {
+  return request({
+    url: '/sims/dorm/faces/enroll',
+    method: 'post',
+    data,
+    headers: { 'Content-Type': undefined as any },
   });
 }
 
