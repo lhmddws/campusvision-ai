@@ -167,11 +167,15 @@ func syncCamerasFromDB(ctx context.Context, db *sql.DB, camManager *camera.Manag
 	for rows.Next() {
 		var cam config.CameraConfig
 		var enabled int
-		if err := rows.Scan(&cam.ID, &cam.Building, &cam.RTSPURL, &enabled, &cam.Components.PasswordEnc, &cam.Components.Nonce, &cam.Components.KeyID); err != nil {
+		var passwordEnc, nonce, keyID sql.NullString
+		if err := rows.Scan(&cam.ID, &cam.Building, &cam.RTSPURL, &enabled, &passwordEnc, &nonce, &keyID); err != nil {
 			log.Printf("[dbpoll] scan error: %v", err)
 			continue
 		}
 		cam.Enabled = enabled == 1
+		cam.Components.PasswordEnc = passwordEnc.String
+		cam.Components.Nonce = nonce.String
+		cam.Components.KeyID = keyID.String
 		cameras = append(cameras, cam)
 	}
 	if err := rows.Err(); err != nil {

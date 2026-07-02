@@ -100,6 +100,7 @@ type cameraHealthResponse struct {
 	Status        string  `json:"status"`
 	UptimeSeconds int64   `json:"uptime_seconds"`
 	FPS           float64 `json:"fps"`
+	FramesSent    int64   `json:"frames_sent"`
 }
 
 func (h *Handler) handleCameraByID(w http.ResponseWriter, r *http.Request) {
@@ -132,6 +133,7 @@ func (h *Handler) handleCameraByID(w http.ResponseWriter, r *http.Request) {
 			Status:        statusStr,
 			UptimeSeconds: status.UptimeSeconds,
 			FPS:           status.FPS,
+			FramesSent:    status.FramesSent,
 		})
 		return
 	}

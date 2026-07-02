@@ -80,6 +80,7 @@ func (d *Decoder) Start(ctx context.Context) (<-chan []byte, error) {
 	if err := cmd.Start(); err != nil {
 		return nil, fmt.Errorf("decoder start ffmpeg: %w", err)
 	}
+	log.Printf("[decoder] ffmpeg started PID=%d for %s", cmd.Process.Pid, d.rtspURL)
 	d.running.Store(true)
 
 	// Read stderr asynchronously – ffmpeg logs diagnostic info there.
@@ -121,8 +122,10 @@ func (d *Decoder) Stop() {
 func (d *Decoder) readStderr(r io.ReadCloser) {
 	defer func() { _ = r.Close() }()
 
+	log.Printf("[decoder] readStderr started for %s", d.rtspURL)
+
 	scanner := bufio.NewScanner(r)
-	scanner.Buffer(make([]byte, 4096), 4096)
+	scanner.Buffer(make([]byte, 256*1024), 256*1024) // ponytail: ffmpeg init lines can exceed 4KB
 	for scanner.Scan() {
 		line := scanner.Text()
 		if isErrorLine(line) {
@@ -132,6 +135,7 @@ func (d *Decoder) readStderr(r io.ReadCloser) {
 	if err := scanner.Err(); err != nil {
 		log.Printf("[decoder] stderr scan error [%s]: %v", d.rtspURL, err)
 	}
+	log.Printf("[decoder] readStderr stopped for %s", d.rtspURL)
 }
 
 // isErrorLine returns true when the line looks like an FFmpeg error.
@@ -149,6 +153,7 @@ func isErrorLine(line string) bool {
 // or a read error occurs.
 func (d *Decoder) readFrames(frameCh chan<- []byte, frameSize int) {
 	defer func() {
+		log.Printf("[decoder] readFrames stopped for %s", d.rtspURL)
 		d.running.Store(false)
 		close(frameCh)
 		// Reap the child process so it doesn't become a zombie.
@@ -157,19 +162,29 @@ func (d *Decoder) readFrames(frameCh chan<- []byte, frameSize int) {
 		}
 	}()
 
+	log.Printf("[decoder] readFrames started for %s (frameSize=%d)", d.rtspURL, frameSize)
+
 	buf := make([]byte, frameSize)
 	reader := bufio.NewReaderSize(d.stdout, frameSize*2)
 
+	frameCount := 0
 	for {
 		select {
 		case <-d.stopCh:
+			log.Printf("[decoder] readFrames got stop signal for %s", d.rtspURL)
 			return
 		default:
 		}
 
 		// io.ReadFull guarantees we get exactly frameSize bytes or an error.
 		if _, err := io.ReadFull(reader, buf); err != nil {
+			log.Printf("[decoder] readFrames read error for %s: %v", d.rtspURL, err)
 			return
+		}
+
+		frameCount++
+		if frameCount <= 3 || frameCount%100 == 0 {
+			log.Printf("[decoder] readFrames read frame #%d for %s", frameCount, d.rtspURL)
 		}
 
 		// Copy the frame so the buffer can be reused.
@@ -179,6 +194,7 @@ func (d *Decoder) readFrames(frameCh chan<- []byte, frameSize int) {
 		select {
 		case frameCh <- frame:
 		case <-d.stopCh:
+			log.Printf("[decoder] readFrames stop while sending for %s", d.rtspURL)
 			return
 		}
 	}

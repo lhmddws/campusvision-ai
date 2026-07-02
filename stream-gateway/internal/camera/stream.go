@@ -137,6 +137,13 @@ func (s *Stream) processFrames(ctx context.Context, dec *decoder.Decoder, frameC
 
 			shouldCapture, motionScore := ext.ShouldCapture(rawFrame, s.frameCfg.Width, s.frameCfg.Height)
 			if !shouldCapture {
+				// ponytail: emit periodic status even when no frame is captured, so
+				// the health endpoint shows connected=true. Without this the Manager
+				// statuses map keeps the initial {Connected: false} forever.
+				if time.Since(lastStatusUpdate) > 5*time.Second {
+					s.emitStatusUpdate()
+					lastStatusUpdate = time.Now()
+				}
 				continue
 			}
 
