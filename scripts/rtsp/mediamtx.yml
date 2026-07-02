@@ -16,8 +16,7 @@ paths:
     source: publisher
     sourceOnDemand: false
 
-# 开发环境不要求认证
-rtspAuthMethods: []
+rtspAuthMethods: [basic]
 
 # 日志级别
 logLevel: info

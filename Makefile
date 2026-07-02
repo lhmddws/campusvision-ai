@@ -7,7 +7,7 @@ FACE_RECOGNITION_DIR  := face-recognition
 FRONTEND_DIR          := frontend
 BIN_DIR               := bin
 
-.PHONY: help infra-up infra-down infra-logs build build-go test test-go test-py test-frontend lint lint-go lint-py lint-frontend clean models dev docker-build
+.PHONY: help infra-up infra-down infra-logs build build-go test test-go test-py test-frontend lint lint-go lint-py lint-frontend clean models dev docker-build run-stream-gateway run-dormitory-service run-face-recognition run-frontend run-all build-stream-gateway build-dormitory-service build-face-recognition build-frontend
 
 help: ## List all available targets
 	@echo "CampusVision AI - Development Makefile"
@@ -90,6 +90,52 @@ dev: ## Print instructions for starting all services in dev mode
 	@echo "     $$ cd $(FRONTEND_DIR) && pnpm dev"
 	@echo ""
 	@echo "  Ports:  8080 (health)  8081 (mgmt)  8083 (API)  80 (frontend)"
+
+# ────────────────────────────────────────────────────────────────
+# Individual build targets
+# ────────────────────────────────────────────────────────────────
+
+build-stream-gateway: ## Build stream-gateway binary
+	@mkdir -p $(STREAM_GATEWAY_DIR)/$(BIN_DIR)
+	cd $(STREAM_GATEWAY_DIR) && go build -o $(BIN_DIR)/stream-gateway ./cmd/main.go
+	@echo "✅ stream-gateway built: $(STREAM_GATEWAY_DIR)/$(BIN_DIR)/stream-gateway"
+
+build-dormitory-service: ## Build dormitory-service-go binary
+	@mkdir -p $(DORMITORY_SERVICE_DIR)/$(BIN_DIR)
+	cd $(DORMITORY_SERVICE_DIR) && go build -o $(BIN_DIR)/dormitory-service ./cmd/dormitory-service/
+	@echo "✅ dormitory-service built: $(DORMITORY_SERVICE_DIR)/$(BIN_DIR)/dormitory-service"
+
+build-face-recognition: ## Install face-recognition deps (uv sync)
+	cd $(FACE_RECOGNITION_DIR) && uv sync 2>/dev/null || pip install -r requirements.txt
+	@echo "✅ face-recognition dependencies installed"
+
+build-frontend: ## Build frontend for production
+	cd $(FRONTEND_DIR) && pnpm build:prod
+	@echo "✅ frontend built: $(FRONTEND_DIR)/dist"
+
+# ────────────────────────────────────────────────────────────────
+# Individual run targets (start one service, requires infra)
+# ────────────────────────────────────────────────────────────────
+
+run-stream-gateway: ## Run stream-gateway (dev, port 8080/8081)
+	@echo "Starting stream-gateway on :8080 (health) / :8081 (mgmt)..."
+	cd $(STREAM_GATEWAY_DIR) && go run cmd/main.go --config config.yaml
+
+run-dormitory-service: ## Run dormitory-service-go (dev, port 8083)
+	@echo "Starting dormitory-service-go on :8083..."
+	cd $(DORMITORY_SERVICE_DIR) && CONFIG_PATH=config.yaml go run ./cmd/dormitory-service/
+
+run-face-recognition: ## Run face-recognition (Kafka consumer)
+	@echo "Starting face-recognition (Kafka consumer)..."
+	cd $(FACE_RECOGNITION_DIR) && python -m app.main --config config.yaml
+
+run-frontend: ## Run frontend dev server (port 80)
+	@echo "Starting frontend dev server on :80..."
+	cd $(FRONTEND_DIR) && pnpm dev
+
+run-all: infra-up ## Run all services (tmux mode)
+	@echo "Starting all services in tmux session 'campusvision'..."
+	@./scripts/start-all.sh
 
 docker-build: ## Build all Docker images
 	docker compose build

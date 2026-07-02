@@ -331,11 +331,6 @@ services:
             - "9996:9996"     # WebRTC/metrics
         volumes:
             - ./scripts/rtsp/mediamtx.yml:/mediamtx.yml
-        healthcheck:
-            test: ["CMD", "wget", "-qO-", "http://localhost:9996/"]
-            interval: 10s
-            timeout: 3s
-            retries: 3
         deploy:
             resources:
                 limits:
